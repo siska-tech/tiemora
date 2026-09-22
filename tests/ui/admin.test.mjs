@@ -318,8 +318,8 @@ test('a staff order takes several products, each with its own options and quanti
   form.elements.customer_name.value = 'Nguyễn Mai';
   form.elements.fulfillment_date.value = form.elements.fulfillment_date.value || '2026-01-01';
   form.dispatchEvent(new window.Event('submit', {bubbles: true, cancelable: true}));
-  await until(() => window.location.hash.startsWith('#/orders/ord-') || d.getElementById('order-error').textContent, 'redirect to the new order');
-  assert.equal(d.getElementById('order-error').textContent, '');
+  await until(() => window.location.hash.startsWith('#/orders/ord-') || d.getElementById('order-error')?.textContent, 'redirect to the new order');
+  assert.match(window.location.hash, /^#\/orders\/ord-/, d.getElementById('order-error')?.textContent || 'the form neither sent nor reported an error');
   const id = decodeURIComponent(window.location.hash.slice('#/orders/'.length));
   const {data} = await api('GET', `/api/admin/orders/${id}`);
   assert.deepEqual(data.order.items.map(i => [i.product_id, i.quantity, i.options.size ?? null, i.addons]), [['pho-1', 1, 'large', ['quay']], ['tra-1', 2, null, []]]);
