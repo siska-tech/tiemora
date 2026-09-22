@@ -1,0 +1,62 @@
+﻿id: pho-bo-tai-nam
+type: sale
+
+name:
+  vi: Phở bò tái nạm
+  en: Phở bò tái nạm
+
+category: pho-bo
+
+description:
+  vi: Đậm vị gân và thịt bò tái nạm nổi tiếng ở Hà Nội.
+  en: A richer beef pho with well-balanced slices and brisket texture.
+
+price:
+  sale: 50000
+currency: VND
+
+options:
+  size:
+    - regular
+    - large
+  noodles:
+    - normal
+    - less
+    - extra
+  herbs:
+    - normal
+    - no-herbs
+  spice:
+    - none
+    - normal
+    - extra
+
+addons:
+  - extra-beef
+  - egg
+  - quay
+  - extra-noodles
+
+fulfillment:
+  pickup: true
+  delivery: false
+  dine_in: true
+
+ordering:
+  preorder: true
+  # No count: a phở shop does not tally bowls, it says "hết rồi". Staff flip the sold-out
+  # switch in /admin/ (Menu) when something runs out and back on the next morning.
+  stock: null
+
+placeholder: false
+color: "#b65b3d"
+bg: "#f7efe7"
+
+available: true
+featured: true
+order: 12
+
+tags:
+  - pho
+  - vietnam
+  - local-food

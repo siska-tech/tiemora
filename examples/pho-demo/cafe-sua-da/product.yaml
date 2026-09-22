@@ -1,0 +1,56 @@
+﻿id: cafe-sua-da
+type: sale
+
+name:
+  vi: Cà phê sữa đá
+  en: Iced coffee with milk
+
+category: do-uong
+
+description:
+  vi: Cà phê sữa đá truyền thống cho buổi sáng bền bỉ.
+  en: Traditional Vietnamese iced coffee with sweetened condensed milk.
+
+price:
+  sale: 25000
+currency: VND
+
+options:
+  size:
+    - regular
+    - {id: large, price: 8000}
+  ice:
+    - normal
+    - less
+    - none
+  sweetness:
+    - normal
+    - less
+    - extra
+
+addons:
+  - extra-shot
+
+fulfillment:
+  pickup: true
+  delivery: false
+  dine_in: true
+
+ordering:
+  preorder: true
+  # No count: a phở shop does not tally bowls, it says "hết rồi". Staff flip the sold-out
+  # switch in /admin/ (Menu) when something runs out and back on the next morning.
+  stock: null
+
+placeholder: false
+color: "#b65b3d"
+bg: "#f7efe7"
+
+available: true
+featured: false
+order: 42
+
+tags:
+  - pho
+  - vietnam
+  - local-food

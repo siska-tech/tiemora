@@ -1,0 +1,52 @@
+﻿id: nuoc-sau
+type: sale
+
+name:
+  vi: Nước sấu
+  en: Sour plum drink
+
+category: do-uong
+
+description:
+  vi: Nước sấu chua ngọt, giải ngán và dễ uống.
+  en: A sweet-and-sour plum drink that cools the palate.
+
+price:
+  sale: 20000
+currency: VND
+
+options:
+  size:
+    - regular
+    - {id: large, price: 5000}
+  ice:
+    - normal
+    - less
+    - none
+  sweetness:
+    - normal
+    - less
+
+fulfillment:
+  pickup: true
+  delivery: false
+  dine_in: true
+
+ordering:
+  preorder: true
+  # No count: a phở shop does not tally bowls, it says "hết rồi". Staff flip the sold-out
+  # switch in /admin/ (Menu) when something runs out and back on the next morning.
+  stock: null
+
+placeholder: false
+color: "#b65b3d"
+bg: "#f7efe7"
+
+available: true
+featured: false
+order: 41
+
+tags:
+  - pho
+  - vietnam
+  - local-food

@@ -1,0 +1,40 @@
+﻿id: quay
+type: sale
+
+name:
+  vi: Quẩy
+  en: Quẩy
+
+category: mon-them
+
+description:
+  vi: Quẩy giòn, ăn kèm phở hoặc ăn riêng cho đậm vị.
+  en: Crispy fried dough sticks to add a classic bite to your bowl.
+
+price:
+  sale: 10000
+currency: VND
+
+fulfillment:
+  pickup: true
+  delivery: false
+  dine_in: true
+
+ordering:
+  preorder: true
+  # No count: a phở shop does not tally bowls, it says "hết rồi". Staff flip the sold-out
+  # switch in /admin/ (Menu) when something runs out and back on the next morning.
+  stock: null
+
+placeholder: false
+color: "#b65b3d"
+bg: "#f7efe7"
+
+available: true
+featured: false
+order: 30
+
+tags:
+  - pho
+  - vietnam
+  - local-food
