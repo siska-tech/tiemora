@@ -92,21 +92,20 @@ npm run db:migrate                   # applies migrations/ to the remote databas
 npx wrangler secret put ADMIN_PASSWORD
 ```
 
-### Turnstile (optional, recommended)
+### Turnstile and Web Push (optional)
+
+Both need a key in three places (a var in `wrangler.jsonc`, a Cloudflare Secret and `.dev.vars`).
+`npm run setup:*` creates the keys and writes all three; no secret is printed or pasted by hand.
 
 ```sh
-npm run turnstile:create             # or create a widget in the dashboard; add your domain
-# sitekey  -> wrangler.jsonc vars.TURNSTILE_SITE_KEY
-npx wrangler secret put TURNSTILE_SECRET_KEY
+npm run setup:turnstile -- --domain yourshop.example   # creates (or reuses) the widget
+npm run setup:vapid -- --subject mailto:you@example.com
+npm run setup:status                                   # what is configured, locally and on Cloudflare
 ```
 
-### Web Push / VAPID (optional)
-
-```sh
-npm run vapid:generate
-# VAPID_PUBLIC_KEY, VAPID_SUBJECT -> wrangler.jsonc vars
-npx wrangler secret put VAPID_PRIVATE_KEY
-```
+Add `--dry-run` to see the changes first, `--local` to write only `.dev.vars`, and `--force` to replace
+keys already in use (rotating VAPID signs every admin device out of push). Then `npm run deploy`:
+the vars only reach the Worker with the next deploy.
 
 ### Build and deploy
 

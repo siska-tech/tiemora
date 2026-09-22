@@ -36,7 +36,9 @@
     "db:seed:sale:local": "wrangler d1 execute tiemora --local --file=seed/sale-demo.sql",
     "db:seed:sale": "wrangler d1 execute tiemora --remote --file=seed/sale-demo.sql",
     "vapid:generate": "node scripts/generate-vapid.mjs",
-    "turnstile:create": "wrangler turnstile widget create tiemora-booking --mode managed --domain localhost --json",
+    "setup:vapid": "node scripts/setup-secrets.mjs vapid",
+    "setup:turnstile": "node scripts/setup-secrets.mjs turnstile",
+    "setup:status": "node scripts/setup-secrets.mjs status",
     "turnstile:list": "wrangler turnstile widget list"
   },
   "devDependencies": {

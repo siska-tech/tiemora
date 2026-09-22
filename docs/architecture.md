@@ -27,7 +27,7 @@ Tiemora Core is one Cloudflare Worker, a static site and a D1 database. This pag
 │              i18n/       localized values and language fallbacks         │
 │              config/     store.yaml schema, theme.css, HTML tokens       │
 ├──────────────────────────────────────────────────────────────────────────┤
-│ scripts/     build.mjs, generate-catalog.mjs, images.mjs, seeds, VAPID   │  Node
+│ scripts/     build.mjs, generate-catalog.mjs, images.mjs, seeds, setup   │  Node
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
