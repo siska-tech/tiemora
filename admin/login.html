@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="{{theme.primary}}">
+  <title>Sign in · {{store.name}}</title>
+  <link rel="icon" href="/assets/icon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500&family=DM+Sans:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="/admin/admin.css">
+  <link rel="stylesheet" href="/theme.css">
+  <script src="/admin/login.js" defer></script>
+</head>
+<body class="login-body">
+  <main class="login-card">
+    <a href="/" class="admin-brand"><img src="/assets/apple-touch-icon.png" alt="" width="72" height="72"><span>{{store.name}}<small>ADMIN</small></span></a>
+    <form id="login-form" method="post" action="/api/admin/login" autocomplete="off">
+      <label for="password">Admin password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required autofocus>
+      <button type="submit" class="primary">Sign in</button>
+      <p id="login-error" class="form-error" role="alert"></p>
+    </form>
+    <a class="powered" href="https://github.com/siska-tech/tiemora" target="_blank" rel="noopener noreferrer">Powered by <b>Tiemora</b></a>
+  </main>
+</body>
+</html>

@@ -1,0 +1,20 @@
+# Copy to .dev.vars for `npm run dev` (wrangler dev). Never commit .dev.vars: it is git-ignored.
+# Production values go to Cloudflare Secrets: `npx wrangler secret put NAME`.
+
+# Required (unless Cloudflare Access protects /admin): the password for /admin/login.
+ADMIN_PASSWORD=change-me
+
+# Optional: separate key for signing admin session cookies (defaults to a key derived from ADMIN_PASSWORD).
+# ADMIN_SESSION_SECRET=
+
+# Optional: bearer token for scripts / curl against /api/admin/* (Authorization: Bearer ...).
+# ADMIN_API_TOKEN=
+
+# Optional: Cloudflare Turnstile for the public booking form. Site key here AND in wrangler.jsonc vars.
+# TURNSTILE_SITE_KEY=
+# TURNSTILE_SECRET_KEY=
+
+# Optional: Web Push for admin devices. Generate a pair with `npm run vapid:generate`.
+# VAPID_PUBLIC_KEY=
+# VAPID_PRIVATE_KEY=
+# VAPID_SUBJECT=mailto:you@example.com

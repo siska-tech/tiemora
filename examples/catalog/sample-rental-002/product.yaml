@@ -1,0 +1,39 @@
+# Fictional sample product #2: a discounted item (price.original > price.rental shows a sale badge).
+id: sample-rental-002
+
+name:
+  vi: Lễ phục mẫu
+  en: Sample Ceremonial Outfit
+  ja: 礼装サンプル
+  zh: 礼服示例
+
+category: rental
+
+description:
+  vi: Sản phẩm mẫu thứ hai. Lễ phục một cỡ, đang có giá thuê ưu đãi để minh họa nhãn giảm giá.
+  en: The second sample item. A one-size ceremonial outfit with a reduced rental price to show the sale badge.
+  ja: 2つ目のサンプル商品です。フリーサイズの礼装で、セール表示の確認用に割引価格を設定しています。
+  zh: 第二个示例商品。均码礼服，设置了折扣租金以演示优惠标签。
+
+price:
+  rental: 200000
+  original: 260000
+currency: VND
+
+sizes:
+  - Free
+
+inventory:
+  managed: true
+
+available: true
+order: 20
+
+model:
+  height: 165
+  wearing_size: Free
+
+tags:
+  - sample
+  - rental
+  - ceremony

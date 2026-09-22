@@ -1,0 +1,28 @@
+name: Feature request
+description: Suggest an improvement to Tiemora Core
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: Check the roadmap in the README first — sale products, workshops, appointments and pre-orders are planned but not yet in scope.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Describe the store situation, not only the feature.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - label: This works without paid third-party APIs (WhatsApp Cloud API, Zalo OA, Messenger Platform) and without a hosted service

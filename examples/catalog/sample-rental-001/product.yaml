@@ -1,0 +1,38 @@
+# A fictional product used to demonstrate Tiemora. Copy this folder to catalog/<your-product>/
+# and replace every value. See docs/catalog.md for all fields.
+id: sample-rental-001
+
+name:
+  vi: Trang phục truyền thống mẫu
+  en: Sample Traditional Outfit
+  ja: 伝統衣装サンプル
+  zh: 传统服装示例
+
+category: rental
+
+description:
+  vi: Sản phẩm mẫu dùng để minh họa Tiemora. Bộ trang phục truyền thống với hai kích cỡ, có thể đặt trực tuyến theo ngày.
+  en: A sample item used to demonstrate Tiemora. A traditional outfit in two sizes that can be booked online by date.
+  ja: Tiemoraの動作確認用サンプル商品です。2サイズ展開の伝統衣装で、日付を指定してオンライン予約できます。
+  zh: 用于演示 Tiemora 的示例商品。两种尺码的传统服装，可按日期在线预约。
+
+price:
+  rental: 150000
+currency: VND
+
+sizes:
+  - M
+  - L
+
+# Live availability comes from the inventory items registered in /admin/ (see seed/demo.sql).
+inventory:
+  managed: true
+
+available: true
+featured: true
+order: 10
+
+tags:
+  - sample
+  - rental
+  - traditional
