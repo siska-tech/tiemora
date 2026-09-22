@@ -1,0 +1,29 @@
+# Fictional sample product #3: not inventory-managed. Its availability is the hand-written
+# `available` flag and customers are asked to message the store instead of booking online.
+id: sample-rental-003
+
+name:
+  vi: Phụ kiện mẫu
+  en: Sample Accessory Set
+  ja: 小物セットサンプル
+  zh: 配饰套装示例
+
+
+description:
+  vi: Sản phẩm mẫu thứ ba, không quản lý tồn kho trong Tiemora. Khách liên hệ cửa hàng để hỏi.
+  en: The third sample item, not inventory-managed in Tiemora. Customers contact the store to ask about it.
+  ja: 3つ目のサンプル商品です。在庫管理の対象外で、お客様はお店に問い合わせる形になります。
+  zh: 第三个示例商品，不在 Tiemora 中管理库存。顾客可联系店铺咨询。
+
+category: accessories
+
+price:
+  rental: 50000
+currency: VND
+
+available: true
+order: 30
+
+tags:
+  - sample
+  - accessory

@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="{{lang}}">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="{{theme.primary}}">
+  <meta name="description" content="Privacy policy of {{store.name}}: what is collected when you send a booking request, what it is used for and your rights.">
+  <title>Privacy policy | {{store.name}}</title>
+  <link rel="icon" href="/assets/icon.svg" type="image/svg+xml">
+  <link rel="icon" href="/assets/icon-32.png" sizes="32x32">
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500&display=swap">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/theme.css">
+  <style>
+    /* Page-local layout only; colours, type and spacing come from styles.css / theme.css. */
+    .policy{width:min(720px,calc(100% - 100px));margin:0 auto;padding:54px 0 70px}
+    .policy .eyebrow{margin-bottom:12px}
+    .policy h1{font-size:clamp(38px,4.5vw,54px);margin-bottom:14px}
+    .policy .updated{font-size:11px;color:var(--muted);margin-bottom:34px}
+    .policy section{border-top:1px solid var(--line);padding:24px 0 6px}
+    .policy h2{font-size:26px;margin-bottom:10px}
+    .policy p,.policy li{font-size:13px;line-height:1.9;color:var(--muted)}
+    .policy p{margin-bottom:12px}
+    .policy ul{margin:0 0 14px;padding-left:20px}
+    .policy li{margin-bottom:2px}
+    .policy a{color:var(--primary);text-decoration:underline;text-underline-offset:3px}
+    .policy .back{display:inline-block;margin-top:34px;font-size:11px;border-bottom:1px solid #aba398;padding-bottom:5px}
+    /* One block per language; the header's selector (same setting as the shop) picks which is shown. */
+    .policy [data-lang]{display:none}
+    .policy [data-lang].is-current{display:block}
+    .policy .template-note{font-size:11px;color:var(--muted);margin-top:20px;padding:10px 12px;border:1px dashed var(--line)}
+    @media(max-width:640px){.policy{width:calc(100% - 36px);padding:32px 0 48px}.policy h2{font-size:23px}}
+  </style>
+</head>
+<body>
+  <header class="header wrap">
+    <a href="/" class="brand" aria-label="{{store.name}}"><span class="brand-wordmark"><span>{{store.name}}</span><span>{{store.tagline}}</span></span></a>
+    <nav aria-label="Main"><a href="/#collection" data-nav="collection"></a><a href="/#how" data-nav="how"></a><a href="/#contact" data-nav="contact"></a></nav>
+    <label class="language"><img aria-hidden="true" id="language-flag" alt=""><select id="language" aria-label="Language"></select></label>
+  </header>
+  <main class="policy">
+
+    <article data-lang="vi" lang="vi">
+      <p class="eyebrow">{{store.name}}</p>
+      <h1>Chính sách bảo mật</h1>
+      <p class="updated">Cập nhật: <span data-updated></span></p>
+      <p>{{store.name}} tôn trọng quyền riêng tư của bạn. Chính sách này giải thích ngắn gọn thông tin nào được thu thập khi bạn gửi yêu cầu đặt chỗ, thông tin đó được dùng để làm gì và bạn có những quyền gì.</p>
+      <section>
+        <h2>1. Thu thập thông tin</h2>
+        <p>{{store.name}} có thể thu thập các thông tin như:</p>
+        <ul><li>Họ tên</li><li>Số điện thoại</li><li>Số Zalo</li><li>Số WhatsApp</li><li>Link Facebook / Messenger</li><li>Thông tin liên quan đến yêu cầu đặt chỗ (sản phẩm, kích cỡ, ngày nhận, ngày trả, ghi chú)</li></ul>
+        <p>Chúng tôi chỉ thu thập những thông tin bạn tự cung cấp qua biểu mẫu đặt chỗ hoặc khi bạn liên hệ với cửa hàng. Website không sử dụng công cụ theo dõi quảng cáo.</p>
+      </section>
+      <section>
+        <h2>2. Mục đích sử dụng</h2>
+        <ul><li>Xử lý yêu cầu đặt chỗ</li><li>Xác nhận lịch</li><li>Liên hệ với bạn qua kênh bạn đã chọn (Zalo, WhatsApp, Messenger hoặc điện thoại)</li><li>Quản lý đơn đặt và hỗ trợ khách hàng</li></ul>
+      </section>
+      <section>
+        <h2>3. Chia sẻ thông tin</h2>
+        <p>Thông tin của bạn không được bán hoặc chia sẻ cho bên thứ ba vì mục đích quảng cáo. Dữ liệu được lưu trên hạ tầng Cloudflare (Workers, D1) và chỉ nhân viên cửa hàng mới truy cập được. Cloudflare Turnstile có thể được dùng để chống spam trên biểu mẫu.</p>
+      </section>
+      <section>
+        <h2>4. Thời gian lưu trữ</h2>
+        <p>Thông tin đặt chỗ được lưu trong thời gian cần thiết để xử lý và quản lý lịch, sau đó có thể được xóa theo yêu cầu của bạn.</p>
+      </section>
+      <section>
+        <h2>5. Quyền của bạn</h2>
+        <p>Bạn có thể yêu cầu xem, sửa hoặc xóa thông tin của mình bất kỳ lúc nào bằng cách liên hệ với {{store.name}} theo thông tin bên dưới.</p>
+        <div data-contact></div>
+      </section>
+      <a class="back" href="/">← Về trang chủ</a>
+    </article>
+
+    <article data-lang="en" lang="en">
+      <p class="eyebrow">{{store.name}}</p>
+      <h1>Privacy policy</h1>
+      <p class="updated">Updated: <span data-updated></span></p>
+      <p>{{store.name}} respects your privacy. This policy explains, briefly, which information is collected when you send a booking request, what it is used for and what rights you have.</p>
+      <section>
+        <h2>1. Information we collect</h2>
+        <p>{{store.name}} may collect information such as:</p>
+        <ul><li>Full name</li><li>Phone number</li><li>Zalo number</li><li>WhatsApp number</li><li>Facebook / Messenger link</li><li>Details of your booking request (item, size, pick-up and return dates, notes)</li></ul>
+        <p>We only collect what you provide yourself through the booking form or when you contact the store. The website uses no advertising trackers.</p>
+      </section>
+      <section>
+        <h2>2. How it is used</h2>
+        <ul><li>To process your booking request</li><li>To confirm the dates</li><li>To contact you on the channel you chose (Zalo, WhatsApp, Messenger or phone)</li><li>To manage bookings and support customers</li></ul>
+      </section>
+      <section>
+        <h2>3. Sharing</h2>
+        <p>Your information is never sold or shared with third parties for advertising. Data is stored on Cloudflare infrastructure (Workers, D1) and is accessible to store staff only. Cloudflare Turnstile may be used to protect the form from spam.</p>
+      </section>
+      <section>
+        <h2>4. Retention</h2>
+        <p>Booking information is kept for as long as needed to handle and manage bookings, and can be deleted at your request afterwards.</p>
+      </section>
+      <section>
+        <h2>5. Your rights</h2>
+        <p>You can ask to see, correct or delete your information at any time by contacting {{store.name}} using the details below.</p>
+        <div data-contact></div>
+      </section>
+      <a class="back" href="/">← Back to the store</a>
+    </article>
+
+    <article data-lang="zh" lang="zh">
+      <p class="eyebrow">{{store.name}}</p>
+      <h1>隐私政策</h1>
+      <p class="updated">更新：<span data-updated></span></p>
+      <p>{{store.name}} 尊重您的隐私。本政策简要说明您发送预约申请时我们会收集哪些信息、这些信息的用途，以及您享有的权利。</p>
+      <section>
+        <h2>1. 信息收集</h2>
+        <p>{{store.name}} 可能收集以下信息：</p>
+        <ul><li>姓名</li><li>电话号码</li><li>Zalo 号码</li><li>WhatsApp 号码</li><li>Facebook / Messenger 链接</li><li>与预约申请相关的信息（商品、尺码、取件日期、归还日期、备注）</li></ul>
+        <p>我们仅收集您通过预约表单或联系店铺时主动提供的信息。本网站不使用广告跟踪工具。</p>
+      </section>
+      <section>
+        <h2>2. 使用目的</h2>
+        <ul><li>处理预约申请</li><li>确认日期</li><li>通过您选择的渠道（Zalo、WhatsApp、Messenger 或电话）与您联系</li><li>管理预约及客户支持</li></ul>
+      </section>
+      <section>
+        <h2>3. 信息共享</h2>
+        <p>您的信息不会出于广告目的出售或提供给第三方。数据存储在 Cloudflare 基础设施（Workers、D1）上，仅店铺员工可以访问。表单可能使用 Cloudflare Turnstile 防止垃圾信息。</p>
+      </section>
+      <section>
+        <h2>4. 保存期限</h2>
+        <p>预约信息在处理和管理预约所需的期间内保存，之后可根据您的要求删除。</p>
+      </section>
+      <section>
+        <h2>5. 您的权利</h2>
+        <p>您可以随时通过以下方式联系 {{store.name}}，要求查看、更正或删除您的信息。</p>
+        <div data-contact></div>
+      </section>
+      <a class="back" href="/">← 返回首页</a>
+    </article>
+
+    <article data-lang="ja" lang="ja">
+      <p class="eyebrow">{{store.name}}</p>
+      <h1>プライバシーポリシー</h1>
+      <p class="updated">更新日：<span data-updated></span></p>
+      <p>{{store.name}} はお客様のプライバシーを尊重します。このポリシーでは、予約申請を送信いただいた際にどの情報を取得し、何に使い、お客様にどのような権利があるかを簡潔に説明します。</p>
+      <section>
+        <h2>1. 取得する情報</h2>
+        <p>{{store.name}} は次の情報を取得することがあります。</p>
+        <ul><li>お名前</li><li>電話番号</li><li>Zalo 番号</li><li>WhatsApp 番号</li><li>Facebook / Messenger のリンク</li><li>予約申請に関する情報（商品、サイズ、受取日、返却日、備考）</li></ul>
+        <p>取得するのは、予約フォームやお問い合わせでお客様ご自身が提供された情報のみです。広告用のトラッキングは使用していません。</p>
+      </section>
+      <section>
+        <h2>2. 利用目的</h2>
+        <ul><li>予約申請の処理</li><li>日程の確認</li><li>ご希望の連絡方法（Zalo / WhatsApp / Messenger / 電話）でのご連絡</li><li>予約管理とお客様サポート</li></ul>
+      </section>
+      <section>
+        <h2>3. 第三者提供</h2>
+        <p>お客様の情報を広告目的で販売・提供することはありません。データは Cloudflare のインフラ（Workers、D1）に保存され、店舗スタッフのみがアクセスできます。フォームのスパム対策に Cloudflare Turnstile を使用する場合があります。</p>
+      </section>
+      <section>
+        <h2>4. 保存期間</h2>
+        <p>予約情報は、予約の処理と管理に必要な期間保存し、その後はお客様のご要望に応じて削除します。</p>
+      </section>
+      <section>
+        <h2>5. お客様の権利</h2>
+        <p>下記の連絡先まで {{store.name}} にご連絡いただければ、いつでもご自身の情報の確認・訂正・削除を求めることができます。</p>
+        <div data-contact></div>
+      </section>
+      <a class="back" href="/">← トップページへ戻る</a>
+    </article>
+
+  </main>
+  <footer class="wrap"><a href="/" class="brand"><span class="brand-wordmark"><span>{{store.name}}</span><span>{{store.tagline}}</span></span></a><nav class="footer-links" aria-label="Footer"><a href="/privacy" aria-current="page" data-privacy></a><a href="/#contact" data-nav="contact"></a><a class="powered" href="https://github.com/siska-tech/tiemora" target="_blank" rel="noopener noreferrer">Powered by <b>Tiemora</b></a></nav></footer>
+  <script>
+    // Same language setting as the shop (localStorage "tiemora-language"); the store default is the fallback.
+    // The contact block is filled from /store.json so this page never needs editing for a new store.
+    (function () {
+      var FLAGS = {vi: '/assets/flags/vn.svg', en: '/assets/flags/us.svg', zh: '/assets/flags/cn.svg', ja: '/assets/flags/jp.svg'};
+      var NAMES = {vi: 'Tiếng Việt', en: 'English', zh: '中文', ja: '日本語'};
+      var T = {
+        vi: {collection: 'Sản phẩm', how: 'Cách đặt', contact: 'Liên hệ', privacy: 'Chính sách bảo mật', phone: 'Điện thoại', email: 'Email', address: 'Địa chỉ'},
+        en: {collection: 'Catalog', how: 'How it works', contact: 'Contact', privacy: 'Privacy policy', phone: 'Phone', email: 'Email', address: 'Address'},
+        zh: {collection: '商品', how: '预约流程', contact: '联系我们', privacy: '隐私政策', phone: '电话', email: '电子邮件', address: '地址'},
+        ja: {collection: '商品', how: '予約の流れ', contact: 'お問い合わせ', privacy: 'プライバシーポリシー', phone: '電話', email: 'メール', address: '住所'}
+      };
+      var esc = function (v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]; }); };
+      var store = {store: {name: document.title.split('|').pop().trim()}, languages: ['vi', 'en', 'ja', 'zh'], defaultLanguage: 'vi', contact: {}};
+      var language = 'vi';
+      var select = document.getElementById('language');
+      function localized(value) {
+        if (typeof value === 'string') return value;
+        if (!value || typeof value !== 'object') return '';
+        var keys = [language, store.defaultLanguage].concat(store.languages || [], Object.keys(value));
+        for (var i = 0; i < keys.length; i++) if (typeof value[keys[i]] === 'string' && value[keys[i]].trim()) return value[keys[i]];
+        return '';
+      }
+      function contactHtml() {
+        var c = store.contact || {}, t = T[language], lines = [];
+        var address = localized(c.address);
+        if (address) lines.push('<p>' + esc(store.store.name) + ' · ' + esc(address) + (c.mapUrl ? ' <a href="' + esc(c.mapUrl) + '" target="_blank" rel="noopener noreferrer">↗</a>' : '') + '</p>');
+        var items = [];
+        if (c.phone) items.push(t.phone + ': <a href="tel:' + esc(String(c.phone).replace(/[^\d+]/g, '')) + '">' + esc(c.phone) + '</a>');
+        if (c.email) items.push(t.email + ': <a href="mailto:' + esc(c.email) + '">' + esc(c.email) + '</a>');
+        if (c.zalo) items.push('Zalo: ' + esc(c.zalo));
+        if (c.whatsapp) items.push('WhatsApp: ' + esc(c.whatsapp));
+        if (c.facebook) items.push('Facebook: <a href="' + esc(c.facebook) + '" target="_blank" rel="noopener noreferrer">' + esc(c.facebook.replace(/^https?:\/\//, '')) + ' ↗</a>');
+        if (c.messenger) items.push('Messenger: <a href="' + esc(c.messenger) + '" target="_blank" rel="noopener noreferrer">' + esc(c.messenger.replace(/^https?:\/\//, '')) + ' ↗</a>');
+        if (items.length) lines.push('<p>' + items.join('<br>') + '</p>');
+        if (!lines.length) lines.push('<p class="template-note">Contact details are not configured yet. Add them under <code>contact:</code> in config/store.yaml.</p>');
+        return lines.join('');
+      }
+      function apply() {
+        var t = T[language];
+        document.documentElement.lang = language;
+        document.title = t.privacy + ' | ' + store.store.name;
+        var blocks = document.querySelectorAll('.policy [data-lang]');
+        for (var i = 0; i < blocks.length; i++) blocks[i].classList.toggle('is-current', blocks[i].getAttribute('data-lang') === language);
+        var nav = document.querySelectorAll('[data-nav]');
+        for (var j = 0; j < nav.length; j++) nav[j].textContent = t[nav[j].getAttribute('data-nav')];
+        var privacy = document.querySelectorAll('[data-privacy]');
+        for (var k = 0; k < privacy.length; k++) privacy[k].textContent = t.privacy;
+        var contacts = document.querySelectorAll('[data-contact]');
+        for (var m = 0; m < contacts.length; m++) contacts[m].innerHTML = contactHtml();
+        var updated = document.querySelectorAll('[data-updated]');
+        for (var n = 0; n < updated.length; n++) updated[n].textContent = new Date(document.lastModified).toLocaleDateString(language === 'zh' ? 'zh-CN' : language === 'ja' ? 'ja-JP' : language === 'en' ? 'en-GB' : 'vi-VN');
+        select.value = language;
+        document.getElementById('language-flag').src = FLAGS[language] || '';
+        try { localStorage.setItem('tiemora-language', language); } catch (e) {}
+      }
+      function boot() {
+        var languages = (store.languages || ['vi']).filter(function (l) { return T[l]; });
+        select.innerHTML = languages.map(function (l) { return '<option value="' + l + '">' + NAMES[l] + '</option>'; }).join('');
+        select.parentElement.hidden = languages.length < 2;
+        var query = new URLSearchParams(location.search).get('lang'), stored = '';
+        try { stored = localStorage.getItem('tiemora-language') || ''; } catch (e) {}
+        language = [query, stored, store.defaultLanguage].concat(languages).filter(function (l) { return languages.indexOf(l) >= 0; })[0] || 'vi';
+        apply();
+      }
+      select.addEventListener('change', function () { language = select.value; apply(); });
+      fetch('/store.json', {cache: 'no-cache'}).then(function (r) { return r.ok ? r.json() : null; }).then(function (data) {
+        if (data && data.store) store = data;
+      }).catch(function () {}).then(boot);
+    })();
+  </script>
+</body>
+</html>

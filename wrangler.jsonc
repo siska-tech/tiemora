@@ -1,0 +1,54 @@
+{
+	// Tiemora on Cloudflare: one Worker + Static Assets + D1.
+	// The Worker only runs for /api/* and /admin*; every other path is served straight from dist/.
+	// See docs/deployment-cloudflare.md for the setup steps.
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "tiemora",
+	"main": "worker/index.mjs",
+	"compatibility_date": "2026-09-21",
+	"workers_dev": true,
+	"assets": {
+		"directory": "./dist",
+		"binding": "ASSETS",
+		"run_worker_first": [
+			"/api/*",
+			"/admin",
+			"/admin/*"
+		]
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "tiemora",
+			// Replace with the id printed by `npm run db:create` (wrangler d1 create tiemora).
+			// The placeholder is enough for `npm run dev` (local D1); deploying needs the real id.
+			"database_id": "YOUR_D1_DATABASE_ID",
+			"migrations_dir": "migrations"
+		}
+	],
+	"vars": {
+		// Optional overrides of config/store.yaml (booking.bufferDays, timezone). Leave empty to use the config.
+		"RESERVATION_BUFFER_DAYS": "",
+		"STORE_TIMEZONE": "",
+		// Cloudflare Access (optional). When both are set, /admin and /api/admin/* trust the
+		// Cf-Access-Jwt-Assertion header instead of the password login.
+		"ACCESS_TEAM_DOMAIN": "",
+		"ACCESS_AUD": "",
+		// Cloudflare Turnstile site key for the public booking form (the secret goes in a Secret, see below).
+		// Both empty = no widget and no verification; the form then shows an admin-only warning.
+		"TURNSTILE_SITE_KEY": "",
+		// Web Push public key from `npm run vapid:generate` (the private key goes in a Secret).
+		"VAPID_PUBLIC_KEY": "",
+		// A contact for the push services: "mailto:you@example.com" or your site URL.
+		"VAPID_SUBJECT": ""
+	},
+	"observability": {
+		"enabled": true
+	}
+	// Secrets (never in this file; `npx wrangler secret put NAME`, or .dev.vars locally):
+	//   ADMIN_PASSWORD        required unless Cloudflare Access is used
+	//   ADMIN_SESSION_SECRET  optional, signs the admin session cookie (derived from the password otherwise)
+	//   ADMIN_API_TOKEN       optional, bearer token for scripts / curl against /api/admin/*
+	//   TURNSTILE_SECRET_KEY  optional, enables Turnstile together with TURNSTILE_SITE_KEY
+	//   VAPID_PRIVATE_KEY     optional, enables Web Push together with VAPID_PUBLIC_KEY + VAPID_SUBJECT
+}
