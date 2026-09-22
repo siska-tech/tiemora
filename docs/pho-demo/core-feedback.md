@@ -1,6 +1,6 @@
 # Core feedback from the Phở demo
 
-Written for whoever scopes v0.3. The question this branch was built to answer is not "is the phở
+Updated for the v0.3.0 merge; see [release notes](../releases/v0.3-result.md) for accepted scope and upgrade instructions. The question this branch was built to answer is not "is the phở
 site nice" but **how much of Tiemora Core v0.2.0 survived contact with a local food shop**.
 
 Short answer: the order domain survived almost intact. What did not survive was a handful of
@@ -172,7 +172,6 @@ wrong shape. The Worker-side half (`items[]`, repricing) has no such doubt and s
 
 - Whether one cart can hold food and merchandise together
 - Mixed fulfillment in a single order (eat one thing here, take another away)
-- ASAP pickup (§9) — a café needs it more than a phở shop does
 - Menu scheduling (breakfast menu / all-day menu)
 
 ## 9. Defer to the Workshop demo
@@ -190,10 +189,12 @@ wrong shape. The Worker-side half (`items[]`, repricing) has no such doubt and s
 | 3 | Order Queue | Highest operational value added in this pass | M |
 | 4 | Staff sold-out switch | Any made-to-order shop | S |
 | 5 | Multi-item orders + server repricing | Backward compatible, already written | M |
-| 6 | ~~`ordering.stock.period: daily`~~ | **Done on this branch** as `ordering.stockPeriod`. Listed here because it is a Core change a v0.3 branch takes with the rest. | M |
-| 7 | ASAP pickup alongside scheduled slots | The one real gap this demo left open | M |
+| 6 | `ordering.stockPeriod: daily` | Implemented; included in v0.3.0 | M |
+| 7 | ASAP pickup alongside scheduled slots | Implemented with `ordering.asap` and migration `0009`; included in v0.3.0 | M |
 | 8 | QR sheet generation for tables | Small, and every dine-in shop needs it | S |
 | 9 | Cart state contract | After the Café demo confirms the shape | M |
 
-Items 1–6 are written and tested on this branch; promoting them is a merge decision, not new work.
-Items 7–8 are new work. Item 9 is a decision to postpone deliberately.
+Items 1-7 are implemented and included in v0.3.0, together with copy overrides and QR
+fulfillment context. Item 8 (QR sheet generation) remains future work. Item 9 postpones a stable
+cart contract: the existing cart UI ships, but its storage/state interface remains provisional
+until the next demo validates the shape. Mixed fulfillment is deferred.

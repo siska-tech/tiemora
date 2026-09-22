@@ -31,7 +31,7 @@ spend the "manual work" time only.
 | | |
 |---|---|
 | **Core change** | `ordering.openingHours` (weekday → intervals) and `ordering.tables` (`min`/`max` for dine-in) added to `core/config/store.mjs`, both optional and defaulted. |
-| **Demo change** | `config/store.yaml`: name, contact, 5 categories, warm palette, Vietnamese-first hero and section copy, 4 languages. |
+| **Demo change** | `examples/pho-demo/store.yaml`: name, contact, 5 categories, warm palette, Vietnamese-first hero and section copy, 4 languages. |
 | **Manual work** | Writing the copy in all four languages; deciding opening hours and the table range. |
 | **Studio candidate** | Opening hours, table range and palette are form fields, not YAML. Machine translation for the non-primary languages with the owner approving. |
 | **Time** | 90 min (most of it copywriting) |
@@ -71,7 +71,7 @@ spend the "manual work" time only.
 | | |
 |---|---|
 | **Core change** | `dine_in` in `FULFILLMENT_TYPES`; `table_number` on `orders` (migration `0007_dine_in.sql`); `tableNumberError` / `normalizeTableNumber` in `core/orders/rules.mjs`; dine-in labels in `core/notifications/orders.mjs`; dine-in makes name, phone and contact channel optional in `worker/orders.mjs` and in the storefront form. |
-| **Demo change** | `fulfillment.dine_in: true` in `config/store.yaml` and on all 12 products; Vietnamese labels ("Ăn tại quán" / "Mang về"). |
+| **Demo change** | `fulfillment.dine_in: true` in `examples/pho-demo/store.yaml` and on all 12 products; Vietnamese labels ("Ăn tại quán" / "Mang về"). |
 | **Manual work** | Deciding that dine-in guests are not asked for a name or a phone number. |
 | **Studio candidate** | A "how do customers get their food?" step that turns on the right fulfillment types. |
 | **Time** | 120 min |
@@ -91,7 +91,7 @@ spend the "manual work" time only.
 | | |
 |---|---|
 | **Core change** | `openingHoursError(date, slot, openingHours)` in `core/orders/rules.mjs`, called before an order is written. A closed weekday is rejected as `closed_day`, a slot outside the intervals as `closed_hours`. A shop with no `openingHours` is unrestricted, so v0.2 stores are unaffected. |
-| **Demo change** | 10:00–13:00 every day in `config/store.yaml`. |
+| **Demo change** | 10:00–13:00 every day in `examples/pho-demo/store.yaml`. |
 | **Manual work** | None once configured. |
 | **Studio candidate** | A weekly hours grid, with holidays. |
 | **Time** | 45 min |
@@ -120,7 +120,7 @@ spend the "manual work" time only.
 
 | | |
 |---|---|
-| **Core change** | 22 new tests for food ordering: table number range, opening hours, cart state, multi-item repricing, QR parsing and rejection, dine-in without contact details, queue transitions, the sold-out switch (including read-only demo mode), and the `0007` upgrade from a populated v0.2 database. |
+| **Core change** | Added food-ordering coverage (the v0.3.0 suite now totals 135 tests): table number range, opening hours, cart state, multi-item repricing, QR parsing and rejection, dine-in without contact details, queue transitions, the sold-out switch (including read-only demo mode), and the `0007` upgrade from a populated v0.2 database. |
 | **Demo change** | None. |
 | **Manual work** | None. |
 | **Studio candidate** | None. |
@@ -131,7 +131,7 @@ spend the "manual work" time only.
 | | |
 |---|---|
 | **Core change** | None. |
-| **Demo change** | Worker name `pho` in `wrangler.jsonc`; everything else left as placeholders so the branch carries no account identifiers. See [deployment.md](deployment.md). |
+| **Demo change** | The original demo used Worker name `pho`; v0.3.0 restores generic `wrangler.jsonc` and keeps deployment values in ignored `wrangler.local.jsonc`. See [deployment.md](deployment.md). |
 | **Manual work** | `npm run db:create`, paste the id, `npm run db:migrate`, `wrangler secret put ADMIN_PASSWORD`, deploy. Turnstile and VAPID via `npm run setup:*`. |
 | **Studio candidate** | The whole step — a shop owner should press one button. |
 | **Time** | 40 min |

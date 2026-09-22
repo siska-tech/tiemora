@@ -2,6 +2,8 @@
 
 The validation pass for `Flower Demo → Core v0.2.0 → Phở Demo`. Written for the Tiemora core team.
 
+For the reconciled v0.3.0 scope and migration path, see [release notes](../releases/v0.3-result.md).
+
 ## 1. Overview
 
 **Phở Góc Phố** is a fictional small phở shop in Hanoi: morning-to-noon service, mostly local
@@ -93,21 +95,23 @@ All additive; each defaults to v0.2 behaviour.
 | `worker/orders-db.mjs` | `table_number`; `soldOutProducts` / `setProductSoldOut`; `soldByProductAndDate`; a date-scoped stock guard |
 | `migrations/0007_dine_in.sql` | `dine_in` + `table_number`, as a **new** migration — 0006 shipped in v0.2.0 and is left untouched |
 | `migrations/0008_product_availability.sql` | the staff sold-out switch |
+| `migrations/0009_asap_orders.sql` | explicit ASAP flag, separate from time-slot ids |
 | `storefront/cart.js` (new) | generic cart state |
 | `storefront/order.js` | cart UI, dine-in fields, QR handling, fulfillment-dependent validation, payment note |
 | `admin/admin.js` | Order Queue, Menu sold-out screen, dine-in labels and schedule column |
 
 ## 10. Demo changes
 
-`config/store.yaml` (name, contact, categories, palette, hero, copy, hours, tables, slots, options,
-add-ons), `examples/pho-demo/` (12 products with covers), hero and logo art, and `docs/pho-demo/`.
+`examples/pho-demo/store.yaml` (name, contact, categories, palette, hero, copy, hours, tables, slots, options,
+add-ons), `examples/pho-demo/` (12 products with covers), `examples/pho-demo/assets/` hero and logo art, and `docs/pho-demo/`.
+`npm run build:pho-demo` selects this configuration; the standard build stays generic.
 Nothing food-specific was written into Core.
 
 ## 11. Tests
 
-`npm run check` green: **132 tests**, lint, typecheck, build. v0.2 had 106; all of them still pass.
+`npm run check` green: **135 tests**, lint, typecheck, build. v0.2 had 106; all of them still pass.
 
-The 22 added:
+Coverage added during the demo and follow-up fixes includes:
 
 - **Cart** — add, merge identical, separate variants, quantity, remove, totals, persistence, corrupt-payload reset; two products combined into one order through the UI
 - **Multi-item orders** — every line repriced server-side, one bad line rejects the whole order
@@ -157,14 +161,14 @@ found in v0.2:
 3. Sold-out is a count reaching zero, not something staff can declare
 4. The admin schedule is a delivery board, not a kitchen board
 
-## 16. v0.3 candidates
+## 16. v0.3.0 inclusion
 
-Written and tested here, so promoting them is a merge decision: `dine_in` + `table_number` +
+Included in the v0.3.0 merge branch: `dine_in` + `table_number` +
 `ordering.tables`; `openingHours`; `ordering.asap`; `ordering.stockPeriod: daily`; Order Queue;
 sold-out switch; multi-item orders with server repricing; store.text reaching the catalog and
 order-form copy.
 
-New work: QR sheet generation.
+Deferred: QR sheet generation.
 
 Deliberately postponed: the cart state contract, until the Café demo says whether food and
 merchandise share one cart.
@@ -182,7 +186,9 @@ A café restocks pastries daily, so it would have hit the lifetime-stock problem
 
 ## 18. Commits
 
-Three, in this order:
+The initial implementation was grouped into three commits. Follow-up commits added daily stock,
+ASAP, storefront copy overrides and restored-cart notification; v0.3.0 includes those too.
+The initial grouping was:
 
 1. `feat(secrets): one-command Turnstile and Web Push setup` — unrelated to this demo, committed
    on its own so the food-ordering delta stays measurable and so it can be cherry-picked into a
@@ -192,7 +198,9 @@ Three, in this order:
 3. `feat(demo): Phở Góc Phố, a local food shop on Core v0.2` — demo config, menu, art and these
    documents.
 
-Commit 2 is the one a v0.3 branch would take. It could not be split further by file: the
+The v0.3.0 merge includes the generic changes and follow-ups described above, with demo
+configuration and assets isolated under `examples/pho-demo/`. Historically, commit 2 could not
+be split further by file: the
 `store.hero.layout: environmental` work from a separate hero stream is interleaved with the config
 changes in `core/config/store.mjs`, `storefront/app.js` and `storefront/styles.css`, so it rode
 along rather than being reconstructed after the fact. It is the only foreign change in that commit

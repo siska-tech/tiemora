@@ -25,9 +25,9 @@ Nothing talks to WhatsApp, Zalo or Messenger APIs. Staff open a click-to-chat li
 | Catalog | YAML product definitions, multilingual names and descriptions (vi / en / ja / zh), price and discount, category (or category list), tags, sizes, colours, images and videos, recursive folder scan, duplicate-id detection, `catalog.json` generation, automatic image optimisation |
 | Storefront | Product grid and detail dialog, responsive, four languages, live stock status, date search, booking request form, sale order form with options / add-ons / quantity, privacy consent, Cloudflare Turnstile |
 | Rental / booking | Start and end dates (inclusive), per-size availability, buffer days between rentals, pending requests that hold no stock until staff confirm, statuses `pending / confirmed / rented / returned / cancelled` |
-| Sale / pre-order (v0.2) | Product options and add-ons, quantity, card message, pickup or delivery, time slots with capacity, daily capacity, per-product stock and deadline, statuses `pending / confirmed / preparing / ready / out_for_delivery / completed / cancelled` |
+| Sale / local-store (v0.3) | Product options and add-ons, quantity, card message, pickup / delivery / dine-in, table metadata, opening hours, time slots or ASAP, daily capacity, total or daily stock, staff sold-out switches and deadlines, statuses `pending / confirmed / preparing / ready / out_for_delivery / completed / cancelled` |
 | Inventory | Products (catalog) and inventory items (physical copies, `product-id-01`, `-02`, …) are separate; item statuses `available / reserved / rented / maintenance / inactive` |
-| Admin | Dashboard, inventory management, booking management, orders (list, detail, schedule, staff-entered orders), confirm / hand over / return / cancel, maintenance, notification centre, read-only demo mode, settings; Vietnamese, English and Japanese UI |
+| Admin | Dashboard, inventory management, booking management, orders (list, detail, schedule, queue, staff-entered orders), Menu sold-out controls, confirm / hand over / return / cancel, maintenance, notification centre, read-only demo mode, settings; Vietnamese, English and Japanese UI |
 | Customer contact helpers | WhatsApp click-to-chat with prefilled text, Messenger links, Zalo number + message copy, confirmation messages in four languages, preferred channel, "customer notified" record, shared by bookings and orders |
 | Web Push | Admin devices subscribe from the settings page; a new booking request or order pushes to every device; VAPID and RFC 8291 encryption implemented on Web Crypto with no dependency |
 | Privacy & security | Privacy policy page, mandatory consent, Turnstile, server-side validation, password or Cloudflare Access admin login, CSRF protection, per-IP throttle, session cookies, `ADMIN_READ_ONLY` demo mode |
@@ -35,7 +35,7 @@ Nothing talks to WhatsApp, Zalo or Messenger APIs. Staff open a click-to-chat li
 
 ## Screenshots
 
-Run `npm run dev` and open `http://localhost:8787/` (storefront) and `http://localhost:8787/admin/` (admin, password from `.dev.vars`). The repository ships with three fictional rental sample products (`examples/catalog/`) and three fictional sale sample products (`examples/sale/`), with matching demo data (`seed/demo.sql`, `seed/sale-demo.sql`).
+Run `npm run dev` and open `http://localhost:8787/` (storefront) and `http://localhost:8787/admin/` (admin, password from `.dev.vars`). The repository ships with three fictional rental sample products (`examples/catalog/`) and three fictional sale sample products (`examples/sale/`), with matching demo data (`seed/demo.sql`, `seed/sale-demo.sql`). The default is the rental sample. Build the 12-product Phở reference demo with `npm run build:pho-demo`; its separate configuration and artwork live in `examples/pho-demo/`. Use the matching catalog before loading rental or generic sale seeds.
 
 ## Architecture
 
@@ -143,7 +143,7 @@ inventory:
   managed: true      # live stock from the admin's inventory items
 ```
 
-Point `catalog.dir` in `config/store.yaml` at your folder (the demo uses `examples/catalog`). Details: [docs/catalog.md](docs/catalog.md).
+Point `catalog.dir` in `config/store.yaml` at your folder (the default uses `examples/catalog`; `npm run build:pho-demo` selects the separate food demo). Details: [docs/catalog.md](docs/catalog.md).
 
 ## Booking & Inventory
 
@@ -153,14 +153,16 @@ Point `catalog.dir` in `config/store.yaml` at your folder (the demo uses `exampl
 
 Details: [docs/booking.md](docs/booking.md), [docs/inventory.md](docs/inventory.md).
 
-## Orders (sale / pre-order, v0.2)
+## Orders (sale / local-store, v0.3)
 
-- A `type: sale` product is sold by quantity, not booked by date. A customer picks option groups (size, tone, …) and add-ons, writes an optional card message, chooses **pickup** or **delivery**, a day and a time slot, and sends an order.
+- A `type: sale` product is sold by quantity, not booked by date. A customer picks option groups (size, tone, …) and add-ons, writes an optional card message, chooses **pickup**, **delivery** or enabled **dine-in**, a day and a time slot (or enabled ASAP), and sends an order.
 - Capacity is counted, not itemised: a time slot holds N orders, a day holds N orders, a product sells N units (`ordering.stock` in `product.yaml`). Every limit is optional.
 - Staff manage orders in the admin: list, detail, day schedule, status flow `pending → confirmed → preparing → ready → (out_for_delivery) → completed / cancelled`, and the same notification helpers as bookings.
 - Rental and sale products can live in the same catalog; the admin shows the modules the catalog needs.
 
-Details: [docs/orders.md](docs/orders.md).
+Multi-item orders are repriced on the server. Daily stock, opening hours, table validation and staff sold-out controls support local shops. The existing cart UI ships with a provisional state contract; mixed fulfillment remains deferred.
+
+Details: [docs/orders.md](docs/orders.md). Upgrade and scope: [v0.3.0 release notes](docs/releases/v0.3-result.md).
 
 ## Admin
 

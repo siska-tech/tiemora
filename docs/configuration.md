@@ -2,7 +2,9 @@
 
 Everything that makes a Tiemora deployment *your* store is in `config/store.yaml`. The build validates it (`core/config/store.mjs`), reports bad values as warnings and falls back to defaults, then publishes it as `/store.json` (read by the storefront, the admin and the Worker) and `/theme.css`. **Never put secrets in it** — the file is public.
 
-Set `TIEMORA_CONFIG=/path/to/other.yaml` to build with another file, and `TIEMORA_CATALOG=/path` to override the catalog directory.
+Set `TIEMORA_CONFIG=/path/to/other.yaml` to build with another file, and `TIEMORA_CATALOG=/path` to override the catalog directory. Set `TIEMORA_ASSETS=/path/to/public-artwork` to overlay that directory into `dist/assets/` at build time; include only publishable assets. The standard build uses only `storefront/assets/`.
+
+`npm run build:pho-demo` selects `examples/pho-demo/store.yaml`, its catalog and its artwork together.
 
 ## Keys
 
@@ -18,6 +20,7 @@ Set `TIEMORA_CONFIG=/path/to/other.yaml` to build with another file, and `TIEMOR
 | `hero.eyebrow` | localized or null | small kicker above the title (e.g. a campaign name); null shows the store name |
 | `hero.title` | localized or null | `\n` = line break, `<em>…</em>` highlights; null uses the built-in headline |
 | `hero.subtitle` | localized or null | italic line under the title |
+| `hero.layout` | `split` / `environmental` | `split` (default): separate text and image; `environmental`: immersive scene with scroll zoom |
 | `hero.fit` | `pan` / `cover` | `pan` (default): tall crop that slides sideways on scroll; `cover`: the image fills the frame |
 | `hero.focus` | `"X% Y%"` or null | object-position for the cover fit |
 | `hero.subject` | `"X% Y%"` or null | environmental layout: the point of the image the scroll zoom closes in on (phones pin the scene and zoom onto it; desktop pushes in gently); null uses `hero.focus` |

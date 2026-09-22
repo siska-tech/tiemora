@@ -4,7 +4,7 @@
 
 This branch is a reference implementation for a Vietnamese local-food storefront, not a core merge candidate. The guiding rule is: reuse Tiemora Core v0.2.0 wherever possible, and only add the smallest generic extension necessary for food-ordering flow.
 
-The current branch is already `pho-demo`, which is confirmed in the local git state. This plan is based on investigation of the live v0.2 codebase in `core/`, `worker/`, `storefront/`, and `admin/`.
+This is the historical plan for `pho-demo`. See [core-feedback.md](core-feedback.md) and the [v0.3.0 release notes](../releases/v0.3-result.md) for the reconciled implementation status.
 
 ---
 
@@ -210,13 +210,11 @@ These are beyond the minimum viable local-food adaptation and should not be intr
 
 ---
 
-### Not delivered in this pass
+### Follow-up implementation completed
 
-- **ASAP pickup.** Takeaway still means choosing a 15-minute slot. Listed as a v0.3 candidate in
-  [core-feedback.md](core-feedback.md) rather than half-built.
-- **Daily stock.** `ordering.stock` remains a lifetime total. The demo sets it to `null` on every
-  product and uses the new sold-out switch instead; changing the stock period is a Core decision,
-  not a demo one.
+- **ASAP pickup** is implemented through `ordering.asap`, with same-day/open-hours validation and migration `0009_asap_orders.sql`.
+- **Daily stock** is implemented through product `ordering.stockPeriod: daily`, with service-date stock checks in validation and SQL. The demo now configures per-day bowl counts.
+- **QR sheet generation** and a **stable cart state contract** remain deferred.
 
 ## 8. A / B / C / D classification
 

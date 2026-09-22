@@ -3,7 +3,7 @@
 	// The Worker only runs for /api/* and /admin*; every other path is served straight from dist/.
 	// See docs/deployment-cloudflare.md for the setup steps.
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "pho",
+	"name": "tiemora",
 	"main": "worker/index.mjs",
 	"compatibility_date": "2026-09-21",
 	"workers_dev": true,

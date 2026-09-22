@@ -62,10 +62,22 @@ test('the shipped config/store.yaml is valid and free of warnings', async () => 
   const warnings = [];
   const {config} = normalizeStoreConfig(raw, {warn: m => warnings.push(m)});
   assert.deepEqual(warnings, []);
-  assert.equal(config.store.name, 'Phở Góc Phố');
-  assert.equal(config.catalog.dir, 'examples/pho-demo');
+  assert.equal(config.store.name, 'Tiemora Demo Store');
+  assert.equal(config.catalog.dir, 'examples/catalog');
   assert.equal(config.defaultLanguage, 'vi');
+  assert.equal(config.ordering.fulfillment.dine_in, false);
+  assert.equal(config.ordering.asap.enabled, false);
+});
+
+test('the isolated food demo config enables local-store ordering without warnings', async () => {
+  const raw = parse(await readFile(new URL('../../examples/pho-demo/store.yaml', import.meta.url), 'utf8'));
+  const {config, warnings} = normalizeStoreConfig(raw, {warn: () => {}});
+  assert.deepEqual(warnings, []);
+  assert.equal(config.catalog.dir, 'examples/pho-demo');
   assert.equal(config.ordering.fulfillment.dine_in, true);
+  assert.equal(config.ordering.asap.enabled, true);
+  assert.deepEqual(config.ordering.tables, {min: 1, max: 24});
+  assert(config.store.text.heroDineIn.vi);
 });
 
 test('hero.focus and hero.subject accept "X% Y%" and warn about anything else', () => {

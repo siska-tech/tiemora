@@ -76,6 +76,18 @@ test('store.json drives the branding: name, tagline, hero title, announcement, v
  assert.equal(d.getElementById('announcement-text').textContent,'Promo');
  assert.equal(d.querySelector('[data-i18n="navCollection"]').textContent,'Catalog');
 });
+
+test('default copy stays generic while configured demo labels appear only in their language',async t=>{
+ const generic=await setup(t);
+ assert(!generic.document.querySelector('[data-i18n="collectionTitle"]').textContent.includes('Hà Nội'));
+ assert([...generic.document.querySelectorAll('.hero-services span')].every(el=>el.hidden));
+ const store={...storeFixture,store:{...storeFixture.store,text:{heroDineIn:{vi:'At the table'},collectionTitle:{vi:'Demo menu'}}}};
+ const {document:d,window}=await setup(t,{store});
+ assert.equal(d.querySelector('[data-i18n="collectionTitle"]').textContent,'Demo menu');
+ assert.equal(d.querySelector('[data-i18n="heroDineIn"]').hidden,false);
+ setLang(d,window,'en');
+ assert(d.querySelector('[data-i18n="heroDineIn"]').hidden);
+});
 test('a store with fewer languages hides the others; without contact channels the chat links disappear',async t=>{
  const store={...storeFixture,languages:['en'],defaultLanguage:'en',contact:{},store:{...storeFixture.store,hero:{title:null},announcement:null,values:[]}};
  const {document:d}=await setup(t,{store});

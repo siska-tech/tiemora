@@ -27,6 +27,8 @@ const render = async (from, to) => writeFile(to, renderTemplate(await readFile(f
 for (const file of ['index.html', 'privacy.html']) await render(path.join(storefront, file), path.join(output, file));
 for (const file of ['styles.css', 'catalog.js', 'gallery.js', 'app.js', 'booking.js', 'cart.js', 'order.js']) await copyFile(path.join(storefront, file), path.join(output, file));
 await cp(path.join(storefront, 'assets'), path.join(output, 'assets'), {recursive: true});
+// Optional deployment artwork, kept outside the shared storefront sources.
+if (process.env.TIEMORA_ASSETS) await cp(path.resolve(process.env.TIEMORA_ASSETS), path.join(output, 'assets'), {recursive: true});
 await writeFile(path.join(output, 'theme.css'), themeCss(config));
 await writeFile(path.join(output, 'store.json'), JSON.stringify(config, null, 2) + '\n');
 
