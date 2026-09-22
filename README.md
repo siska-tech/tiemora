@@ -1,6 +1,6 @@
 # Tiemora
 
-**Tiemora is an open-source catalog-first storefront, booking and inventory platform for small businesses.**
+**Tiemora is an open-source catalog-first storefront, booking, ordering and inventory platform for small businesses.**
 
 Vietnam-first workflows. Cloudflare-native infrastructure.
 
@@ -11,47 +11,49 @@ Vietnam-first workflows. Cloudflare-native infrastructure.
 
 Small shops usually start with a beautiful catalog and a chat app. Tiemora keeps that workflow and adds just enough structure around it:
 
-- a **catalog** written as folders of `product.yaml` + photos, published as a fast static site;
-- **availability by date** for the physical items you actually own;
-- a **booking request form** customers can send without an account, with the contact channel they prefer (Zalo, WhatsApp, Messenger, phone);
-- an **admin** for staff: dashboard, inventory, bookings (pending → confirmed → rented → returned), customer-notification helpers and push notifications on their phones.
+- a **catalog** written as folders of `product.yaml` + photos, published as a fast static site, with two product types: **rental** (booked by date) and **sale / pre-order** (bought by quantity);
+- **availability by date** for rental items, and **capacity** (time slots, daily limits, stock) for sale / pre-order items;
+- a **booking request form** and an **order form** customers can send without an account, with the contact channel they prefer (Zalo, WhatsApp, Messenger, phone);
+- an **admin** for staff: dashboard, inventory, bookings (pending → confirmed → rented → returned), orders (pending → confirmed → preparing → ready → out for delivery → completed), customer-notification helpers and push notifications on their phones.
 
-Nothing talks to WhatsApp, Zalo or Messenger APIs. Staff open a click-to-chat link or copy a message, send it from their own account, and mark the booking as notified. This keeps the platform free to run and simple to reason about.
+Nothing talks to WhatsApp, Zalo or Messenger APIs. Staff open a click-to-chat link or copy a message, send it from their own account, and mark the booking or order as notified. This keeps the platform free to run and simple to reason about.
 
 ## Features
 
 | Area | What you get |
 |---|---|
-| Catalog | YAML product definitions, multilingual names and descriptions (vi / en / ja / zh), price and discount, category, tags, sizes, colours, images and videos, recursive folder scan, duplicate-id detection, `catalog.json` generation, automatic image optimisation |
-| Storefront | Product grid and detail dialog, responsive, four languages, live stock status, date search, booking request form, privacy consent, Cloudflare Turnstile |
+| Catalog | YAML product definitions, multilingual names and descriptions (vi / en / ja / zh), price and discount, category (or category list), tags, sizes, colours, images and videos, recursive folder scan, duplicate-id detection, `catalog.json` generation, automatic image optimisation |
+| Storefront | Product grid and detail dialog, responsive, four languages, live stock status, date search, booking request form, sale order form with options / add-ons / quantity, privacy consent, Cloudflare Turnstile |
 | Rental / booking | Start and end dates (inclusive), per-size availability, buffer days between rentals, pending requests that hold no stock until staff confirm, statuses `pending / confirmed / rented / returned / cancelled` |
+| Sale / pre-order (v0.2) | Product options and add-ons, quantity, card message, pickup or delivery, time slots with capacity, daily capacity, per-product stock and deadline, statuses `pending / confirmed / preparing / ready / out_for_delivery / completed / cancelled` |
 | Inventory | Products (catalog) and inventory items (physical copies, `product-id-01`, `-02`, …) are separate; item statuses `available / reserved / rented / maintenance / inactive` |
-| Admin | Dashboard, inventory management, booking management, confirm / hand over / return / cancel, maintenance, notification centre, settings; Vietnamese, English and Japanese UI |
-| Customer contact helpers | WhatsApp click-to-chat with prefilled text, Messenger links, Zalo number + message copy, confirmation messages in four languages, preferred channel, "customer notified" record |
-| Web Push | Admin devices subscribe from the settings page; a new booking request pushes to every device; VAPID and RFC 8291 encryption implemented on Web Crypto with no dependency |
-| Privacy & security | Privacy policy page, mandatory consent, Turnstile, server-side validation, password or Cloudflare Access admin login, CSRF protection, per-IP throttle, session cookies |
+| Admin | Dashboard, inventory management, booking management, orders (list, detail, schedule, staff-entered orders), confirm / hand over / return / cancel, maintenance, notification centre, read-only demo mode, settings; Vietnamese, English and Japanese UI |
+| Customer contact helpers | WhatsApp click-to-chat with prefilled text, Messenger links, Zalo number + message copy, confirmation messages in four languages, preferred channel, "customer notified" record, shared by bookings and orders |
+| Web Push | Admin devices subscribe from the settings page; a new booking request or order pushes to every device; VAPID and RFC 8291 encryption implemented on Web Crypto with no dependency |
+| Privacy & security | Privacy policy page, mandatory consent, Turnstile, server-side validation, password or Cloudflare Access admin login, CSRF protection, per-IP throttle, session cookies, `ADMIN_READ_ONLY` demo mode |
 | Cloudflare | One Worker, Static Assets, D1, migrations, Turnstile, Web Push, Wrangler, local development, free-plan friendly |
 
 ## Screenshots
 
-Run `npm run dev` and open `http://localhost:8787/` (storefront) and `http://localhost:8787/admin/` (admin, password from `.dev.vars`). The repository ships with three fictional sample products and demo bookings.
+Run `npm run dev` and open `http://localhost:8787/` (storefront) and `http://localhost:8787/admin/` (admin, password from `.dev.vars`). The repository ships with three fictional rental sample products (`examples/catalog/`) and three fictional sale sample products (`examples/sale/`), with matching demo data (`seed/demo.sql`, `seed/sale-demo.sql`).
 
 ## Architecture
 
 ```
-config/store.yaml     store name, languages, contact links, theme, booking limits  ─┐
-examples/catalog/     product.yaml + media (your own go in catalog/)               ─┤ npm run build
-                                                                                    ▼
+config/store.yaml     store name, languages, contact links, theme, booking limits, ordering  ─┐
+examples/catalog/     rental product.yaml + media (your own go in catalog/)                  ─┤ npm run build
+examples/sale/        sale / pre-order product.yaml + media                                  ─┤
+                                                                                              ▼
 dist/                 storefront + store.json + theme.css + catalog.json + media + admin/
-                                                                                    │
-Cloudflare Workers Static Assets ◄──────────────────────────────────────────────────┘
+                                                                                              │
+Cloudflare Workers Static Assets ◄─────────────────────────────────────────────────────────────┘
         │  /api/*  /admin*
         ▼
-worker/               routing, auth, Turnstile, Web Push, repository (SQL over D1)
+worker/               routing, auth, Turnstile, Web Push, repository (SQL over D1), orders
         │
-core/                 pure domain logic: catalog, booking rules, inventory, notifications, i18n, config
+core/                 pure domain logic: catalog, booking rules, orders rules, inventory, notifications, i18n, config
         │
-Cloudflare D1         inventory_items · reservations · reservation_items · public_request_log · push_subscriptions
+Cloudflare D1         inventory_items · reservations · reservation_items · orders · order_items · public_request_log · push_subscriptions
 ```
 
 - `core/` has no Cloudflare or browser dependency and is unit-tested directly.
@@ -152,6 +154,15 @@ Point `catalog.dir` in `config/store.yaml` at your folder (the demo uses `exampl
 
 Details: [docs/booking.md](docs/booking.md), [docs/inventory.md](docs/inventory.md).
 
+## Orders (sale / pre-order, v0.2)
+
+- A `type: sale` product is sold by quantity, not booked by date. A customer picks option groups (size, tone, …) and add-ons, writes an optional card message, chooses **pickup** or **delivery**, a day and a time slot, and sends an order.
+- Capacity is counted, not itemised: a time slot holds N orders, a day holds N orders, a product sells N units (`ordering.stock` in `product.yaml`). Every limit is optional.
+- Staff manage orders in the admin: list, detail, day schedule, status flow `pending → confirmed → preparing → ready → (out_for_delivery) → completed / cancelled`, and the same notification helpers as bookings.
+- Rental and sale products can live in the same catalog; the admin shows the modules the catalog needs.
+
+Details: [docs/orders.md](docs/orders.md).
+
 ## Admin
 
 `/admin/` is a small hash-routed app behind a password login (or Cloudflare Access). Dashboard, inventory, bookings, notification centre (bell), settings (push notifications, store configuration summary). Vietnamese, English and Japanese; the starting language comes from `admin.defaultLanguage`.
@@ -162,7 +173,7 @@ Everything runs on one Worker with Static Assets and one D1 database. `wrangler.
 
 ## Configuration
 
-All store-specific values live in [config/store.yaml](config/store.yaml): name, tagline, description, hero, announcement, languages, currency, time zone, phone country code, contact channels, category labels, theme colours, booking limits, admin language. The build validates the file and publishes it as `/store.json`. Secrets never go there. Reference: [docs/configuration.md](docs/configuration.md).
+All store-specific values live in [config/store.yaml](config/store.yaml): name, tagline, description, hero, announcement, languages, currency, time zone, phone country code, contact channels, category labels, theme colours, booking limits, ordering (sale / pre-order fulfillment, dates, capacity, options, add-ons, card message), admin language. The build validates the file and publishes it as `/store.json`. Secrets never go there. Reference: [docs/configuration.md](docs/configuration.md).
 
 ## Security
 
@@ -174,11 +185,11 @@ All store-specific values live in [config/store.yaml](config/store.yaml): name, 
 
 ## Roadmap
 
-**v0.x (this release)** — Catalog · Rental · Booking · Inventory · Admin · Customer contact helpers · Web Push · Cloudflare deployment
+**Supported now** — Catalog · Rental / booking · Sale / pre-order · Orders · Inventory · Admin · Customer contact helpers · Web Push · Read-only demo mode · Cloudflare deployment
 
-**Future** — Sale (purchase) products · Workshop / class bookings · Appointments · Pre-orders · Theme system · Setup wizard (Tiemora Studio) · Other database adapters
+**Future** — Dine-in · Workshop / class bookings · Appointments · Unified fulfillment vocabulary · Theme system · Setup wizard (Tiemora Studio) · Other database adapters
 
-Only the v0.x items are implemented today.
+Only the items under "Supported now" are implemented today.
 
 ## Contributing
 

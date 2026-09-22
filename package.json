@@ -1,7 +1,7 @@
 {
   "name": "tiemora",
-  "version": "0.1.0",
-  "description": "Open-source catalog-first storefront, booking and inventory platform for small businesses. Vietnam-first workflows, Cloudflare-native infrastructure.",
+  "version": "0.2.0",
+  "description": "Open-source catalog-first storefront, booking, ordering and inventory platform for small businesses. Vietnam-first workflows, Cloudflare-native infrastructure.",
   "license": "MIT",
   "private": true,
   "type": "module",
@@ -11,7 +11,7 @@
   },
   "homepage": "https://github.com/siska-tech/tiemora#readme",
   "bugs": "https://github.com/siska-tech/tiemora/issues",
-  "keywords": ["storefront", "booking", "rental", "inventory", "cloudflare-workers", "d1", "small-business", "vietnam"],
+  "keywords": ["storefront", "booking", "orders", "rental", "inventory", "cloudflare-workers", "d1", "small-business", "vietnam"],
   "engines": {
     "node": ">=22.12"
   },
@@ -33,6 +33,8 @@
     "db:migrate": "wrangler d1 migrations apply tiemora --remote",
     "db:seed:local": "wrangler d1 execute tiemora --local --file=seed/demo.sql",
     "db:seed": "wrangler d1 execute tiemora --remote --file=seed/demo.sql",
+    "db:seed:sale:local": "wrangler d1 execute tiemora --local --file=seed/sale-demo.sql",
+    "db:seed:sale": "wrangler d1 execute tiemora --remote --file=seed/sale-demo.sql",
     "vapid:generate": "node scripts/generate-vapid.mjs",
     "turnstile:create": "wrangler turnstile widget create tiemora-booking --mode managed --domain localhost --json",
     "turnstile:list": "wrangler turnstile widget list"

@@ -14,11 +14,16 @@ Set `TIEMORA_CONFIG=/path/to/other.yaml` to build with another file, and `TIEMOR
 | `tagline` | localized | Short line under the name |
 | `description` | localized | Meta description and hero paragraph |
 | `logo` | path or null | e.g. `/assets/logo.webp` (place the file in `storefront/assets/`) |
+| `logoStyle` | `mark` / `wordmark` | `mark` (default): a square symbol next to the store name; `wordmark`: the logo already contains the name and replaces the text |
+| `hero.eyebrow` | localized or null | small kicker above the title (e.g. a campaign name); null shows the store name |
 | `hero.title` | localized or null | `\n` = line break, `<em>…</em>` highlights; null uses the built-in headline |
-| `hero.subtitle` | localized or null | reserved |
+| `hero.subtitle` | localized or null | italic line under the title |
+| `hero.fit` | `pan` / `cover` | `pan` (default): tall crop that slides sideways on scroll; `cover`: the image fills the frame |
+| `hero.focus` | `"X% Y%"` or null | object-position for the cover fit |
 | `hero.image` | path or null | replaces the neutral hero illustration |
 | `announcement` | localized or null | banner above the header |
 | `values` | list of localized (max 3) | short claims under the hero |
+| `text` | mapping of copy key → localized | overrides the storefront's built-in UI copy (keys of `copy` in `storefront/app.js`: `bookCta`, `explore`, `heroNote`, `step1Title`, `collectionDescription`, `footer`, `count`, …) so a non-rental store can reword the page without touching code |
 
 A *localized* value is a string or a mapping by language code: `{vi: "…", en: "…"}`.
 
@@ -56,6 +61,26 @@ Six-digit hex colours: `primary`, `accent`, `paper` (background), `ink` (text), 
 | `maxDaysAhead` | 365 | how far ahead a public request may start |
 | `bufferDays` | 0 | free days kept between one return and the next start (`RESERVATION_BUFFER_DAYS` overrides) |
 
+### `ordering`
+
+Sale / pre-order products (`type: sale` in `product.yaml`). See [orders.md](orders.md) for the whole model.
+
+| Key | Default | Notes |
+|---|---|---|
+| `fulfillment.pickup` / `delivery` | true / true | which ways are offered (at least one) |
+| `fulfillment.deliveryFee` | 0 | added to delivery orders |
+| `fulfillment.deliveryNote` | null | localized text under the delivery choice |
+| `dates.from` / `dates.to` | null | explicit campaign window (YYYY-MM-DD); with both set the form offers only these days |
+| `dates.minLeadDays` / `maxDaysAhead` | 1 / 14 | rolling window used when no campaign window is set |
+| `deadline` | null | ISO date-time after which no public order is accepted |
+| `dailyCapacity` | null | orders per day (null = no limit) |
+| `timeSlots` | [] | `{id, start, end, capacity, label}`; `id` defaults to `HHMM-HHMM`, `capacity` null = no limit |
+| `options` | {} | `group → {label, choices: {id → {label, price}}}`; products list the ids they offer |
+| `addons` | {} | `id → {label, price}` |
+| `messageCard` | enabled, 200 chars | `enabled`, `maxLength`, `placeholder`, `templates: [{id, label, text}]` |
+
+Limits are counted from active orders; nothing is shown as scarce unless a limit is configured.
+
 ### `admin.defaultLanguage`
 
 `vi`, `en` or `ja` — the language the admin opens in before staff choose their own.
@@ -65,7 +90,7 @@ Six-digit hex colours: `primary`, `accent`, `paper` (background), `ink` (text), 
 | Setting | Where |
 |---|---|
 | Passwords, Turnstile secret, VAPID private key | Cloudflare Secrets / `.dev.vars` ([deployment](deployment-cloudflare.md)) |
-| Turnstile site key, VAPID public key, Access | `wrangler.jsonc` `vars` |
+| Turnstile site key, VAPID public key, Access, `ADMIN_READ_ONLY` | `wrangler.jsonc` `vars` |
 | Worker name, D1 binding | `wrangler.jsonc` |
 | Products | `catalog/**/product.yaml` ([catalog](catalog.md)) |
 | Privacy policy wording | `storefront/privacy.html` (the store name and contact block are filled from this config; review the text for your jurisdiction) |

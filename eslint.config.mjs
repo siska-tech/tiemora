@@ -5,9 +5,9 @@ import js from '@eslint/js';
 import globals from 'globals';
 
 const browserShared = {
-  // storefront/*.js run as classic scripts in this order: catalog.js, gallery.js, app.js, booking.js
+  // storefront/*.js run as classic scripts in this order: catalog.js, gallery.js, app.js, booking.js, order.js
   products: 'writable', catalogState: 'writable', availability: 'writable', availabilityRange: 'writable', selected: 'writable', language: 'writable', filter: 'writable', mediaIndex: 'writable', store: 'writable',
-  copy: 'readonly', catalogCopy: 'readonly', localizedText: 'readonly', chatUrl: 'readonly', escapeMarkup: 'readonly', mediaCover: 'readonly', renderGallery: 'readonly', stopGalleryVideo: 'readonly', renderProducts: 'readonly', updateProductDetail: 'readonly', loadCatalog: 'readonly', loadAvailability: 'readonly', readDateRange: 'readonly', productName: 'readonly', productMessage: 'readonly', formatDate: 'readonly', revealOnScroll: 'readonly', syncProductFromHash: 'readonly', artwork: 'readonly', refreshBookingText: 'readonly', updateBookingBlock: 'readonly'
+  copy: 'readonly', catalogCopy: 'readonly', localizedText: 'readonly', chatUrl: 'readonly', escapeMarkup: 'readonly', mediaCover: 'readonly', renderGallery: 'readonly', stopGalleryVideo: 'readonly', renderProducts: 'readonly', updateProductDetail: 'readonly', loadCatalog: 'readonly', loadAvailability: 'readonly', readDateRange: 'readonly', productName: 'readonly', productMessage: 'readonly', formatDate: 'readonly', revealOnScroll: 'readonly', syncProductFromHash: 'readonly', artwork: 'readonly', refreshBookingText: 'readonly', updateBookingBlock: 'readonly', formatPrice: 'readonly', refreshOrderText: 'readonly', updateOrderBlock: 'readonly', saleLabel: 'readonly', saleClass: 'readonly', loadOrderConfig: 'readonly'
 };
 
 export default [

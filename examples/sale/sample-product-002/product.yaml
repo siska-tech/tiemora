@@ -1,0 +1,41 @@
+# A fictional sale product used to demonstrate Tiemora Core's Orders domain (v0.2). Copy this
+# folder to catalog/<your-product>/ and replace every value. See docs/catalog.md and docs/orders.md.
+id: sample-product-002
+type: sale
+
+name:
+  vi: Sản phẩm mẫu
+  en: Sample Product
+  ja: 商品サンプル
+  zh: 示例商品
+
+category: gifts
+
+description:
+  vi: Sản phẩm mẫu thứ hai, không giới hạn tùy chọn, dùng để minh họa việc đặt hàng theo số lượng, nhận tại cửa hàng hoặc giao tận nơi theo khung giờ.
+  en: A second sample item with no options, used to demonstrate ordering by quantity, pickup or delivery in a time slot.
+  ja: オプションのない2つ目のサンプル商品です。数量指定での注文、時間帯を指定した店頭受取・配送を確認できます。
+  zh: 第二个示例商品，无可选项，用于演示按数量下单、按时段到店自取或配送。
+
+price:
+  sale: 180000
+currency: VND
+
+fulfillment:
+  pickup: true
+  delivery: true
+
+ordering:
+  preorder: true
+  stock: 40
+
+placeholder: true
+color: "#c08a4a"
+bg: "#faf3e8"
+
+available: true
+order: 21
+
+tags:
+  - sample
+  - sale

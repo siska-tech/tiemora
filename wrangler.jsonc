@@ -32,6 +32,8 @@
 		"STORE_TIMEZONE": "",
 		// Cloudflare Access (optional). When both are set, /admin and /api/admin/* trust the
 		// Cf-Access-Jwt-Assertion header instead of the password login.
+		// Demo / read-only admin: "1" refuses every admin write (public orders and requests still arrive).
+		"ADMIN_READ_ONLY": "",
 		"ACCESS_TEAM_DOMAIN": "",
 		"ACCESS_AUD": "",
 		// Cloudflare Turnstile site key for the public booking form (the secret goes in a Secret, see below).

@@ -143,3 +143,13 @@ test('the shipped sample catalog is valid and has no duplicate ids',async()=>{
   assert(products.every(p=>p.images.length>=1));
   assert.deepEqual(products.map(p=>p.inventory?.managed===true),[true,true,false]);
 });
+test('the shipped sale sample catalog (v0.2) is valid: type, price.sale, options, addons, fulfillment, ordering',async()=>{
+  const {products}=await collectCatalog(new URL('../../examples/sale/',import.meta.url).pathname.replace(/^\/([A-Za-z]:)/,'$1'),{warn:m=>{if(!m.includes('No supported media'))throw new Error('unexpected warning: '+m);}});
+  assert.deepEqual(products.map(p=>p.id),['sample-gift-001','sample-product-002','sample-preorder-003']);
+  assert(products.every(p=>p.type==='sale'));
+  assert.deepEqual(products.map(p=>typeof p.price.sale),['number','number','number']);
+  assert.deepEqual(products[0].options.size.map(c=>c.id),['small','medium','large']);
+  assert.deepEqual(products[0].addons.map(a=>a.id),['giftwrap']);
+  assert.equal(products[2].ordering.stock,10);
+  assert.equal(products[2].ordering.deadline,'2026-12-20T20:00:00+07:00');
+});

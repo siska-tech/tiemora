@@ -1,7 +1,7 @@
 {
   "name": "{{store.name}} · Admin",
   "short_name": "{{store.name}}",
-  "description": "Inventory, bookings and customer notifications.",
+  "description": "Orders, bookings, inventory and customer notifications.",
   "id": "/admin/",
   "start_url": "/admin/",
   "scope": "/admin/",

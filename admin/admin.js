@@ -19,7 +19,13 @@ const T={
   request:'Booking request',requested:'Requested',confirmRequest:'Confirm booking',requestHint:'No inventory item is assigned yet. Press "Confirm booking" to re-check stock and assign a free item automatically, or pick one below and save.',source:{admin:'Store',public:'Website'},otherSizes:'Free sizes',
   settings:'Settings',pushTitle:'Push notifications on this device',pushDescription:'Get a notification on this phone or computer when a new booking request arrives from the website. Each device subscribes separately.',pushEnable:'Enable on this device',pushDisable:'Disable on this device',pushEnabled:'Enabled on this device',pushNotConfigured:'Web Push is not configured on the server (VAPID keys missing). See docs/deployment-cloudflare.md.',pushUnsupported:'This browser does not support Web Push. On iPhone, add the admin to the home screen first.',pushDenied:'Notifications are blocked for this site in the browser settings.',pushTest:'Send a test notification',pushTestSent:'Test sent to {n} device(s).',pushDevices:'Subscribed devices',pushThisDevice:'this device',pushRemove:'Remove',pushFailed:'Could not subscribe.',
   storeConfig:'Store configuration',storeName:'Store name',languages:'Languages',timezone:'Time zone',currency:'Currency',configHint:'Edit config/store.yaml and rebuild to change these.',
-  errors:{inventory_conflict:'This item is already booked for those dates.',inventory_unavailable:'No free item (or the item is in maintenance / inactive) for these dates.',inventory_exists:'This item ID already exists.',inventory_in_use:'This item is used by a booking. Set it to "Inactive" instead of deleting it.',not_pending:'This booking is no longer pending.',unauthorized:'Your session has expired. Please sign in again.',validation_error:'Please check the input.',not_found:'Not found.',network:'Could not reach the server.'}},
+  navOrders:'Orders',orders:'Orders',order:'Order',newOrder:'New order',newOrders:'New orders',orderNumber:'Order no.',quantity:'Qty',fulfillment:'Pickup / Delivery',fulfillmentType:{pickup:'Pickup',delivery:'Delivery'},date:'Date',timeSlot:'Time slot',noSlot:'No slot',total:'Total',
+  orderStatus:{pending:'Pending',confirmed:'Confirmed',preparing:'Preparing',ready:'Ready',out_for_delivery:'Out for delivery',completed:'Completed',cancelled:'Cancelled'},
+  orderAction:{confirmed:'Confirm order',preparing:'Start preparing',ready:'Mark ready',out_for_delivery:'Out for delivery',completed:'Completed',cancelled:'Cancel order'},confirmCancelOrder:'Cancel this order?',
+  recipient:'Recipient',recipientPhone:'Recipient phone',address:'Delivery address',deliveryNote:'Delivery note',messageCard:'Card message',noCard:'No card message',options:'Options',addons:'Add-ons',unitPrice:'Unit price',deliveryFee:'Delivery fee',
+  schedule:'Schedule',pickupSchedule:'Pickup schedule',deliverySchedule:'Delivery schedule',ordersToday:'Orders today',pickupsTodayOrders:'Pickups today',deliveriesToday:'Deliveries today',upcomingOrders:'Upcoming orders',ordersNeedNotification:'orders waiting for a customer notification',orderNotifyPending:'Confirm the order first, then notify the customer.',
+  capacity:'Capacity',used:'used',unlimited:'no limit',copyOrderSummary:'Copy order summary',pickDate:'Choose a date.',readOnly:'Demo mode: this admin is read-only. You can browse everything, but changes are not saved.',
+  errors:{read_only:'Demo mode: changes are not saved.',capacity_full:'This time slot is full.',sold_out:'This product is sold out.',invalid_transition:'This status change is not allowed from the current status.',inventory_conflict:'This item is already booked for those dates.',inventory_unavailable:'No free item (or the item is in maintenance / inactive) for these dates.',inventory_exists:'This item ID already exists.',inventory_in_use:'This item is used by a booking. Set it to "Inactive" instead of deleting it.',not_pending:'This booking is no longer pending.',unauthorized:'Your session has expired. Please sign in again.',validation_error:'Please check the input.',not_found:'Not found.',network:'Could not reach the server.'}},
  vi:{adminTitle:'QUẢN LÝ CỬA HÀNG',navDashboard:'Tổng quan',navInventory:'Kho hàng',navReservations:'Đặt lịch',navSettings:'Cài đặt',logout:'Đăng xuất',
   products:'Sản phẩm',items:'Hàng thực tế',rentedNow:'Đang cho thuê',upcoming:'Lịch sắp tới',maintenance:'Đang bảo trì',returnsToday:'Trả hôm nay',pickupsToday:'Giao hôm nay',today:'Hôm nay',
   itemStatus:{available:'Có sẵn',reserved:'Đã giữ',rented:'Đang cho thuê',maintenance:'Bảo trì',inactive:'Ngừng dùng'},
@@ -37,7 +43,13 @@ const T={
   request:'Yêu cầu đặt chỗ',requested:'Khách yêu cầu',confirmRequest:'Xác nhận đặt chỗ',requestHint:'Chưa gắn hàng thực tế. Bấm "Xác nhận đặt chỗ" để hệ thống kiểm tra kho và tự chọn hàng trống, hoặc tự chọn bên dưới rồi lưu.',source:{admin:'Cửa hàng',public:'Website'},otherSizes:'Cỡ còn trống',
   settings:'Cài đặt',pushTitle:'Thông báo đẩy trên thiết bị này',pushDescription:'Nhận thông báo trên điện thoại / máy tính này khi có yêu cầu đặt chỗ mới từ website. Mỗi thiết bị đăng ký riêng.',pushEnable:'Bật trên thiết bị này',pushDisable:'Tắt trên thiết bị này',pushEnabled:'Đã bật trên thiết bị này',pushNotConfigured:'Web Push chưa được cấu hình trên máy chủ (thiếu khóa VAPID). Xem docs/deployment-cloudflare.md.',pushUnsupported:'Trình duyệt này không hỗ trợ Web Push. Trên iPhone, hãy thêm trang quản lý vào màn hình chính trước.',pushDenied:'Thông báo đang bị chặn cho trang này trong cài đặt trình duyệt.',pushTest:'Gửi thông báo thử',pushTestSent:'Đã gửi thử tới {n} thiết bị.',pushDevices:'Thiết bị đã đăng ký',pushThisDevice:'thiết bị này',pushRemove:'Xóa',pushFailed:'Không đăng ký được.',
   storeConfig:'Cấu hình cửa hàng',storeName:'Tên cửa hàng',languages:'Ngôn ngữ',timezone:'Múi giờ',currency:'Tiền tệ',configHint:'Sửa config/store.yaml và build lại để thay đổi.',
-  errors:{inventory_conflict:'Hàng này đã được đặt trong khoảng ngày đó.',inventory_unavailable:'Không còn hàng trống (hoặc đang bảo trì / ngừng dùng) cho khoảng ngày này.',inventory_exists:'Mã hàng đã tồn tại.',inventory_in_use:'Mã hàng đang nằm trong đặt lịch. Hãy chuyển sang "Ngừng dùng" thay vì xóa.',not_pending:'Đặt lịch này không còn ở trạng thái chờ xác nhận.',unauthorized:'Phiên đăng nhập đã hết. Vui lòng đăng nhập lại.',validation_error:'Dữ liệu chưa hợp lệ.',not_found:'Không tìm thấy.',network:'Không kết nối được máy chủ.'}},
+  navOrders:'Đơn hàng',orders:'Đơn hàng',order:'Đơn hàng',newOrder:'Tạo đơn',newOrders:'Đơn mới',orderNumber:'Mã đơn',quantity:'SL',fulfillment:'Nhận / Giao',fulfillmentType:{pickup:'Nhận tại tiệm',delivery:'Giao tận nơi'},date:'Ngày',timeSlot:'Khung giờ',noSlot:'Không có khung giờ',total:'Tổng',
+  orderStatus:{pending:'Chờ xác nhận',confirmed:'Đã xác nhận',preparing:'Đang làm',ready:'Sẵn sàng',out_for_delivery:'Đang giao',completed:'Hoàn tất',cancelled:'Đã hủy'},
+  orderAction:{confirmed:'Xác nhận đơn',preparing:'Bắt đầu làm',ready:'Đã xong',out_for_delivery:'Đang giao',completed:'Hoàn tất',cancelled:'Hủy đơn'},confirmCancelOrder:'Hủy đơn này?',
+  recipient:'Người nhận',recipientPhone:'SĐT người nhận',address:'Địa chỉ giao',deliveryNote:'Ghi chú giao',messageCard:'Lời nhắn trên thiệp',noCard:'Không có lời nhắn',options:'Tùy chọn',addons:'Thêm',unitPrice:'Đơn giá',deliveryFee:'Phí giao',
+  schedule:'Lịch',pickupSchedule:'Lịch nhận tại tiệm',deliverySchedule:'Lịch giao',ordersToday:'Đơn hôm nay',pickupsTodayOrders:'Nhận tại tiệm hôm nay',deliveriesToday:'Giao hôm nay',upcomingOrders:'Đơn sắp tới',ordersNeedNotification:'đơn cần thông báo cho khách',orderNotifyPending:'Xác nhận đơn trước, rồi thông báo cho khách.',
+  capacity:'Sức chứa',used:'đã dùng',unlimited:'không giới hạn',copyOrderSummary:'Sao chép thông tin đơn',pickDate:'Chọn ngày.',readOnly:'Chế độ demo: trang quản lý chỉ xem. Bạn có thể xem mọi thứ nhưng thay đổi không được lưu.',
+  errors:{read_only:'Chế độ demo: thay đổi không được lưu.',capacity_full:'Khung giờ này đã hết chỗ.',sold_out:'Sản phẩm này đã hết hàng.',invalid_transition:'Không thể chuyển sang trạng thái này từ trạng thái hiện tại.',inventory_conflict:'Hàng này đã được đặt trong khoảng ngày đó.',inventory_unavailable:'Không còn hàng trống (hoặc đang bảo trì / ngừng dùng) cho khoảng ngày này.',inventory_exists:'Mã hàng đã tồn tại.',inventory_in_use:'Mã hàng đang nằm trong đặt lịch. Hãy chuyển sang "Ngừng dùng" thay vì xóa.',not_pending:'Đặt lịch này không còn ở trạng thái chờ xác nhận.',unauthorized:'Phiên đăng nhập đã hết. Vui lòng đăng nhập lại.',validation_error:'Dữ liệu chưa hợp lệ.',not_found:'Không tìm thấy.',network:'Không kết nối được máy chủ.'}},
  ja:{adminTitle:'店舗管理',navDashboard:'ダッシュボード',navInventory:'在庫',navReservations:'予約',navSettings:'設定',logout:'ログアウト',
   products:'商品数',items:'実在庫数',rentedNow:'貸出中',upcoming:'今後の予約',maintenance:'メンテナンス中',returnsToday:'今日返却予定',pickupsToday:'今日貸出開始',today:'今日',
   itemStatus:{available:'利用可',reserved:'予約済',rented:'貸出中',maintenance:'メンテナンス',inactive:'無効'},
@@ -55,13 +67,25 @@ const T={
   request:'予約申請',requested:'希望内容',confirmRequest:'予約を確定する',requestHint:'まだ実物在庫が割り当てられていません。「予約を確定する」を押すと在庫を再確認して空いている実物を自動で割り当てます。下で手動選択して保存することもできます。',source:{admin:'店舗',public:'Web'},otherSizes:'空いているサイズ',
   settings:'設定',pushTitle:'この端末のプッシュ通知',pushDescription:'Web サイトから新しい予約申請が届いたとき、このスマートフォン / PC に通知します。端末ごとに登録が必要です。',pushEnable:'この端末で有効にする',pushDisable:'この端末で無効にする',pushEnabled:'この端末で有効',pushNotConfigured:'サーバー側で Web Push が設定されていません（VAPID 鍵がありません）。docs/deployment-cloudflare.md を参照してください。',pushUnsupported:'このブラウザは Web Push に対応していません。iPhone では先に管理画面をホーム画面に追加してください。',pushDenied:'ブラウザの設定でこのサイトの通知がブロックされています。',pushTest:'テスト通知を送る',pushTestSent:'{n} 台の端末にテストを送りました。',pushDevices:'登録済みの端末',pushThisDevice:'この端末',pushRemove:'削除',pushFailed:'登録できませんでした。',
   storeConfig:'店舗設定',storeName:'店舗名',languages:'言語',timezone:'タイムゾーン',currency:'通貨',configHint:'変更するには config/store.yaml を編集して再ビルドしてください。',
-  errors:{inventory_conflict:'この期間は既に予約済みです。',inventory_unavailable:'この期間に空いている在庫がありません（またはメンテナンス中 / 無効）。',inventory_exists:'この在庫IDは既に存在します。',inventory_in_use:'この在庫は予約で使用中です。削除せず「無効」に変更してください。',not_pending:'この予約は保留状態ではありません。',unauthorized:'セッションが切れました。再ログインしてください。',validation_error:'入力内容を確認してください。',not_found:'見つかりません。',network:'サーバーに接続できません。'}}
+  navOrders:'注文',orders:'注文',order:'注文',newOrder:'注文作成',newOrders:'新規注文',orderNumber:'注文番号',quantity:'数量',fulfillment:'受取 / 配送',fulfillmentType:{pickup:'店頭受取',delivery:'配送'},date:'日付',timeSlot:'時間帯',noSlot:'時間帯なし',total:'合計',
+  orderStatus:{pending:'未確認',confirmed:'確定',preparing:'制作中',ready:'準備完了',out_for_delivery:'配送中',completed:'完了',cancelled:'キャンセル'},
+  orderAction:{confirmed:'注文を確定',preparing:'制作開始',ready:'準備完了にする',out_for_delivery:'配送開始',completed:'完了',cancelled:'注文をキャンセル'},confirmCancelOrder:'この注文をキャンセルしますか？',
+  recipient:'受取人',recipientPhone:'受取人の電話',address:'配送先',deliveryNote:'配送メモ',messageCard:'カードメッセージ',noCard:'メッセージなし',options:'オプション',addons:'追加',unitPrice:'単価',deliveryFee:'配送料',
+  schedule:'スケジュール',pickupSchedule:'店頭受取スケジュール',deliverySchedule:'配送スケジュール',ordersToday:'今日の注文',pickupsTodayOrders:'今日の店頭受取',deliveriesToday:'今日の配送',upcomingOrders:'今後の注文',ordersNeedNotification:'件の注文が顧客通知待ちです',orderNotifyPending:'先に注文を確定してから顧客へ通知してください。',
+  capacity:'枠',used:'使用',unlimited:'上限なし',copyOrderSummary:'注文情報をコピー',pickDate:'日付を選択してください。',readOnly:'デモモード: この管理画面は閲覧専用です。変更は保存されません。',
+  errors:{read_only:'デモモード: 変更は保存されません。',capacity_full:'この時間帯は満枠です。',sold_out:'この商品は売り切れです。',invalid_transition:'現在の状態からこの状態には変更できません。',inventory_conflict:'この期間は既に予約済みです。',inventory_unavailable:'この期間に空いている在庫がありません（またはメンテナンス中 / 無効）。',inventory_exists:'この在庫IDは既に存在します。',inventory_in_use:'この在庫は予約で使用中です。削除せず「無効」に変更してください。',not_pending:'この予約は保留状態ではありません。',unauthorized:'セッションが切れました。再ログインしてください。',validation_error:'入力内容を確認してください。',not_found:'見つかりません。',network:'サーバーに接続できません。'}}
 };
 const CONTACT_CHANNELS=['messenger','zalo','whatsapp','phone','other'];
 const NOTIFICATION_CHANNELS=['whatsapp','messenger','zalo','phone','copy','other'];
 const NOTIFICATION_LANGUAGES=['vi','en','ja','zh'];
 const ITEM_STATUSES=['available','reserved','rented','maintenance','inactive'];
 const RESERVATION_STATUSES=['pending','confirmed','rented','returned','cancelled'];
+const ORDER_STATUSES=['pending','confirmed','preparing','ready','out_for_delivery','completed','cancelled'];
+const FULFILLMENT_TYPES=['pickup','delivery'];
+// Which modules this store uses, read off the catalog: sale products need Orders, everything else
+// (rental or plain items) keeps Inventory / Bookings. Both can coexist.
+let modules={orders:false,rental:true};
+let readOnly=false;
 // Store configuration (/store.json): name, languages, time zone. Defaults until it loads.
 let storeConfig={store:{name:document.getElementById('brand-name')?.textContent||'Tiemora'},languages:['vi','en'],defaultLanguage:'vi',admin:{defaultLanguage:'en'}};
 let lang='en';try{if(T[localStorage.getItem('tiemora-admin-lang')])lang=localStorage.getItem('tiemora-admin-lang');}catch{}
@@ -127,17 +151,21 @@ function itemLines(r){
 
 // --- Views ----------------------------------------------------------------------------------------
 async function dashboard(){
- view.innerHTML=`<div class="view-head"><h1>${esc(t('navDashboard'))}</h1><div class="actions"><a class="button primary" href="#/reservations/new">${esc(t('newReservation'))}</a><a class="button" href="#/inventory/new">${esc(t('newItem'))}</a></div></div><p class="muted">${esc(t('loading'))}</p>`;
+ view.innerHTML=`<div class="view-head"><h1>${esc(t('navDashboard'))}</h1><div class="actions">${modules.orders?`<a class="button primary" href="#/orders/new">${esc(t('newOrder'))}</a><a class="button" href="#/orders/schedule">${esc(t('schedule'))}</a>`:''}${modules.rental?`<a class="button${modules.orders?'':' primary'}" href="#/reservations/new">${esc(t('newReservation'))}</a><a class="button" href="#/inventory/new">${esc(t('newItem'))}</a>`:''}</div></div><p class="muted">${esc(t('loading'))}</p>`;
  const d=await api('/api/admin/dashboard');
  const stat=(key,value,href,extra='')=>`<a class="stat ${extra}" href="${href}"><b>${value}</b><span>${esc(t(key))}</span></a>`;
  const list=(key,rows,action,{date=true}={})=>`<section class="card"><h2>${esc(t(key))} ${date?`<small>${esc(formatDate(d.today))}</small>`:`<small>${rows.length}</small>`}</h2>${rows.length?reservationTable(rows,action):`<p class="muted">${esc(t('empty'))}</p>`}</section>`;
- view.querySelector('p').outerHTML=`<div class="stats">${stat('newRequests',d.newReservations.length,'#/reservations?status=pending',d.newReservations.length?'attention':'')}${stat('needNotification',d.pendingNotifications.length,'#/reservations?status=confirmed&notification=not_sent',d.pendingNotifications.length?'attention':'')}${stat('products',d.products,'#/inventory')}${stat('items',d.items,'#/inventory')}${stat('rentedNow',d.rentedNow,'#/reservations?status=rented')}${stat('upcoming',d.upcoming,`#/reservations?status=pending,confirmed&from=${d.today}`)}${stat('maintenance',d.maintenance,'#/inventory?status=maintenance')}${stat('returnsToday',d.returnsToday.length,`#/reservations?from=${d.today}&to=${d.today}`)}${stat('pickupsToday',d.pickupsToday.length,`#/reservations?from=${d.today}&to=${d.today}`)}</div>
+ const orderList=(key,rows,action,{date=true}={})=>`<section class="card"><h2>${esc(t(key))} ${date?`<small>${esc(formatDate(d.today))}</small>`:`<small>${rows.length}</small>`}</h2>${rows.length?orderTable(rows,action):`<p class="muted">${esc(t('empty'))}</p>`}</section>`;
+ const orderStats=modules.orders?`${stat('newOrders',d.newOrders.length,'#/orders?status=pending',d.newOrders.length?'attention':'')}${stat('needNotification',d.orderNotifications.length,'#/orders?notification=not_sent&status=confirmed,preparing,ready,out_for_delivery',d.orderNotifications.length?'attention':'')}${stat('pickupsTodayOrders',d.orderPickupsToday.length,`#/orders/schedule?date=${d.today}`)}${stat('deliveriesToday',d.orderDeliveriesToday.length,`#/orders/schedule?date=${d.today}`)}${stat('upcomingOrders',d.upcomingOrders,`#/orders?from=${d.today}`)}${stat('products',d.products,'#/orders/new')}`:'';
+ const rentalStats=modules.rental?`${stat('newRequests',d.newReservations.length,'#/reservations?status=pending',d.newReservations.length?'attention':'')}${stat('needNotification',d.pendingNotifications.length,'#/reservations?status=confirmed&notification=not_sent',d.pendingNotifications.length?'attention':'')}${modules.orders?'':stat('products',d.products,'#/inventory')}${stat('items',d.items,'#/inventory')}${stat('rentedNow',d.rentedNow,'#/reservations?status=rented')}${stat('upcoming',d.upcoming,`#/reservations?status=pending,confirmed&from=${d.today}`)}${stat('maintenance',d.maintenance,'#/inventory?status=maintenance')}${stat('returnsToday',d.returnsToday.length,`#/reservations?from=${d.today}&to=${d.today}`)}${stat('pickupsToday',d.pickupsToday.length,`#/reservations?from=${d.today}&to=${d.today}`)}`:'';
+ view.querySelector('p').outerHTML=`${readOnly?`<p class="hint">${esc(t('readOnly'))}</p>`:''}<div class="stats">${orderStats}${rentalStats}</div>
   <div class="stack">
-   <section class="card" id="dashboard-notifications"><h2>${esc(t('notifications'))} <small>${d.pendingNotifications.length} ${esc(t('bookingsNeedNotification'))}</small></h2>${d.pendingNotifications.length?reservationTable(d.pendingNotifications,'open'):`<p class="muted">${esc(t('empty'))}</p>`}</section>
+   ${modules.orders?`${orderList('newOrders',d.newOrders,'confirmed',{date:false})}<section class="card"><h2>${esc(t('notifications'))} <small>${d.orderNotifications.length} ${esc(t('ordersNeedNotification'))}</small></h2>${d.orderNotifications.length?orderTable(d.orderNotifications,'open'):`<p class="muted">${esc(t('empty'))}</p>`}</section>${orderList('pickupsTodayOrders',d.orderPickupsToday,'completed')}${orderList('deliveriesToday',d.orderDeliveriesToday,'out_for_delivery')}`:''}
+   ${modules.rental?`<section class="card" id="dashboard-notifications"><h2>${esc(t('notifications'))} <small>${d.pendingNotifications.length} ${esc(t('bookingsNeedNotification'))}</small></h2>${d.pendingNotifications.length?reservationTable(d.pendingNotifications,'open'):`<p class="muted">${esc(t('empty'))}</p>`}</section>
    ${list('newRequests',d.newReservations,'confirm',{date:false})}
    ${d.overdue.length?list('overdue',d.overdue,'returned',{date:false}):''}
-   ${list('returnsToday',d.returnsToday,'returned')}${list('pickupsToday',d.pickupsToday,'rented')}</div>`;
- bindQuickActions();
+   ${list('returnsToday',d.returnsToday,'returned')}${list('pickupsToday',d.pickupsToday,'rented')}`:''}</div>`;
+ bindQuickActions();bindOrderQuickActions();
 }
 
 // quickAction: 'rented' / 'returned' (status PATCH), 'confirm' (POST /confirm) or 'open' (link only).
@@ -381,7 +409,7 @@ async function reservationForm(id){
 
 // Contact summary + the notification tools for one booking. Nothing is sent from here: the
 // buttons open WhatsApp / Messenger or copy text, and staff record the result with "notified".
-function renderNotificationPanel(root,r,n){
+function renderNotificationPanel(root,r,n,{endpoint='/api/admin/reservations',pendingHint='notifyPending',summaryLabel='copySummary'}={}){
  if(!root||!n)return;
  let language=n.defaultLanguage||storeConfig.defaultLanguage||'vi';
  let channel=r.notification_channel||({messenger:'messenger',zalo:'zalo',whatsapp:'whatsapp',phone:'phone',other:'other'}[n.preferred]||'copy');
@@ -415,11 +443,11 @@ function renderNotificationPanel(root,r,n){
   </div>
   <div class="notification-block"><h3>${esc(t('notification'))}</h3>
    <div class="notification-state">${notificationPill(r)}${sent?` <span class="muted">${esc(t('channel'))}: ${esc(T[lang].notificationChannel[r.notification_channel]||r.notification_channel)} · ${esc(t('sentAt'))}: ${esc(formatDateTime(r.notification_sent_at))}${r.notification_note?` · ${esc(r.notification_note)}`:''}</span>`:''}</div>
-   ${r.status==='pending'?`<p class="hint">${esc(t('notifyPending'))}</p>`:''}
+   ${r.status==='pending'?`<p class="hint">${esc(t(pendingHint))}</p>`:''}
    <label class="field"><span>${esc(t('language'))}</span><select id="notify-lang">${options(NOTIFICATION_LANGUAGES,language,{vi:'VI · Tiếng Việt',en:'EN · English',ja:'JA · 日本語',zh:'ZH · 中文'})}</select></label>
    <label class="field"><span>${esc(t('message'))}</span><textarea id="notify-message" readonly rows="9">${esc(message())}</textarea></label>
    <div class="channels">${order.map(c=>`<div class="channel-row${c===n.preferred?' preferred':''}"><span class="channel-label">${esc(T[lang].contactChannel[c])}${c===n.preferred?` <em>${esc(t('primary'))}</em>`:''}</span><div class="actions">${channelRows[c]()}</div></div>`).join('')}
-    <div class="channel-row"><span class="channel-label">${esc(t('copyMessage'))}</span><div class="actions"><button type="button" data-copy="message" data-channel="copy">${esc(t('copyMessage'))}</button><button type="button" data-copy="summary" data-channel="copy">${esc(t('copySummary'))}</button>${n.phone?`<button type="button" data-copy="phone" data-channel="copy">${esc(t('copyPhone'))}</button>`:''}</div></div>
+    <div class="channel-row"><span class="channel-label">${esc(t('copyMessage'))}</span><div class="actions"><button type="button" data-copy="message" data-channel="copy">${esc(t('copyMessage'))}</button><button type="button" data-copy="summary" data-channel="copy">${esc(t(summaryLabel))}</button>${n.phone?`<button type="button" data-copy="phone" data-channel="copy">${esc(t('copyPhone'))}</button>`:''}</div></div>
    </div>
    <form class="mark-sent" id="mark-sent">${sent
     ?`<button type="button" class="ghost" data-notify="not_sent">${esc(t('markNotSent'))}</button>`
@@ -441,7 +469,7 @@ function renderNotificationPanel(root,r,n){
  async function record(status){
   const body={status,channel:markForm.elements.channel?.value||'',note:markForm.elements.note?.value||''};
   markForm.querySelectorAll('button').forEach(b=>b.disabled=true);
-  try{const data=await api(`/api/admin/reservations/${encodeURIComponent(r.id)}/notification`,{method:'POST',body});toast(t('saved'));renderNotificationPanel(root,data.reservation,data.notification);}
+  try{const data=await api(`${endpoint}/${encodeURIComponent(r.id)}/notification`,{method:'POST',body});toast(t('saved'));renderNotificationPanel(root,data.reservation||data.order,data.notification,{endpoint,pendingHint,summaryLabel});}
   catch(error){toast(describe(error),{error:true});markForm.querySelectorAll('button').forEach(b=>b.disabled=false);}
  }
  markForm.addEventListener('submit',e=>{e.preventDefault();record('sent');});
@@ -489,6 +517,168 @@ async function settings(){
  view.querySelectorAll('[data-remove]').forEach(button=>button.addEventListener('click',async()=>{try{await api('/api/admin/push/unsubscribe',{method:'POST',body:{endpoint:button.dataset.remove}});if(mine&&mine.endpoint===button.dataset.remove)await mine.unsubscribe().catch(()=>{});toast(t('deleted'));settings();}catch(error){toast(describe(error),{error:true});}}));
 }
 
+// --- Orders (type: sale products) -------------------------------------------------------------------
+// Names, option labels and time slots come from /catalog.json and /store.json; the database holds
+// the order rows. Capacity per slot is what /api/orders/config and the schedule report.
+const ordering=()=>storeConfig.ordering||{timeSlots:[],options:{},addons:{},fulfillment:{}};
+const slotLabel=id=>{const slot=(ordering().timeSlots||[]).find(s=>s.id===id);return slot?(localized(slot.label)||`${slot.start}–${slot.end}`):(id||'');};
+const optionText=(group,id)=>localized(ordering().options?.[group]?.choices?.[id]?.label)||id;
+const addonText=id=>localized(ordering().addons?.[id]?.label)||id;
+function money(amount,currency){try{return new Intl.NumberFormat({vi:'vi-VN',ja:'ja-JP',en:'en-US'}[lang]||'en-US',{style:'currency',currency:currency||storeConfig.currency||'VND',maximumFractionDigits:0}).format(amount);}catch{return `${amount} ${currency||''}`;}}
+const lineText=i=>`${productName(i.product_id)}${Object.keys(i.options||{}).length?` (${Object.entries(i.options).map(([g,id])=>optionText(g,id)).join(' · ')})`:''}${(i.addons||[]).length?` + ${i.addons.map(addonText).join(', ')}`:''}`;
+function orderLines(o){return (o.items||[]).map(i=>`<div>${esc(lineText(i))} <b>×${i.quantity}</b></div>`).join('');}
+const fulfillmentPill=o=>`<span class="pill fulfillment-${esc(o.fulfillment_type)}">${esc(T[lang].fulfillmentType[o.fulfillment_type]||o.fulfillment_type)}</span>`;
+function orderTable(rows,quickAction){
+ return `<table class="table"><thead><tr><th>${esc(t('orderNumber'))}</th><th>${esc(t('customer'))}</th><th>${esc(t('product'))}</th><th>${esc(t('fulfillment'))}</th><th>${esc(t('date'))}</th><th>${esc(t('timeSlot'))}</th><th>${esc(t('status'))}</th><th>${esc(t('notification'))}</th>${quickAction?'<th></th>':''}</tr></thead><tbody>${rows.map(o=>`<tr class="row-link" data-href="#/orders/${esc(o.id)}">
+  <td data-label="${esc(t('orderNumber'))}" class="mono">${esc(o.id)}${sourceBadge(o)}</td>
+  <td data-label="${esc(t('customer'))}"><b>${esc(o.customer_name)}</b>${o.customer_phone?`<small class="block">${esc(o.customer_phone)}</small>`:''}</td>
+  <td data-label="${esc(t('product'))}">${orderLines(o)}</td>
+  <td data-label="${esc(t('fulfillment'))}">${fulfillmentPill(o)}</td>
+  <td data-label="${esc(t('date'))}">${esc(formatDate(o.fulfillment_date))}</td>
+  <td data-label="${esc(t('timeSlot'))}">${esc(slotLabel(o.time_slot))||'—'}</td>
+  <td data-label="${esc(t('status'))}">${pill('orderStatus',o.status)}</td>
+  <td data-label="${esc(t('notification'))}">${notificationPill(o)}</td>
+  ${quickAction==='open'?`<td><a class="button small" href="#/orders/${esc(o.id)}">${esc(t('open'))}</a></td>`:quickAction?`<td><button type="button" class="small primary" data-order-quick="${quickAction}" data-id="${esc(o.id)}">${esc(T[lang].orderAction[quickAction])}</button></td>`:''}
+ </tr>`).join('')}</tbody></table>`;
+}
+function bindOrderQuickActions(){
+ view.querySelectorAll('[data-order-quick]').forEach(button=>button.addEventListener('click',async e=>{
+  e.stopPropagation();button.disabled=true;
+  try{await api(`/api/admin/orders/${encodeURIComponent(button.dataset.id)}/status`,{method:'POST',body:{status:button.dataset.orderQuick}});toast(t('saved'));route();}
+  catch(error){toast(describe(error),{error:true});button.disabled=false;}
+ }));
+}
+async function orderList(params){
+ const filters={from:params.get('from')||'',to:params.get('to')||'',fulfillment:params.get('fulfillment')||'',status:params.get('status')||'',notification:params.get('notification')||'',q:params.get('q')||''};
+ const statuses=filters.status.split(',').filter(Boolean);
+ view.innerHTML=`<div class="view-head"><h1>${esc(t('orders'))}</h1><div class="actions"><a class="button" href="#/orders/schedule">${esc(t('schedule'))}</a><a class="button primary" href="#/orders/new">${esc(t('newOrder'))}</a></div></div>
+  <form class="filters" id="order-filters">
+   ${field(t('date'),`<input type="date" name="from" value="${esc(filters.from)}">`)}
+   ${field('→',`<input type="date" name="to" value="${esc(filters.to)}">`)}
+   ${field(t('fulfillment'),`<select name="fulfillment"><option value="">${esc(t('all'))}</option>${options(FULFILLMENT_TYPES,filters.fulfillment,T[lang].fulfillmentType)}</select>`)}
+   ${field(t('status'),`<select name="status"><option value="">${esc(t('all'))}</option>${statuses.length>1?`<option value="${esc(filters.status)}" selected>${esc(statuses.map(s=>T[lang].orderStatus[s]||s).join(' + '))}</option>`:''}${options(ORDER_STATUSES,statuses.length===1?statuses[0]:'',T[lang].orderStatus)}</select>`)}
+   ${field(t('notification'),`<select name="notification"><option value="">${esc(t('all'))}</option>${options(['not_sent','sent'],filters.notification,T[lang].notificationStatus)}</select>`)}
+   ${field(t('search'),`<input type="search" name="q" value="${esc(filters.q)}" maxlength="100">`)}
+   <button type="submit">${esc(t('filter'))}</button><a class="button ghost" href="#/orders">${esc(t('clear'))}</a>
+  </form><div id="order-table"><p class="muted">${esc(t('loading'))}</p></div>`;
+ const form=document.getElementById('order-filters');
+ form.addEventListener('submit',e=>{e.preventDefault();const q=new URLSearchParams([...new FormData(form)].filter(([,v])=>v));location.hash='#/orders'+(String(q)?'?'+q:'');});
+ const {orders}=await api('/api/admin/orders?'+new URLSearchParams(Object.entries(filters).filter(([,v])=>v)));
+ document.getElementById('order-table').innerHTML=orders.length?orderTable(orders):`<p class="empty">${esc(t('empty'))}</p>`;
+}
+// One day on the bench: pickups and deliveries per time slot, with the slot's capacity.
+async function orderSchedule(params){
+ const date=params.get('date')||today();
+ view.innerHTML=`<div class="view-head"><h1>${esc(t('schedule'))}</h1><a class="button" href="#/orders">${esc(t('back'))}</a></div>
+  <form class="filters" id="schedule-filters">${field(t('date'),`<input type="date" name="date" value="${esc(date)}">`)}<button type="button" class="ghost" data-shift="-1">‹</button><button type="button" class="ghost" data-shift="1">›</button></form><div id="schedule"><p class="muted">${esc(t('loading'))}</p></div>`;
+ const form=document.getElementById('schedule-filters');
+ form.addEventListener('change',()=>{location.hash='#/orders/schedule?date='+form.elements.date.value;});
+ form.querySelectorAll('[data-shift]').forEach(b=>b.addEventListener('click',()=>{const d=new Date(form.elements.date.value+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+Number(b.dataset.shift));location.hash='#/orders/schedule?date='+d.toISOString().slice(0,10);}));
+ const data=await api('/api/admin/orders/schedule?date='+encodeURIComponent(date));
+ const groups=[...data.slots,...(data.unslotted.length?[{id:'',start:'',end:'',orders:data.unslotted}]:[])];
+ const capacityText=slot=>{const c=data.capacity?.slots?.[slot.id];return c?`${c.used} / ${c.capacity===null?t('unlimited'):c.capacity} ${t('used')}`:'';};
+ const columns=[['pickup','pickupSchedule'],['delivery','deliverySchedule']];
+ document.getElementById('schedule').innerHTML=`<div class="schedule-grid">${columns.map(([type,label])=>`<section class="card"><h2>${esc(t(label))} <small>${data.slots.reduce((n,s)=>n+s.orders.filter(o=>o.fulfillment_type===type).length,0)+data.unslotted.filter(o=>o.fulfillment_type===type).length}</small></h2>${groups.map(slot=>{const rows=slot.orders.filter(o=>o.fulfillment_type===type);return `<div class="slot"><h3>${esc(slot.id?slotLabel(slot.id):t('noSlot'))} <small>${esc(capacityText(slot))}</small></h3>${rows.length?rows.map(o=>`<a class="slot-order" href="#/orders/${esc(o.id)}"><span class="mono">${esc(o.id)}</span>${pill('orderStatus',o.status)}<b>${esc(o.customer_name)}</b><small>${esc((o.items||[]).map(i=>`${lineText(i)} ×${i.quantity}`).join(', '))}${type==='delivery'&&o.delivery_address?` · ${esc(o.delivery_address)}`:''}</small>${o.message_card?`<em>“${esc(o.message_card)}”</em>`:''}</a>`).join(''):`<p class="muted">—</p>`}</div>`;}).join('')}</section>`).join('')}</div>`;
+}
+// Staff-entered order (a customer on the phone / Zalo). The price is computed by the Worker.
+async function orderNew(){
+ const sale=catalog.filter(p=>p.type==='sale');
+ const o=ordering();
+ view.innerHTML=`<div class="view-head"><h1>${esc(t('newOrder'))}</h1><a class="button" href="#/orders">${esc(t('back'))}</a></div>
+  <form class="form card" id="order-form">
+   ${field(t('product'),`<select name="product_id" required><option value="">${esc(t('pickProduct'))}</option>${sale.map(p=>`<option value="${esc(p.id)}">${esc(localized(p.name))} · ${esc(p.id)}</option>`).join('')}</select>`,'full')}
+   <div class="full" id="order-options"></div>
+   ${field(t('quantity'),`<input name="quantity" type="number" min="1" max="20" value="1">`)}
+   ${field(t('status'),`<select name="status">${options(['confirmed','pending'],'confirmed',T[lang].orderStatus)}</select>`)}
+   ${field(t('fulfillment'),`<select name="fulfillment_type">${options(FULFILLMENT_TYPES.filter(x=>o.fulfillment?.[x]!==false),'pickup',T[lang].fulfillmentType)}</select>`)}
+   ${field(t('date'),`<input type="date" name="fulfillment_date" required value="${esc(today())}">`)}
+   ${field(t('timeSlot'),`<select name="time_slot"><option value="">—</option>${(o.timeSlots||[]).map(s=>`<option value="${esc(s.id)}">${esc(slotLabel(s.id))}</option>`).join('')}</select>`)}
+   <div class="full form" id="delivery-fields" hidden>${field(t('recipient'),`<input name="recipient_name" maxlength="100">`)}${field(t('recipientPhone'),`<input name="recipient_phone" type="tel" maxlength="40">`)}${field(t('address'),`<input name="delivery_address" maxlength="300">`,'full')}${field(t('deliveryNote'),`<input name="delivery_note" maxlength="300">`,'full')}</div>
+   ${field(t('customer'),`<input name="customer_name" required maxlength="100">`)}
+   ${field(t('phone'),`<input name="customer_phone" type="tel" maxlength="40">`)}
+   ${field(t('messageCard'),`<textarea name="message_card" maxlength="${o.messageCard?.maxLength||200}"></textarea>`,'full')}
+   ${field(t('note'),`<textarea name="note" maxlength="500"></textarea>`,'full')}
+   <p class="form-error full" id="order-error"></p>
+   <div class="form-footer"><button type="submit" class="primary">${esc(t('newOrder'))}</button></div>
+  </form>`;
+ const form=document.getElementById('order-form'),optionsBox=document.getElementById('order-options');
+ function renderOptions(){
+  const p=product(form.elements.product_id.value);
+  optionsBox.innerHTML=p?Object.entries(p.options||{}).map(([group,choices])=>field(localized(o.options?.[group]?.label)||group,`<select data-option="${esc(group)}">${choices.map(c=>`<option value="${esc(c.id)}">${esc(optionText(group,c.id))}</option>`).join('')}</select>`)).join('')+((p.addons||[]).length?`<div class="field"><span>${esc(t('addons'))}</span><div class="radio-group">${p.addons.map(a=>`<label class="radio"><input type="checkbox" data-addon="${esc(a.id)}"><span>${esc(addonText(a.id))}</span></label>`).join('')}</div></div>`:''):'';
+  optionsBox.classList.toggle('form',Boolean(p));
+ }
+ form.elements.product_id.addEventListener('change',renderOptions);
+ form.elements.fulfillment_type.addEventListener('change',()=>{document.getElementById('delivery-fields').hidden=form.elements.fulfillment_type.value!=='delivery';});
+ form.addEventListener('submit',async e=>{
+  e.preventDefault();const error=document.getElementById('order-error');error.textContent='';
+  const body=Object.fromEntries(new FormData(form));
+  body.quantity=Number(body.quantity)||1;
+  body.options=Object.fromEntries([...optionsBox.querySelectorAll('[data-option]')].map(el=>[el.dataset.option,el.value]));
+  body.addons=[...optionsBox.querySelectorAll('[data-addon]:checked')].map(el=>el.dataset.addon);
+  const button=form.querySelector('[type=submit]');button.disabled=true;
+  try{const data=await api('/api/admin/orders',{method:'POST',body});toast(t('created'));location.hash='#/orders/'+encodeURIComponent(data.order.id);}
+  catch(err){error.textContent=describe(err);button.disabled=false;}
+ });
+}
+async function orderDetail(id){
+ view.innerHTML=`<p class="muted">${esc(t('loading'))}</p>`;
+ let o,notification,next;
+ try{({order:o,notification,next}=await api(`/api/admin/orders/${encodeURIComponent(id)}`));}
+ catch(error){view.innerHTML=`<div class="error-box">${esc(describe(error))}</div>`;return;}
+ const line=(label,value)=>`<div class="contact-line"><span>${esc(label)}</span><b>${value}</b></div>`;
+ view.innerHTML=`<div class="view-head"><h1>${esc(t('order'))} <small class="mono">${esc(o.id)}</small></h1><a class="button" href="#/orders">${esc(t('back'))}</a></div>
+  <div class="card actions" id="status-actions" style="margin-bottom:14px">${pill('orderStatus',o.status)}${fulfillmentPill(o)}${sourceBadge(o)}
+   ${next.filter(s=>s!=='cancelled').map((s,i)=>`<button type="button" class="${i===0?'primary':''}" data-status="${s}">${esc(T[lang].orderAction[s])}</button>`).join('')}
+   ${next.includes('cancelled')?`<button type="button" class="danger" data-status="cancelled">${esc(T[lang].orderAction.cancelled)}</button>`:''}
+  </div>
+  <div class="order-grid">
+   <section class="card"><h3>${esc(t('product'))}</h3>${(o.items||[]).map(i=>`<div class="request-summary">${thumb(i.product_id)}<div><b>${esc(productName(i.product_id))}</b><div class="muted">${esc(Object.entries(i.options||{}).map(([g,v])=>`${localized(ordering().options?.[g]?.label)||g}: ${optionText(g,v)}`).join(' · '))}</div>${(i.addons||[]).length?`<div class="muted">${esc(t('addons'))}: ${esc(i.addons.map(addonText).join(', '))}</div>`:''}<div>${esc(t('quantity'))} ${i.quantity} × ${esc(money(i.unit_price,o.currency))} = <b>${esc(money(i.line_total,o.currency))}</b></div></div></div>`).join('')}
+    <div class="contact-block" style="margin-top:10px">${o.delivery_fee?line(t('deliveryFee'),esc(money(o.delivery_fee,o.currency))):''}${line(t('total'),`<span class="total">${esc(money(o.total,o.currency))}</span>`)}</div>
+    <h3 style="margin-top:16px">${esc(t('messageCard'))}</h3><blockquote class="card-message">${o.message_card?esc(o.message_card):`<span class="muted">${esc(t('noCard'))}</span>`}</blockquote>
+   </section>
+   <section class="card"><h3>${esc(t('fulfillment'))}</h3><div class="contact-block">
+    ${line(t('fulfillment'),fulfillmentPill(o))}${line(t('date'),esc(formatDate(o.fulfillment_date)))}${line(t('timeSlot'),esc(slotLabel(o.time_slot))||'—')}
+    ${o.fulfillment_type==='delivery'?line(t('recipient'),esc([o.recipient_name,o.recipient_phone].filter(Boolean).join(' · ')))+line(t('address'),esc(o.delivery_address))+(o.delivery_note?line(t('deliveryNote'),esc(o.delivery_note)):''):''}
+    ${o.note?line(t('note'),esc(o.note)):''}
+   </div></section>
+  </div>
+  <div id="notify"></div>
+  <form class="form card" id="order-edit">
+   ${field(t('customer'),`<input name="customer_name" required maxlength="100" value="${esc(o.customer_name)}">`)}
+   ${field(t('phone'),`<input name="customer_phone" type="tel" maxlength="40" value="${esc(o.customer_phone)}">`)}
+   ${field(t('fulfillment'),`<select name="fulfillment_type">${options(FULFILLMENT_TYPES,o.fulfillment_type,T[lang].fulfillmentType)}</select>`)}
+   ${field(t('date'),`<input type="date" name="fulfillment_date" required value="${esc(o.fulfillment_date)}">`)}
+   ${field(t('timeSlot'),`<select name="time_slot"><option value="">—</option>${(ordering().timeSlots||[]).map(s=>`<option value="${esc(s.id)}"${s.id===o.time_slot?' selected':''}>${esc(slotLabel(s.id))}</option>`).join('')}</select>`)}
+   ${field(t('deliveryFee'),`<input name="delivery_fee" type="number" min="0" step="1000" value="${esc(o.delivery_fee)}">`)}
+   ${field(t('recipient'),`<input name="recipient_name" maxlength="100" value="${esc(o.recipient_name)}">`)}
+   ${field(t('recipientPhone'),`<input name="recipient_phone" type="tel" maxlength="40" value="${esc(o.recipient_phone)}">`)}
+   ${field(t('address'),`<input name="delivery_address" maxlength="300" value="${esc(o.delivery_address)}">`,'full')}
+   ${field(t('deliveryNote'),`<input name="delivery_note" maxlength="300" value="${esc(o.delivery_note)}">`,'full')}
+   ${field(t('messageCard'),`<textarea name="message_card" maxlength="500">${esc(o.message_card)}</textarea>`,'full')}
+   ${field(t('note'),`<textarea name="note" maxlength="1000">${esc(o.note)}</textarea>`,'full')}
+   <p class="form-error full" id="order-error"></p>
+   <div class="form-footer"><button type="submit" class="primary">${esc(t('save'))}</button></div>
+  </form>`;
+ renderNotificationPanel(document.getElementById('notify'),o,notification,{endpoint:'/api/admin/orders',pendingHint:'orderNotifyPending',summaryLabel:'copyOrderSummary'});
+ document.getElementById('status-actions').addEventListener('click',async e=>{
+  const button=e.target.closest('[data-status]');if(!button)return;
+  const status=button.dataset.status;
+  if(status==='cancelled'&&!confirm(t('confirmCancelOrder')))return;
+  button.disabled=true;
+  try{await api(`/api/admin/orders/${encodeURIComponent(id)}/status`,{method:'POST',body:{status}});toast(status==='cancelled'?t('cancelled'):t('saved'));route();}
+  catch(error){toast(describe(error),{error:true});button.disabled=false;}
+ });
+ const form=document.getElementById('order-edit');
+ form.addEventListener('submit',async e=>{
+  e.preventDefault();const error=document.getElementById('order-error');error.textContent='';
+  const body=Object.fromEntries(new FormData(form));
+  body.delivery_fee=Number.parseInt(body.delivery_fee,10)||0;
+  const button=form.querySelector('[type=submit]');button.disabled=true;
+  try{await api(`/api/admin/orders/${encodeURIComponent(id)}`,{method:'PATCH',body});toast(t('saved'));route();}
+  catch(err){error.textContent=describe(err);button.disabled=false;}
+ });
+}
+
 // --- Router ---------------------------------------------------------------------------------------
 const routes=[
  [/^\/?$/,'dashboard',()=>dashboard()],
@@ -497,6 +687,10 @@ const routes=[
  [/^\/reservations$/,'reservations',(m,q)=>reservationList(q)],
  [/^\/reservations\/new$/,'reservations',()=>reservationForm('')],
  [/^\/reservations\/([^/?]+)$/,'reservations',m=>reservationForm(decodeURIComponent(m[1]))],
+ [/^\/orders$/,'orders',(m,q)=>orderList(q)],
+ [/^\/orders\/schedule$/,'orders',(m,q)=>orderSchedule(q)],
+ [/^\/orders\/new$/,'orders',()=>orderNew()],
+ [/^\/orders\/([^/?]+)$/,'orders',m=>orderDetail(decodeURIComponent(m[1]))],
  [/^\/settings$/,'settings',()=>settings()]
 ];
 let routing=0;
@@ -522,6 +716,7 @@ function applyLanguage(){
  document.querySelectorAll('[data-t]').forEach(el=>{el.textContent=t(el.dataset.t);});
  document.getElementById('admin-lang').value=lang;
  document.getElementById('bell').setAttribute('aria-label',t('notifications'));
+ document.getElementById('read-only-banner').textContent=t('readOnly');
 }
 
 // --- Notification centre (the bell) ----------------------------------------------------------------
@@ -531,14 +726,16 @@ const bell=document.getElementById('bell'),bellCount=document.getElementById('be
 let alerts=null;
 async function refreshAlerts(){
  try{alerts=await api('/api/admin/notifications');}catch{return;}
- const total=['newReservations','pickupsToday','returnsToday','overdue','pendingNotifications'].reduce((n,key)=>n+(alerts[key]?.length||0),0);
+ const total=['newReservations','pickupsToday','returnsToday','overdue','pendingNotifications','newOrders','orderPickupsToday','orderDeliveriesToday','orderNotifications'].reduce((n,key)=>n+(alerts[key]?.length||0),0);
  bellCount.textContent=String(total);bellCount.hidden=!total;bell.classList.toggle('has-alerts',total>0);
  if(!panel.hidden)renderAlerts();
 }
 function renderAlerts(){
  if(!alerts){panel.innerHTML=`<p class="muted">${esc(t('loading'))}</p>`;return;}
- const groups=[['newRequests','newReservations'],['needNotification','pendingNotifications'],['pickupsToday','pickupsToday'],['returnsToday','returnsToday'],['overdue','overdue']];
- const entry=r=>`<a class="alert" href="#/reservations/${esc(r.id)}"><span class="mono">${esc(r.id)}</span><b>${esc(r.customer_name)}</b><small>${esc(dateRange(r.start_date,r.end_date))}${r.preferred_contact_channel?` · ${esc(T[lang].contactChannel[r.preferred_contact_channel])}`:''}</small><small>${esc(isRequest(r)?productName(r.request_product_id)+(r.request_size?` (${r.request_size})`:''):r.items.map(i=>productName(i.product_id)).join(', '))}</small></a>`;
+ const groups=[['newOrders','newOrders'],['needNotification','orderNotifications'],['pickupsTodayOrders','orderPickupsToday'],['deliveriesToday','orderDeliveriesToday'],['newRequests','newReservations'],['needNotification','pendingNotifications'],['pickupsToday','pickupsToday'],['returnsToday','returnsToday'],['overdue','overdue']];
+ const entry=r=>r.fulfillment_type
+  ?`<a class="alert" href="#/orders/${esc(r.id)}"><span class="mono">${esc(r.id)}</span><b>${esc(r.customer_name)}</b><small>${esc(T[lang].fulfillmentType[r.fulfillment_type])} · ${esc(formatDate(r.fulfillment_date))}${r.time_slot?` · ${esc(slotLabel(r.time_slot))}`:''}</small><small>${esc((r.items||[]).map(i=>`${lineText(i)} ×${i.quantity}`).join(', '))}</small></a>`
+  :`<a class="alert" href="#/reservations/${esc(r.id)}"><span class="mono">${esc(r.id)}</span><b>${esc(r.customer_name)}</b><small>${esc(dateRange(r.start_date,r.end_date))}${r.preferred_contact_channel?` · ${esc(T[lang].contactChannel[r.preferred_contact_channel])}`:''}</small><small>${esc(isRequest(r)?productName(r.request_product_id)+(r.request_size?` (${r.request_size})`:''):r.items.map(i=>productName(i.product_id)).join(', '))}</small></a>`;
  const sections=groups.filter(([,key])=>alerts[key]?.length).map(([label,key])=>`<section><h3>${esc(t(label))} <small>${alerts[key].length}</small></h3>${alerts[key].map(entry).join('')}</section>`);
  panel.innerHTML=`<div class="panel-head"><h2>${esc(t('notifications'))}</h2><button type="button" class="small ghost" id="close-panel" aria-label="×">×</button></div>${sections.join('')||`<p class="muted">${esc(t('noAlerts'))}</p>`}`;
  document.getElementById('close-panel').addEventListener('click',togglePanel);
@@ -565,9 +762,16 @@ if('serviceWorker' in navigator){try{navigator.serviceWorker.register('/admin/sw
  let stored=null;try{stored=localStorage.getItem('tiemora-admin-lang');}catch{}
  if(!T[stored])lang=T[storeConfig.admin?.defaultLanguage]?storeConfig.admin.defaultLanguage:'en';
  const brand=document.getElementById('brand-name');if(brand&&storeConfig.store?.name)brand.textContent=storeConfig.store.name;
- if(storeConfig.store?.logo){const logo=document.getElementById('brand-logo');if(logo)logo.src=storeConfig.store.logo;}
+ // A square mark fits the 48px header slot; a wordmark logo would be cropped, so the app icon stays.
+ if(storeConfig.store?.logo&&storeConfig.store.logoStyle!=='wordmark'){const logo=document.getElementById('brand-logo');if(logo)logo.src=storeConfig.store.logo;}
  applyLanguage();
  try{catalog=await (await fetch('/catalog.json',{cache:'no-cache'})).json();productsById=new Map(catalog.map(p=>[p.id,p]));}
  catch{toast('catalog.json?',{error:true});}
+ // Modules follow the catalog: only sale products -> Orders alone; no sale products -> the rental pages alone.
+ modules.orders=catalog.some(p=>p.type==='sale');
+ modules.rental=!modules.orders||catalog.some(p=>p.type!=='sale');
+ document.querySelectorAll('[data-module]').forEach(a=>{a.hidden=!modules[a.dataset.module];});
+ try{readOnly=Boolean((await api('/api/admin/session')).readOnly);}catch{}
+ document.getElementById('read-only-banner').hidden=!readOnly;
  route();refreshAlerts();
 })();

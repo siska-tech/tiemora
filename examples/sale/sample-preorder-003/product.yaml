@@ -1,0 +1,51 @@
+# A fictional pre-order sale product used to demonstrate Tiemora Core's Orders domain (v0.2):
+# a per-product deadline and stock limit, on top of the store-wide ordering window in
+# config/store.yaml. Copy this folder to catalog/<your-product>/ and replace every value.
+id: sample-preorder-003
+type: sale
+
+name:
+  vi: Sản phẩm đặt trước mẫu
+  en: Sample Pre-order Item
+  ja: 予約注文サンプル
+  zh: 示例预订商品
+
+category: seasonal
+
+description:
+  vi: Sản phẩm mẫu theo mùa, chỉ nhận đặt trước đến một hạn chót nhất định và có số lượng giới hạn.
+  en: A seasonal sample item that is only pre-ordered until a set deadline and has limited stock.
+  ja: 季節限定のサンプル商品で、期限付きの予約注文のみ受け付け、数量にも上限があります。
+  zh: 季节性示例商品，仅接受截止日期前的预订，且数量有限。
+
+price:
+  sale: 350000
+  original: 400000
+currency: VND
+
+options:
+  size:
+    - small
+    - medium
+    - large
+
+fulfillment:
+  pickup: true
+  delivery: false
+
+ordering:
+  preorder: true
+  stock: 10
+  deadline: "2026-12-20T20:00:00+07:00"
+
+placeholder: true
+color: "#7f8f6a"
+bg: "#f2f5ee"
+
+available: true
+order: 22
+
+tags:
+  - sample
+  - sale
+  - preorder

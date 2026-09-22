@@ -44,3 +44,19 @@ test('seed/demo.sql applies to an empty database twice and leaves the documented
   assert.equal(await db.prepare('SELECT COUNT(*) AS n FROM reservation_items').bind().first('n'), 2);
   assert.equal(await db.prepare('SELECT COUNT(*) AS n FROM push_subscriptions').bind().first('n'), 0);
 });
+
+test('seed/sale-demo.sql (v0.2) applies to an empty database twice and leaves the documented order states', async () => {
+  const sql = await readFile(new URL('../../seed/sale-demo.sql', import.meta.url), 'utf8');
+  const db = await migratedDatabase();
+  await db.exec(sql);
+  await db.exec(sql);
+  const orders = (await db.prepare('SELECT id, status, source, fulfillment_type FROM orders ORDER BY id').all()).results;
+  assert.deepEqual(orders, [
+    {id: 'ord-demo-0001', status: 'pending', source: 'public', fulfillment_type: 'pickup'},
+    {id: 'ord-demo-0002', status: 'confirmed', source: 'public', fulfillment_type: 'delivery'},
+    {id: 'ord-demo-0003', status: 'preparing', source: 'admin', fulfillment_type: 'pickup'},
+    {id: 'ord-demo-0004', status: 'completed', source: 'public', fulfillment_type: 'pickup'},
+    {id: 'ord-demo-0005', status: 'cancelled', source: 'public', fulfillment_type: 'pickup'}
+  ]);
+  assert.equal(await db.prepare('SELECT COUNT(*) AS n FROM order_items').bind().first('n'), 5);
+});

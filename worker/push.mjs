@@ -106,6 +106,17 @@ export async function notifyAdmins(env, payload, options = {}) {
   }));
   return summary;
 }
+// The notification for a new sale / pre-order from the public site.
+export function newOrderPayload(order, productName) {
+  const line = order.items?.[0];
+  return {
+    type: 'new_order',
+    title: 'New order',
+    body: `${order.customer_name} · ${productName}${line?.quantity > 1 ? ` ×${line.quantity}` : ''} · ${order.fulfillment_type} ${order.fulfillment_date}${order.time_slot ? ' ' + order.time_slot : ''}`,
+    url: `/admin/#/orders/${encodeURIComponent(order.id)}`,
+    tag: `order-${order.id}`
+  };
+}
 // The notification for a new reservation request from the public site.
 export function newRequestPayload(reservation, productName) {
   return {

@@ -25,7 +25,7 @@ await mkdir(output, {recursive: true});
 const storefront = path.join(projectRoot, 'storefront');
 const render = async (from, to) => writeFile(to, renderTemplate(await readFile(from, 'utf8'), config));
 for (const file of ['index.html', 'privacy.html']) await render(path.join(storefront, file), path.join(output, file));
-for (const file of ['styles.css', 'catalog.js', 'gallery.js', 'app.js', 'booking.js']) await copyFile(path.join(storefront, file), path.join(output, file));
+for (const file of ['styles.css', 'catalog.js', 'gallery.js', 'app.js', 'booking.js', 'order.js']) await copyFile(path.join(storefront, file), path.join(output, file));
 await cp(path.join(storefront, 'assets'), path.join(output, 'assets'), {recursive: true});
 await writeFile(path.join(output, 'theme.css'), themeCss(config));
 await writeFile(path.join(output, 'store.json'), JSON.stringify(config, null, 2) + '\n');

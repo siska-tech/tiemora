@@ -62,6 +62,30 @@ Rules:
 - Cover priority: `cover:` in YAML → `cover.jpg/jpeg/webp/png` → first image in natural order.
 - Videos should be H.264 + AAC MP4 for the widest device support.
 
+## Sale products (`type: sale`)
+
+```yaml
+id: flower-001
+type: sale                     # inferred from price.sale when omitted
+name: {vi: Nắng Mai, en: Morning Light}
+category: [20-10, for-her]     # one id, or a list (the first is the primary category)
+price:
+  sale: 349000
+options:                       # ids from config/store.yaml ordering.options; {id, price} overrides the delta
+  size: [small, medium, {id: large, price: 200000}]
+  tone: [pink, pastel, white]
+addons: [chocolate, giftbag]   # ids from ordering.addons
+fulfillment:
+  pickup: true
+  delivery: true
+ordering:
+  preorder: true               # false hides the order button
+  stock: 40                    # units sellable in total (null / omitted = no limit)
+  deadline: 2026-10-19T20:00:00+07:00   # optional, per product
+```
+
+A sale product is ordered by quantity with options, add-ons, a card message, pickup or delivery in a time slot ([orders.md](orders.md)). It has no inventory items; `available` is ignored. `fulfillment` and `ordering` are only read for sale products.
+
 ## Inventory-managed products
 
 `inventory: {managed: true}` switches a product from the hand-written `available` flag to live stock: the storefront asks `/api/availability`, the detail dialog offers date/size checks and the booking form, and staff register physical items in the admin (`dress-0001-01`, `-02`, …). Products without the flag show `available` as written and point customers at the store's chat channel instead.

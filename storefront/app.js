@@ -5,7 +5,7 @@
 const FLAGS={vi:'/assets/flags/vn.svg',en:'/assets/flags/us.svg',zh:'/assets/flags/cn.svg',ja:'/assets/flags/jp.svg'};
 const LANGUAGE_NAMES={vi:'Tiếng Việt',en:'English',zh:'中文',ja:'日本語'};
 // Used until /store.json arrives (and if it never does): a minimal but complete configuration.
-let store={store:{name:document.getElementById('brand-name').textContent||'Tiemora Store',tagline:null,description:null,logo:null,hero:{title:null,subtitle:null,image:null},announcement:null,values:[]},languages:['vi','en','ja','zh'],defaultLanguage:'vi',currency:'VND',phoneCountryCode:'84',contact:{},categories:{}};
+let store={store:{name:document.getElementById('brand-name').textContent||'Tiemora Store',tagline:null,description:null,logo:null,logoStyle:'mark',hero:{eyebrow:null,title:null,subtitle:null,image:null,fit:'pan'},announcement:null,values:[],text:{}},languages:['vi','en','ja','zh'],defaultLanguage:'vi',currency:'VND',phoneCountryCode:'84',contact:{},categories:{}};
 const copy={
 vi:{
 discover:'Khám phá',navCollection:'Sản phẩm',navHow:'Cách đặt',navContact:'Liên hệ',heroTitle:'Chọn một món đồ.\nGiữ một <em>kỷ niệm.</em>',explore:'Xem sản phẩm',consult:'Nhắn tin cho cửa hàng',bookCta:'Đặt chỗ',privacy:'Chính sách bảo mật',heroNote:'Chọn ngày, kiểm tra lịch trống và gửi yêu cầu chỉ trong một phút.',visualCaption:'Catalog · Booking · Inventory',collectionEyebrow:'BỘ SƯU TẬP',collectionTitle:'Tìm món đồ cho riêng bạn.',collectionDescription:'Xem sản phẩm, chọn ngày thuê để thấy sản phẩm còn trống và gửi yêu cầu đặt chỗ.',all:'Tất cả',placeholderNotice:'Một số hình bên dưới là hình minh họa tạm, không thể hiện sản phẩm thực tế.',sample:'HÌNH MINH HỌA',price:'Liên hệ cửa hàng để biết giá',howEyebrow:'CÁCH ĐẶT CHỖ',howTitle:'Ba bước đơn giản.',step1Title:'Chọn sản phẩm',step1Description:'Xem hình ảnh, kích cỡ và giá thuê của từng sản phẩm.',step2Title:'Chọn ngày và gửi yêu cầu',step2Description:'Chọn ngày nhận, ngày trả, kiểm tra lịch trống và gửi yêu cầu đặt chỗ kèm cách liên hệ bạn thích.',step3Title:'Cửa hàng xác nhận',step3Description:'Cửa hàng liên hệ qua Zalo, WhatsApp, Messenger hoặc điện thoại để xác nhận. Đặt chỗ chỉ có hiệu lực sau khi được xác nhận.',contactTitle:'Liên hệ với cửa hàng.',contactDescription:'Có câu hỏi về sản phẩm, giá thuê hay lịch trống? Nhắn cho cửa hàng qua kênh bạn thích.',contactFacebook:'Facebook',contactMessenger:'Messenger',contactZalo:'Zalo',contactWhatsapp:'WhatsApp',contactPhone:'Gọi điện',contactEmail:'Email',contactAddress:'Địa chỉ',contactMap:'Xem bản đồ',footer:'Giá, tình trạng còn hàng và điều kiện thuê được xác nhận bởi cửa hàng.',count:'sản phẩm',close:'Đóng',copied:'Đã sao chép thông tin sản phẩm · Dán vào tin nhắn nhé!'
@@ -64,18 +64,26 @@ function renderContact(){
 // --- Store branding -------------------------------------------------------------------------------
 function renderStore(){
  const s=store.store;
- for(const id of ['brand-name','footer-name','hero-eyebrow','contact-eyebrow'])document.getElementById(id).textContent=s.name;
+ for(const id of ['brand-name','footer-name','contact-eyebrow'])document.getElementById(id).textContent=s.name;
+ document.getElementById('hero-eyebrow').textContent=localizedText(s.hero?.eyebrow)||s.name;
+ const subtitle=localizedText(s.hero?.subtitle),subtitleEl=document.getElementById('hero-subtitle');
+ subtitleEl.hidden=!subtitle;subtitleEl.textContent=subtitle;
  const tagline=localizedText(s.tagline);
  for(const id of ['brand-tagline','footer-tagline'])document.getElementById(id).textContent=tagline;
  const mark=document.getElementById('brand-mark');
- if(s.logo){mark.hidden=false;mark.innerHTML=`<img src="${escapeMarkup(s.logo)}" alt="" width="144" height="144">`;document.getElementById('brand').classList.add('brand-with-logo');}
+ const wordmark=s.logoStyle==='wordmark';
+ if(s.logo){mark.hidden=false;mark.innerHTML=`<img src="${escapeMarkup(s.logo)}" alt="${wordmark?escapeMarkup(s.name):''}"${wordmark?'':' width="144" height="144"'}>`;document.getElementById('brand').classList.add('brand-with-logo');}
  else{mark.hidden=true;mark.innerHTML='';document.getElementById('brand').classList.remove('brand-with-logo');}
+ document.getElementById('brand').classList.toggle('brand-wordmark-logo',Boolean(s.logo&&wordmark));
  const description=localizedText(s.description);
  if(description){document.getElementById('hero-description').textContent=description;document.querySelector('meta[name="description"]').content=description;}
  // Hero title: config wins (\n = line break, <em> allowed), else the built-in headline.
  const title=localizedText(s.hero?.title)||copy[language].heroTitle;
  document.getElementById('hero-title').innerHTML=escapeMarkup(title).replace(/&lt;em&gt;/g,'<em>').replace(/&lt;\/em&gt;/g,'</em>');
  if(s.hero?.image)document.getElementById('hero-image').src=s.hero.image;
+ // fit: 'pan' (tall crop that slides on scroll, the default) or 'cover' (fills the frame, no slide).
+ document.getElementById('hero-art').classList.toggle('hero-cover',s.hero?.fit==='cover');
+ if(s.hero?.focus)document.getElementById('hero-image').style.objectPosition=s.hero.focus;
  const announcement=localizedText(s.announcement),bar=document.getElementById('announcement');
  bar.hidden=!announcement;document.getElementById('announcement-text').textContent=announcement;
  const values=(s.values||[]).map(v=>localizedText(v)).filter(Boolean),strip=document.getElementById('values');
@@ -97,6 +105,7 @@ function setLanguage(next){
  document.getElementById('close-dialog').setAttribute('aria-label',t.close);
  renderStore();
  if(typeof refreshBookingText==='function')refreshBookingText();
+ if(typeof refreshOrderText==='function')refreshOrderText();
  renderProducts();if(selected){updateProductDetail();renderGallery();}
  try{localStorage.setItem('tiemora-language',language);}catch{}
 }
@@ -104,6 +113,7 @@ function setLanguage(next){
 const heroArt=document.getElementById('hero-art'),heroImage=document.getElementById('hero-image');
 let panQueued=false;
 function drawHeroPan(){
+ if(heroArt.classList.contains('hero-cover')){heroImage.style.transform='';return;}
  const frame=heroArt.getBoundingClientRect();
  const distance=Math.max(0,heroImage.offsetWidth-heroArt.clientWidth);
  const start=Math.max(0,frame.top+window.scrollY+frame.height/2-window.innerHeight);
@@ -176,5 +186,7 @@ async function loadStore(){
   const response=await fetch('/store.json',{cache:'no-cache'});
   if(response.ok){const data=await response.json();if(data&&typeof data==='object'&&data.store)store={...store,...data,store:{...store.store,...data.store}};}
  }catch(error){console.warn('store.json unavailable, using defaults:',error);}
+ // store.text overrides the built-in copy per language (e.g. bookCta: 'Đặt hoa' for a florist).
+ for(const [key,value] of Object.entries(store.store.text||{}))for(const lang of Object.keys(copy)){const text=typeof value==='string'?value:value?.[lang];if(typeof text==='string'&&text.trim())copy[lang][key]=text;}
 }
 loadStore().then(()=>{renderLanguageOptions();setLanguage(pickLanguage());loadCatalog();revealOnScroll();});

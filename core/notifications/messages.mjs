@@ -96,20 +96,27 @@ export function buildReservationSummary(reservation, products, language = DEFAUL
 // Everything the admin detail page needs for its buttons, computed once per reservation.
 // WhatsApp and Zalo fall back to the plain phone number when no separate number was saved.
 export function buildNotification(reservation, products, store = {}) {
-  const countryCode = store.phoneCountryCode || '84';
-  const phone = String(reservation?.customer_phone ?? '').trim();
-  const whatsapp = String(reservation?.customer_whatsapp ?? '').trim() || phone;
-  const zalo = String(reservation?.customer_zalo_phone ?? '').trim() || phone;
   const defaultLanguage = store.defaultLanguage || DEFAULT_LANGUAGE;
   return {
-    languages: NOTIFICATION_LANGUAGES,
-    defaultLanguage,
+    ...contactDetails(reservation, store),
     messages: buildReservationMessages(reservation, products, {store}),
-    summary: buildReservationSummary(reservation, products, defaultLanguage),
-    preferred: CONTACT_CHANNELS.includes(reservation?.preferred_contact_channel) ? reservation.preferred_contact_channel : '',
+    summary: buildReservationSummary(reservation, products, defaultLanguage)
+  };
+}
+// The contact half of a notification (shared by bookings and orders): preferred channel, phone,
+// WhatsApp / Zalo numbers in link form, Messenger link.
+export function contactDetails(record, store = {}) {
+  const countryCode = store.phoneCountryCode || '84';
+  const phone = String(record?.customer_phone ?? '').trim();
+  const whatsapp = String(record?.customer_whatsapp ?? '').trim() || phone;
+  const zalo = String(record?.customer_zalo_phone ?? '').trim() || phone;
+  return {
+    languages: NOTIFICATION_LANGUAGES,
+    defaultLanguage: store.defaultLanguage || DEFAULT_LANGUAGE,
+    preferred: CONTACT_CHANNELS.includes(record?.preferred_contact_channel) ? record.preferred_contact_channel : '',
     phone,
     whatsapp: {phone: whatsapp, number: normalizePhone(whatsapp, countryCode)},
-    messenger: {url: messengerUrl(reservation, store.contact?.messenger || ''), own: Boolean(normalizeMessengerUrl(reservation?.customer_messenger_url))},
+    messenger: {url: messengerUrl(record, store.contact?.messenger || ''), own: Boolean(normalizeMessengerUrl(record?.customer_messenger_url))},
     zalo: {phone: zalo, number: normalizePhone(zalo, countryCode)}
   };
 }
