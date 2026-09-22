@@ -20,6 +20,7 @@ Set `TIEMORA_CONFIG=/path/to/other.yaml` to build with another file, and `TIEMOR
 | `hero.subtitle` | localized or null | italic line under the title |
 | `hero.fit` | `pan` / `cover` | `pan` (default): tall crop that slides sideways on scroll; `cover`: the image fills the frame |
 | `hero.focus` | `"X% Y%"` or null | object-position for the cover fit |
+| `hero.subject` | `"X% Y%"` or null | environmental layout: the point of the image the scroll zoom closes in on (phones pin the scene and zoom onto it; desktop pushes in gently); null uses `hero.focus` |
 | `hero.image` | path or null | replaces the neutral hero illustration |
 | `announcement` | localized or null | banner above the header |
 | `values` | list of localized (max 3) | short claims under the hero |
@@ -68,6 +69,7 @@ Sale / pre-order products (`type: sale` in `product.yaml`). See [orders.md](orde
 | Key | Default | Notes |
 |---|---|---|
 | `fulfillment.pickup` / `delivery` | true / true | which ways are offered (at least one) |
+| `fulfillment.dine_in` | false | eat-in orders: adds a table number to the order. Off unless the store asks for it |
 | `fulfillment.deliveryFee` | 0 | added to delivery orders |
 | `fulfillment.deliveryNote` | null | localized text under the delivery choice |
 | `dates.from` / `dates.to` | null | explicit campaign window (YYYY-MM-DD); with both set the form offers only these days |
@@ -75,9 +77,11 @@ Sale / pre-order products (`type: sale` in `product.yaml`). See [orders.md](orde
 | `deadline` | null | ISO date-time after which no public order is accepted |
 | `dailyCapacity` | null | orders per day (null = no limit) |
 | `timeSlots` | [] | `{id, start, end, capacity, label}`; `id` defaults to `HHMM-HHMM`, `capacity` null = no limit |
+| `openingHours` | {} | weekday → list of `{start, end}` (`mon`…`sun`, or `0`–`6` with `0` = Sunday). A day that is absent or has an empty list is closed. Orders on a closed day, or in a slot that is not fully inside an interval, are refused. Leave empty for no restriction |
+| `tables` | `{min: 1, max: 99}` | the table numbers a dine-in order may name. A number outside the range is refused, in the browser and again in the Worker. An inverted range falls back to the default |
 | `options` | {} | `group → {label, choices: {id → {label, price}}}`; products list the ids they offer |
 | `addons` | {} | `id → {label, price}` |
-| `messageCard` | enabled, 200 chars | `enabled`, `maxLength`, `placeholder`, `templates: [{id, label, text}]` |
+| `messageCard` | enabled, 200 chars | `enabled`, `maxLength`, `title` (localized; replaces the "Card message" heading, e.g. "Note for the kitchen"), `placeholder`, `templates: [{id, label, text}]` |
 
 Limits are counted from active orders; nothing is shown as scarce unless a limit is configured.
 

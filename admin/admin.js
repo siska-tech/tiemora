@@ -8,12 +8,12 @@ const T={
   reservationStatus:{pending:'Pending',confirmed:'Confirmed',rented:'Rented',returned:'Returned',cancelled:'Cancelled'},
   customer:'Customer',phone:'Phone',facebook:'Facebook',start:'Start date',end:'End date',product:'Product',size:'Size',item:'Item ID',note:'Note',status:'Status',id:'ID',reservation:'Booking',
   add:'Add',save:'Save',back:'Back',newItem:'Add item',newReservation:'New booking',autoPick:'Pick a free item',addLine:'Add product',remove:'Remove',confirm:'Confirm',handOver:'Hand over',returned:'Returned',cancelReservation:'Cancel booking',filter:'Filter',clear:'Clear',search:'Name / phone / Facebook',all:'All',anySize:'Any size',
-  saved:'Saved.',created:'Created.',deleted:'Deleted.',cancelled:'Booking cancelled.',loading:'Loading…',empty:'Nothing here yet.',confirmDelete:'Remove this item from the inventory?',confirmCancel:'Cancel this booking?',pickDates:'Choose start and end dates first.',pickProduct:'Choose a product.',notInCatalog:'Not in catalog',free:'Free',taken:'Taken',noItems:'This product has no inventory items yet.',noFree:'No free item for these dates.',needItem:'Choose an item on every line.',
+  saved:'Saved.',created:'Created.',deleted:'Deleted.',cancelled:'Booking cancelled.',loading:'Loading…',empty:'Nothing here yet.',confirmDelete:'Remove this item from the inventory?',confirmCancel:'Cancel this booking?',pickDates:'Choose start and end dates first.',pickProduct:'Choose a product.',addProduct:'Add another product',notInCatalog:'Not in catalog',free:'Free',taken:'Taken',noItems:'This product has no inventory items yet.',noFree:'No free item for these dates.',needItem:'Choose an item on every line.',
   idHint:'Suggested from the existing items. You can edit it.',inventoryOf:'Inventory',reservationsOf:'Bookings of this item',
   contact:'Contact',preferred:'Preferred channel',primary:'Preferred',whatsapp:'WhatsApp',zalo:'Zalo',messenger:'Messenger',messengerUrl:'Messenger link',zaloPhone:'Zalo number',usePhone:'Use phone number',notRegistered:'Not set',sameAsPhone:'Same as phone',privacyConsent:'Privacy consent',consentAccepted:'✓ Accepted',consentNone:'Not recorded (created by staff)',consentAt:'Consented at',
   contactChannel:{'':'—',messenger:'Messenger',zalo:'Zalo',whatsapp:'WhatsApp',phone:'Phone',other:'Other'},
   notification:'Customer notification',notificationStatus:{not_sent:'Not sent',sent:'Sent'},notificationChannel:{whatsapp:'WhatsApp',messenger:'Messenger',zalo:'Zalo',phone:'Phone',copy:'Copied',other:'Other'},
-  language:'Language',message:'Message',sendWhatsapp:'Send on WhatsApp',openMessenger:'Open Messenger',call:'Call',copyZalo:'Copy Zalo number',copyPhone:'Copy phone number',copyMessage:'Copy message',copySummary:'Copy booking summary',copied:'Copied',
+  language:'Language',message:'Message',sendWhatsapp:'Send on WhatsApp',openMessenger:'Open Messenger',call:'Call',copyZalo:'Copy Zalo number',copyPhone:'Copy phone number',copyMessage:'Copy message',copySummary:'Copy booking summary',otherChannels:'Other ways to reach them',copied:'Copied',
   markSent:'✓ Mark customer as notified',markNotSent:'Reset to not sent',channel:'Channel',sentAt:'Sent at',notificationNote:'Note',notifyPending:'Confirm the booking first, then notify the customer.',noPhone:'No phone number',
   needNotification:'Customers to notify',newRequests:'New requests',overdue:'Overdue returns',notifications:'Notifications',noAlerts:'Nothing needs your attention.',open:'Open',bookingsNeedNotification:'bookings waiting for a customer notification',
   request:'Booking request',requested:'Requested',confirmRequest:'Confirm booking',requestHint:'No inventory item is assigned yet. Press "Confirm booking" to re-check stock and assign a free item automatically, or pick one below and save.',source:{admin:'Store',public:'Website'},otherSizes:'Free sizes',
@@ -32,12 +32,12 @@ const T={
   reservationStatus:{pending:'Chờ xác nhận',confirmed:'Đã xác nhận',rented:'Đã giao',returned:'Đã trả',cancelled:'Đã hủy'},
   customer:'Khách hàng',phone:'Điện thoại',facebook:'Facebook',start:'Ngày thuê',end:'Ngày trả',product:'Sản phẩm',size:'Cỡ',item:'Mã hàng',note:'Ghi chú',status:'Trạng thái',id:'Mã',reservation:'Đặt lịch',
   add:'Thêm',save:'Lưu',back:'Quay lại',newItem:'Thêm hàng',newReservation:'Tạo đặt lịch',autoPick:'Tự chọn hàng trống',addLine:'Thêm sản phẩm',remove:'Xóa',confirm:'Xác nhận',handOver:'Đã giao hàng',returned:'Đã nhận trả',cancelReservation:'Hủy đặt lịch',filter:'Lọc',clear:'Xóa lọc',search:'Tìm tên / SĐT / Facebook',all:'Tất cả',anySize:'Mọi cỡ',
-  saved:'Đã lưu.',created:'Đã tạo.',deleted:'Đã xóa.',cancelled:'Đã hủy đặt lịch.',loading:'Đang tải…',empty:'Chưa có dữ liệu.',confirmDelete:'Xóa mã hàng này khỏi kho?',confirmCancel:'Hủy đặt lịch này?',pickDates:'Chọn ngày thuê và ngày trả trước.',pickProduct:'Chọn sản phẩm.',notInCatalog:'Không có trong catalog',free:'Trống',taken:'Đã đặt',noItems:'Sản phẩm này chưa có hàng trong kho.',noFree:'Không còn hàng trống cho khoảng ngày này.',needItem:'Mỗi dòng cần chọn một mã hàng.',
+  saved:'Đã lưu.',created:'Đã tạo.',deleted:'Đã xóa.',cancelled:'Đã hủy đặt lịch.',loading:'Đang tải…',empty:'Chưa có dữ liệu.',confirmDelete:'Xóa mã hàng này khỏi kho?',confirmCancel:'Hủy đặt lịch này?',pickDates:'Chọn ngày thuê và ngày trả trước.',pickProduct:'Chọn sản phẩm.',addProduct:'Thêm sản phẩm',notInCatalog:'Không có trong catalog',free:'Trống',taken:'Đã đặt',noItems:'Sản phẩm này chưa có hàng trong kho.',noFree:'Không còn hàng trống cho khoảng ngày này.',needItem:'Mỗi dòng cần chọn một mã hàng.',
   idHint:'Gợi ý theo số hàng hiện có. Có thể sửa.',inventoryOf:'Hàng trong kho',reservationsOf:'Lịch của mã này',
   contact:'Liên hệ',preferred:'Kênh liên hệ ưu tiên',primary:'Ưu tiên',whatsapp:'WhatsApp',zalo:'Zalo',messenger:'Messenger',messengerUrl:'Link Messenger',zaloPhone:'Số Zalo',usePhone:'Dùng số điện thoại',notRegistered:'Chưa có',sameAsPhone:'Giống số điện thoại',privacyConsent:'Đồng ý bảo mật',consentAccepted:'✓ Đã đồng ý',consentNone:'Chưa ghi nhận (tạo tại cửa hàng)',consentAt:'Thời điểm đồng ý',
   contactChannel:{'':'—',messenger:'Messenger',zalo:'Zalo',whatsapp:'WhatsApp',phone:'Điện thoại',other:'Khác'},
   notification:'Thông báo cho khách',notificationStatus:{not_sent:'Chưa gửi',sent:'Đã gửi'},notificationChannel:{whatsapp:'WhatsApp',messenger:'Messenger',zalo:'Zalo',phone:'Điện thoại',copy:'Sao chép',other:'Khác'},
-  language:'Ngôn ngữ',message:'Nội dung tin nhắn',sendWhatsapp:'Gửi qua WhatsApp',openMessenger:'Mở Messenger',call:'Gọi',copyZalo:'Sao chép số Zalo',copyPhone:'Sao chép SĐT',copyMessage:'Sao chép tin nhắn',copySummary:'Sao chép thông tin đặt lịch',copied:'Đã sao chép',
+  language:'Ngôn ngữ',message:'Nội dung tin nhắn',sendWhatsapp:'Gửi qua WhatsApp',openMessenger:'Mở Messenger',call:'Gọi',copyZalo:'Sao chép số Zalo',copyPhone:'Sao chép SĐT',copyMessage:'Sao chép tin nhắn',copySummary:'Sao chép thông tin đặt lịch',otherChannels:'Cách liên hệ khác',copied:'Đã sao chép',
   markSent:'✓ Đã thông báo cho khách',markNotSent:'Đặt lại: chưa gửi',channel:'Kênh',sentAt:'Gửi lúc',notificationNote:'Ghi chú gửi',notifyPending:'Xác nhận đặt lịch trước, rồi gửi thông báo cho khách.',noPhone:'Chưa có số điện thoại',
   needNotification:'Cần thông báo khách',newRequests:'Yêu cầu mới',overdue:'Quá hạn trả',notifications:'Thông báo',noAlerts:'Không có việc cần làm.',open:'Mở',bookingsNeedNotification:'đặt lịch cần thông báo cho khách',
   request:'Yêu cầu đặt chỗ',requested:'Khách yêu cầu',confirmRequest:'Xác nhận đặt chỗ',requestHint:'Chưa gắn hàng thực tế. Bấm "Xác nhận đặt chỗ" để hệ thống kiểm tra kho và tự chọn hàng trống, hoặc tự chọn bên dưới rồi lưu.',source:{admin:'Cửa hàng',public:'Website'},otherSizes:'Cỡ còn trống',
@@ -56,12 +56,12 @@ const T={
   reservationStatus:{pending:'保留',confirmed:'確定',rented:'貸出中',returned:'返却済',cancelled:'キャンセル'},
   customer:'顧客名',phone:'電話',facebook:'Facebook',start:'貸出日',end:'返却日',product:'商品',size:'サイズ',item:'在庫ID',note:'備考',status:'状態',id:'ID',reservation:'予約',
   add:'追加',save:'保存',back:'戻る',newItem:'在庫追加',newReservation:'予約作成',autoPick:'空いている実物を自動選択',addLine:'商品を追加',remove:'削除',confirm:'確定',handOver:'貸出（引き渡し）',returned:'返却処理',cancelReservation:'予約をキャンセル',filter:'絞り込み',clear:'クリア',search:'名前 / 電話 / Facebook',all:'すべて',anySize:'全サイズ',
-  saved:'保存しました。',created:'作成しました。',deleted:'削除しました。',cancelled:'予約をキャンセルしました。',loading:'読み込み中…',empty:'データがありません。',confirmDelete:'この在庫を削除しますか？',confirmCancel:'この予約をキャンセルしますか？',pickDates:'先に貸出日と返却日を選択してください。',pickProduct:'商品を選択してください。',notInCatalog:'カタログにありません',free:'空き',taken:'予約あり',noItems:'この商品には在庫が登録されていません。',noFree:'この期間に空いている在庫がありません。',needItem:'各行で在庫IDを選択してください。',
+  saved:'保存しました。',created:'作成しました。',deleted:'削除しました。',cancelled:'予約をキャンセルしました。',loading:'読み込み中…',empty:'データがありません。',confirmDelete:'この在庫を削除しますか？',confirmCancel:'この予約をキャンセルしますか？',pickDates:'先に貸出日と返却日を選択してください。',pickProduct:'商品を選択してください。',addProduct:'商品を追加',notInCatalog:'カタログにありません',free:'空き',taken:'予約あり',noItems:'この商品には在庫が登録されていません。',noFree:'この期間に空いている在庫がありません。',needItem:'各行で在庫IDを選択してください。',
   idHint:'既存の在庫数から自動提案。編集できます。',inventoryOf:'在庫一覧',reservationsOf:'この在庫の予約',
   contact:'連絡先',preferred:'希望の連絡チャネル',primary:'優先',whatsapp:'WhatsApp',zalo:'Zalo',messenger:'Messenger',messengerUrl:'Messenger URL',zaloPhone:'Zalo番号',usePhone:'電話番号を使用',notRegistered:'未登録',sameAsPhone:'電話番号と同じ',privacyConsent:'プライバシー同意',consentAccepted:'✓ 同意済み',consentNone:'記録なし（店舗で作成）',consentAt:'同意日時',
   contactChannel:{'':'—',messenger:'Messenger',zalo:'Zalo',whatsapp:'WhatsApp',phone:'電話',other:'その他'},
   notification:'顧客通知',notificationStatus:{not_sent:'未送信',sent:'送信済み'},notificationChannel:{whatsapp:'WhatsApp',messenger:'Messenger',zalo:'Zalo',phone:'電話',copy:'コピー',other:'その他'},
-  language:'言語',message:'通知文',sendWhatsapp:'WhatsAppで送信',openMessenger:'Messengerで開く',call:'電話をかける',copyZalo:'Zalo番号をコピー',copyPhone:'電話番号をコピー',copyMessage:'通知文をコピー',copySummary:'予約情報をコピー',copied:'コピーしました',
+  language:'言語',message:'通知文',sendWhatsapp:'WhatsAppで送信',openMessenger:'Messengerで開く',call:'電話をかける',copyZalo:'Zalo番号をコピー',copyPhone:'電話番号をコピー',copyMessage:'通知文をコピー',copySummary:'予約情報をコピー',otherChannels:'その他の連絡手段',copied:'コピーしました',
   markSent:'✓ 顧客へ通知済みにする',markNotSent:'未送信に戻す',channel:'チャネル',sentAt:'送信日時',notificationNote:'送信メモ',notifyPending:'先に予約を確定してから顧客へ通知してください。',noPhone:'電話番号がありません',
   needNotification:'未通知の確定予約',newRequests:'新規申請',overdue:'返却期限超過',notifications:'通知',noAlerts:'対応が必要な項目はありません。',open:'開く',bookingsNeedNotification:'件の予約が顧客通知待ちです',
   request:'予約申請',requested:'希望内容',confirmRequest:'予約を確定する',requestHint:'まだ実物在庫が割り当てられていません。「予約を確定する」を押すと在庫を再確認して空いている実物を自動で割り当てます。下で手動選択して保存することもできます。',source:{admin:'店舗',public:'Web'},otherSizes:'空いているサイズ',
@@ -75,13 +75,18 @@ const T={
   capacity:'枠',used:'使用',unlimited:'上限なし',copyOrderSummary:'注文情報をコピー',pickDate:'日付を選択してください。',readOnly:'デモモード: この管理画面は閲覧専用です。変更は保存されません。',
   errors:{read_only:'デモモード: 変更は保存されません。',capacity_full:'この時間帯は満枠です。',sold_out:'この商品は売り切れです。',invalid_transition:'現在の状態からこの状態には変更できません。',inventory_conflict:'この期間は既に予約済みです。',inventory_unavailable:'この期間に空いている在庫がありません（またはメンテナンス中 / 無効）。',inventory_exists:'この在庫IDは既に存在します。',inventory_in_use:'この在庫は予約で使用中です。削除せず「無効」に変更してください。',not_pending:'この予約は保留状態ではありません。',unauthorized:'セッションが切れました。再ログインしてください。',validation_error:'入力内容を確認してください。',not_found:'見つかりません。',network:'サーバーに接続できません。'}}
 };
+for(const [key,label] of Object.entries({en:['Dine in','Dine-in orders','Table'],vi:['Ăn tại quán','Đơn tại quán','Số bàn'],ja:['店内注文','店内注文','テーブル番号']})){T[key].fulfillmentType.dine_in=label[0];T[key].dineInSchedule=label[1];T[key].tableNumber=label[2];}
+// Order Queue: the kitchen-facing lanes. Same strings pattern as the dine-in labels above.
+for(const [key,label] of Object.entries({en:['Order queue','Nothing in this lane','Ordered at','No orders for this day'],vi:['Hàng đợi đơn','Không có đơn nào','Đặt lúc','Chưa có đơn nào trong ngày'],ja:['注文キュー','この列は空です','注文時刻','この日の注文はありません']})){T[key].queue=label[0];T[key].laneEmpty=label[1];T[key].orderedAt=label[2];T[key].queueEmpty=label[3];}
+// Menu / sold-out switch.
+for(const [key,label] of Object.entries({en:['Menu','Switch a dish off while it lasts; the catalog decides everything else.','Category','Stock','Sold out'],vi:['Thực đơn','Tắt món khi hết; mọi thứ còn lại do catalog quyết định.','Danh mục','Tồn','Hết món'],ja:['メニュー','品切れの品をここで止めます。それ以外はカタログの設定に従います。','カテゴリ','在庫','品切れ']})){T[key].navMenu=label[0];T[key].menuHint=label[1];T[key].category=label[2];T[key].stock=label[3];T[key].soldOut=label[4];}
 const CONTACT_CHANNELS=['messenger','zalo','whatsapp','phone','other'];
 const NOTIFICATION_CHANNELS=['whatsapp','messenger','zalo','phone','copy','other'];
 const NOTIFICATION_LANGUAGES=['vi','en','ja','zh'];
 const ITEM_STATUSES=['available','reserved','rented','maintenance','inactive'];
 const RESERVATION_STATUSES=['pending','confirmed','rented','returned','cancelled'];
 const ORDER_STATUSES=['pending','confirmed','preparing','ready','out_for_delivery','completed','cancelled'];
-const FULFILLMENT_TYPES=['pickup','delivery'];
+const FULFILLMENT_TYPES=['pickup','delivery','dine_in'];
 // Which modules this store uses, read off the catalog: sale products need Orders, everything else
 // (rental or plain items) keeps Inventory / Bookings. Both can coexist.
 let modules={orders:false,rental:true};
@@ -151,7 +156,7 @@ function itemLines(r){
 
 // --- Views ----------------------------------------------------------------------------------------
 async function dashboard(){
- view.innerHTML=`<div class="view-head"><h1>${esc(t('navDashboard'))}</h1><div class="actions">${modules.orders?`<a class="button primary" href="#/orders/new">${esc(t('newOrder'))}</a><a class="button" href="#/orders/schedule">${esc(t('schedule'))}</a>`:''}${modules.rental?`<a class="button${modules.orders?'':' primary'}" href="#/reservations/new">${esc(t('newReservation'))}</a><a class="button" href="#/inventory/new">${esc(t('newItem'))}</a>`:''}</div></div><p class="muted">${esc(t('loading'))}</p>`;
+ view.innerHTML=`<div class="view-head"><h1>${esc(t('navDashboard'))}</h1><div class="actions">${modules.orders?`<a class="button primary" href="#/orders/new">${esc(t('newOrder'))}</a><a class="button" href="#/orders/queue">${esc(t('queue'))}</a><a class="button" href="#/orders/schedule">${esc(t('schedule'))}</a>`:''}${modules.rental?`<a class="button${modules.orders?'':' primary'}" href="#/reservations/new">${esc(t('newReservation'))}</a><a class="button" href="#/inventory/new">${esc(t('newItem'))}</a>`:''}</div></div><p class="muted">${esc(t('loading'))}</p>`;
  const d=await api('/api/admin/dashboard');
  const stat=(key,value,href,extra='')=>`<a class="stat ${extra}" href="${href}"><b>${value}</b><span>${esc(t(key))}</span></a>`;
  const list=(key,rows,action,{date=true}={})=>`<section class="card"><h2>${esc(t(key))} ${date?`<small>${esc(formatDate(d.today))}</small>`:`<small>${rows.length}</small>`}</h2>${rows.length?reservationTable(rows,action):`<p class="muted">${esc(t('empty'))}</p>`}</section>`;
@@ -424,8 +429,13 @@ function renderNotificationPanel(root,r,n,{endpoint='/api/admin/reservations',pe
   zalo:()=>(n.zalo.phone?`<button type="button" data-copy="zalo" data-channel="zalo">${esc(t('copyZalo'))}</button>`:`<button type="button" disabled>${esc(t('copyZalo'))} · ${esc(t('noPhone'))}</button>`)+`<button type="button" data-copy="message" data-channel="zalo">${esc(t('copyMessage'))}</button>`,
   phone:()=>n.phone?`<a class="button" href="tel:${esc(n.phone.replace(/[^\d+]/g,''))}" data-channel="phone">${esc(t('call'))} ${esc(n.phone)}</a><button type="button" data-copy="phone" data-channel="phone">${esc(t('copyPhone'))}</button>`:`<button type="button" disabled>${esc(t('call'))} · ${esc(t('noPhone'))}</button>`
  };
- const order=['whatsapp','messenger','zalo','phone'];
- if(order.includes(n.preferred))order.splice(order.indexOf(n.preferred),1),order.unshift(n.preferred);
+ const reachable={whatsapp:()=>Boolean(n.whatsapp.number),messenger:()=>Boolean(n.messenger.url),zalo:()=>Boolean(n.zalo.phone),phone:()=>Boolean(n.phone)};
+ const all=['whatsapp','messenger','zalo','phone'];
+ const preferred=all.includes(n.preferred)?n.preferred:'';
+ // The preferred channel leads (even if unusable, so staff see why); the rest fold away behind a summary.
+ const order=preferred?[preferred]:all.filter(c=>reachable[c]());
+ const others=all.filter(c=>!order.includes(c)&&reachable[c]());
+ const channelRow=c=>`<div class="channel-row${c===preferred?' preferred':''}"><span class="channel-label">${esc(T[lang].contactChannel[c])}${c===preferred?` <em>${esc(t('primary'))}</em>`:''}</span><div class="actions">${channelRows[c]()}</div></div>`;
  const contactValue=(value,{link=false}={})=>value?(link?`<a href="${esc(value)}" ${ext}>${esc(value.replace(/^https?:\/\//,''))}</a>`:esc(value)):`<span class="muted">${esc(t('notRegistered'))}</span>`;
  // Zalo / WhatsApp numbers: "same as phone" when they match the main number (or were left empty).
  const digits=v=>String(v||'').replace(/\D/g,'').replace(new RegExp('^('+(storeConfig.phoneCountryCode||'84')+'|0)'),'');
@@ -446,7 +456,8 @@ function renderNotificationPanel(root,r,n,{endpoint='/api/admin/reservations',pe
    ${r.status==='pending'?`<p class="hint">${esc(t(pendingHint))}</p>`:''}
    <label class="field"><span>${esc(t('language'))}</span><select id="notify-lang">${options(NOTIFICATION_LANGUAGES,language,{vi:'VI · Tiếng Việt',en:'EN · English',ja:'JA · 日本語',zh:'ZH · 中文'})}</select></label>
    <label class="field"><span>${esc(t('message'))}</span><textarea id="notify-message" readonly rows="9">${esc(message())}</textarea></label>
-   <div class="channels">${order.map(c=>`<div class="channel-row${c===n.preferred?' preferred':''}"><span class="channel-label">${esc(T[lang].contactChannel[c])}${c===n.preferred?` <em>${esc(t('primary'))}</em>`:''}</span><div class="actions">${channelRows[c]()}</div></div>`).join('')}
+   <div class="channels">${order.map(channelRow).join('')}
+    ${others.length?`<details class="more-channels"><summary>${esc(t('otherChannels'))} (${others.length})</summary>${others.map(channelRow).join('')}</details>`:''}
     <div class="channel-row"><span class="channel-label">${esc(t('copyMessage'))}</span><div class="actions"><button type="button" data-copy="message" data-channel="copy">${esc(t('copyMessage'))}</button><button type="button" data-copy="summary" data-channel="copy">${esc(t(summaryLabel))}</button>${n.phone?`<button type="button" data-copy="phone" data-channel="copy">${esc(t('copyPhone'))}</button>`:''}</div></div>
    </div>
    <form class="mark-sent" id="mark-sent">${sent
@@ -551,7 +562,7 @@ function bindOrderQuickActions(){
 async function orderList(params){
  const filters={from:params.get('from')||'',to:params.get('to')||'',fulfillment:params.get('fulfillment')||'',status:params.get('status')||'',notification:params.get('notification')||'',q:params.get('q')||''};
  const statuses=filters.status.split(',').filter(Boolean);
- view.innerHTML=`<div class="view-head"><h1>${esc(t('orders'))}</h1><div class="actions"><a class="button" href="#/orders/schedule">${esc(t('schedule'))}</a><a class="button primary" href="#/orders/new">${esc(t('newOrder'))}</a></div></div>
+ view.innerHTML=`<div class="view-head"><h1>${esc(t('orders'))}</h1><div class="actions"><a class="button" href="#/orders/queue">${esc(t('queue'))}</a><a class="button" href="#/orders/schedule">${esc(t('schedule'))}</a><a class="button primary" href="#/orders/new">${esc(t('newOrder'))}</a></div></div>
   <form class="filters" id="order-filters">
    ${field(t('date'),`<input type="date" name="from" value="${esc(filters.from)}">`)}
    ${field('→',`<input type="date" name="to" value="${esc(filters.to)}">`)}
@@ -577,8 +588,81 @@ async function orderSchedule(params){
  const data=await api('/api/admin/orders/schedule?date='+encodeURIComponent(date));
  const groups=[...data.slots,...(data.unslotted.length?[{id:'',start:'',end:'',orders:data.unslotted}]:[])];
  const capacityText=slot=>{const c=data.capacity?.slots?.[slot.id];return c?`${c.used} / ${c.capacity===null?t('unlimited'):c.capacity} ${t('used')}`:'';};
- const columns=[['pickup','pickupSchedule'],['delivery','deliverySchedule']];
+ const columns=[['pickup','pickupSchedule'],['delivery','deliverySchedule'],['dine_in','dineInSchedule']];
  document.getElementById('schedule').innerHTML=`<div class="schedule-grid">${columns.map(([type,label])=>`<section class="card"><h2>${esc(t(label))} <small>${data.slots.reduce((n,s)=>n+s.orders.filter(o=>o.fulfillment_type===type).length,0)+data.unslotted.filter(o=>o.fulfillment_type===type).length}</small></h2>${groups.map(slot=>{const rows=slot.orders.filter(o=>o.fulfillment_type===type);return `<div class="slot"><h3>${esc(slot.id?slotLabel(slot.id):t('noSlot'))} <small>${esc(capacityText(slot))}</small></h3>${rows.length?rows.map(o=>`<a class="slot-order" href="#/orders/${esc(o.id)}"><span class="mono">${esc(o.id)}</span>${pill('orderStatus',o.status)}<b>${esc(o.customer_name)}</b><small>${esc((o.items||[]).map(i=>`${lineText(i)} ×${i.quantity}`).join(', '))}${type==='delivery'&&o.delivery_address?` · ${esc(o.delivery_address)}`:''}</small>${o.message_card?`<em>“${esc(o.message_card)}”</em>`:''}</a>`).join(''):`<p class="muted">—</p>`}</div>`;}).join('')}</section>`).join('')}</div>`;
+}
+// Menu: the sold-out switch for sale products. `ordering.stock` in product.yaml still counts down on
+// its own; this is the manual override a shop reaches for when the beef runs out mid-service, and it
+// only ever takes something off the menu. Rental stock lives in Inventory and is not touched here.
+async function menuList() {
+ view.innerHTML=`<div class="view-head"><h1>${esc(t('navMenu'))}</h1><a class="button" href="#/orders">${esc(t('orders'))}</a></div>
+  <p class="hint hint">${esc(t('menuHint'))}</p><div id="menu-table"><p class="muted">${esc(t('loading'))}</p></div>`;
+ const box=document.getElementById('menu-table');
+ const render=products=>{
+  if(!products.length){box.innerHTML=`<p class="empty">${esc(t('empty'))}</p>`;return;}
+  box.innerHTML=`<table class="table"><thead><tr><th>${esc(t('product'))}</th><th>${esc(t('category'))}</th><th>${esc(t('stock'))}</th><th>${esc(t('soldOut'))}</th></tr></thead><tbody>${products.map(p=>`<tr data-product="${esc(p.product_id)}">
+   <td data-label="${esc(t('product'))}">${thumb(p.product_id)} ${esc(localized(p.name)||p.product_id)}</td>
+   <td data-label="${esc(t('category'))}">${esc(localized(storeConfig.categories?.[p.category])||p.category||'—')}</td>
+   <td data-label="${esc(t('stock'))}">${p.stock===null?'—':`${p.remaining} / ${p.stock}`}</td>
+   <td data-label="${esc(t('soldOut'))}"><label class="check"><input type="checkbox" data-sold-out${p.soldOutByStaff?' checked':''}><span>${esc(p.soldOutByStaff?t('soldOut'):t('available'))}</span></label></td>
+  </tr>`).join('')}</tbody></table>`;
+ };
+ render((await api('/api/admin/products')).products);
+ box.addEventListener('change',async e=>{
+  const input=e.target.closest('[data-sold-out]');if(!input)return;
+  const id=input.closest('[data-product]').dataset.product;
+  input.disabled=true;
+  try{render((await api(`/api/admin/products/${encodeURIComponent(id)}`,{method:'PATCH',body:{sold_out:input.checked}})).products);toast(t('saved'));}
+  catch(error){toast(describe(error),{error:true});input.checked=!input.checked;input.disabled=false;}
+ });
+}
+// Order Queue: the kitchen view. One lane per working status, newest at the bottom, every card
+// carrying what the cook needs (table or pickup slot, lines with options and add-ons, the note) and
+// the buttons that move it along. Terminal states are not lanes: a completed bowl leaves the screen.
+// The status flow mirrors nextOrderStatuses in core/orders/rules.mjs; the Worker refuses the rest.
+const QUEUE_LANES=['pending','confirmed','preparing','ready'];
+const nextStatuses=(status,fulfillment)=>({
+ pending:['confirmed','cancelled'],confirmed:['preparing','cancelled'],preparing:['ready','cancelled'],
+ ready:fulfillment==='delivery'?['out_for_delivery','completed','cancelled']:['completed','cancelled'],
+ out_for_delivery:['completed','cancelled']
+}[status]||[]);
+const queueWhen=o=>o.fulfillment_type==='dine_in'?(o.table_number?`${t('tableNumber')} ${o.table_number}`:''):(slotLabel(o.time_slot)||formatDate(o.fulfillment_date));
+function queueCard(o){
+ const actions=nextStatuses(o.status,o.fulfillment_type);
+ const time=(o.created_at||'').slice(11,16);
+ return `<article class="queue-card" data-order="${esc(o.id)}">
+  <header><a class="mono" href="#/orders/${esc(o.id)}">${esc(o.id)}</a>${fulfillmentPill(o)}${sourceBadge(o)}</header>
+  <p class="queue-when"><b>${esc(queueWhen(o))}</b><small>${esc(t('orderedAt'))} ${esc(time)}</small></p>
+  ${o.customer_name?`<p class="queue-customer">${esc(o.customer_name)}</p>`:''}
+  <ul class="queue-lines">${(o.items||[]).map(i=>`<li><b>×${i.quantity}</b> ${esc(lineText(i))}</li>`).join('')}</ul>
+  ${o.note?`<p class="queue-note">${esc(o.note)}</p>`:''}
+  ${o.message_card?`<p class="queue-note">“${esc(o.message_card)}”</p>`:''}
+  <div class="queue-actions">${actions.filter(x=>x!=='cancelled').map((x,i)=>`<button type="button" class="small ${i===0?'primary':''}" data-queue-status="${x}" data-id="${esc(o.id)}">${esc(T[lang].orderAction[x])}</button>`).join('')}${actions.includes('cancelled')?`<button type="button" class="small danger" data-queue-status="cancelled" data-id="${esc(o.id)}">${esc(T[lang].orderAction.cancelled)}</button>`:''}</div>
+ </article>`;
+}
+async function orderQueue(params){
+ const date=params.get('date')||today();
+ view.innerHTML=`<div class="view-head"><h1>${esc(t('queue'))}</h1><div class="actions"><a class="button" href="#/orders/schedule">${esc(t('schedule'))}</a><a class="button" href="#/orders">${esc(t('back'))}</a></div></div>
+  <form class="filters" id="queue-filters">${field(t('date'),`<input type="date" name="date" value="${esc(date)}">`)}<button type="button" class="ghost" data-shift="-1">‹</button><button type="button" class="ghost" data-shift="1">›</button></form><div id="queue"><p class="muted">${esc(t('loading'))}</p></div>`;
+ const form=document.getElementById('queue-filters');
+ form.addEventListener('change',()=>{location.hash='#/orders/queue?date='+form.elements.date.value;});
+ form.querySelectorAll('[data-shift]').forEach(b=>b.addEventListener('click',()=>{const d=new Date(form.elements.date.value+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+Number(b.dataset.shift));location.hash='#/orders/queue?date='+d.toISOString().slice(0,10);}));
+ const render=async()=>{
+  const {orders}=await api(`/api/admin/orders?from=${encodeURIComponent(date)}&to=${encodeURIComponent(date)}&status=${QUEUE_LANES.join(',')},out_for_delivery`);
+  const box=document.getElementById('queue');
+  if(!orders.length){box.innerHTML=`<p class="empty">${esc(t('queueEmpty'))}</p>`;return;}
+  const lane=status=>orders.filter(o=>o.status===status||(status==='ready'&&o.status==='out_for_delivery'));
+  box.innerHTML=`<div class="queue-grid">${QUEUE_LANES.map(status=>{const rows=lane(status);return `<section class="queue-lane"><h2>${esc(T[lang].orderStatus[status])} <small>${rows.length}</small></h2>${rows.length?rows.map(queueCard).join(''):`<p class="muted">${esc(t('laneEmpty'))}</p>`}</section>`;}).join('')}</div>`;
+ };
+ await render();
+ document.getElementById('queue').addEventListener('click',async e=>{
+  const button=e.target.closest('[data-queue-status]');if(!button)return;
+  const status=button.dataset.queueStatus;
+  if(status==='cancelled'&&!confirm(t('confirmCancelOrder')))return;
+  button.disabled=true;
+  try{await api(`/api/admin/orders/${encodeURIComponent(button.dataset.id)}/status`,{method:'POST',body:{status}});toast(status==='cancelled'?t('cancelled'):t('saved'));await render();}
+  catch(error){toast(describe(error),{error:true});button.disabled=false;}
+ });
 }
 // Staff-entered order (a customer on the phone / Zalo). The price is computed by the Worker.
 async function orderNew(){
@@ -586,11 +670,11 @@ async function orderNew(){
  const o=ordering();
  view.innerHTML=`<div class="view-head"><h1>${esc(t('newOrder'))}</h1><a class="button" href="#/orders">${esc(t('back'))}</a></div>
   <form class="form card" id="order-form">
-   ${field(t('product'),`<select name="product_id" required><option value="">${esc(t('pickProduct'))}</option>${sale.map(p=>`<option value="${esc(p.id)}">${esc(localized(p.name))} · ${esc(p.id)}</option>`).join('')}</select>`,'full')}
-   <div class="full" id="order-options"></div>
-   ${field(t('quantity'),`<input name="quantity" type="number" min="1" max="20" value="1">`)}
+   <div class="full order-lines" id="order-lines"></div>
+   <div class="full"><button type="button" class="ghost" id="add-line">+ ${esc(t('addProduct'))}</button></div>
    ${field(t('status'),`<select name="status">${options(['confirmed','pending'],'confirmed',T[lang].orderStatus)}</select>`)}
-   ${field(t('fulfillment'),`<select name="fulfillment_type">${options(FULFILLMENT_TYPES.filter(x=>o.fulfillment?.[x]!==false),'pickup',T[lang].fulfillmentType)}</select>`)}
+  ${field(t('fulfillment'),`<select name="fulfillment_type">${options(FULFILLMENT_TYPES.filter(x=>o.fulfillment?.[x]!==false),'pickup',T[lang].fulfillmentType)}</select>`)}
+  ${field(t('tableNumber'),`<input name="table_number" maxlength="4" inputmode="numeric">`)}
    ${field(t('date'),`<input type="date" name="fulfillment_date" required value="${esc(today())}">`)}
    ${field(t('timeSlot'),`<select name="time_slot"><option value="">—</option>${(o.timeSlots||[]).map(s=>`<option value="${esc(s.id)}">${esc(slotLabel(s.id))}</option>`).join('')}</select>`)}
    <div class="full form" id="delivery-fields" hidden>${field(t('recipient'),`<input name="recipient_name" maxlength="100">`)}${field(t('recipientPhone'),`<input name="recipient_phone" type="tel" maxlength="40">`)}${field(t('address'),`<input name="delivery_address" maxlength="300">`,'full')}${field(t('deliveryNote'),`<input name="delivery_note" maxlength="300">`,'full')}</div>
@@ -601,20 +685,44 @@ async function orderNew(){
    <p class="form-error full" id="order-error"></p>
    <div class="form-footer"><button type="submit" class="primary">${esc(t('newOrder'))}</button></div>
   </form>`;
- const form=document.getElementById('order-form'),optionsBox=document.getElementById('order-options');
- function renderOptions(){
-  const p=product(form.elements.product_id.value);
-  optionsBox.innerHTML=p?Object.entries(p.options||{}).map(([group,choices])=>field(localized(o.options?.[group]?.label)||group,`<select data-option="${esc(group)}">${choices.map(c=>`<option value="${esc(c.id)}">${esc(optionText(group,c.id))}</option>`).join('')}</select>`)).join('')+((p.addons||[]).length?`<div class="field"><span>${esc(t('addons'))}</span><div class="radio-group">${p.addons.map(a=>`<label class="radio"><input type="checkbox" data-addon="${esc(a.id)}"><span>${esc(addonText(a.id))}</span></label>`).join('')}</div></div>`:''):'';
-  optionsBox.classList.toggle('form',Boolean(p));
+ const form=document.getElementById('order-form'),linesBox=document.getElementById('order-lines');
+ // One order, several bowls: each line keeps its own product, options, add-ons and quantity, and the
+ // whole list is posted as items[] (the Worker prices it, the same way the storefront cart does).
+ const lines=[{}];
+ const productPicker=(line,index)=>field(t('product'),`<select data-line-product="${index}" required><option value="">${esc(t('pickProduct'))}</option>${sale.map(p=>`<option value="${esc(p.id)}"${p.id===line.product_id?' selected':''}>${esc(localized(p.name))} · ${esc(p.id)}</option>`).join('')}</select>`,'full');
+ const lineChoices=(line,index)=>{
+  const p=product(line.product_id);if(!p)return '';
+  return Object.entries(p.options||{}).map(([group,choices])=>field(localized(o.options?.[group]?.label)||group,`<select data-option="${esc(group)}" data-line="${index}">${choices.map(c=>`<option value="${esc(c.id)}"${line.options?.[group]===c.id?' selected':''}>${esc(optionText(group,c.id))}</option>`).join('')}</select>`)).join('')
+   +((p.addons||[]).length?`<div class="field"><span>${esc(t('addons'))}</span><div class="radio-group">${p.addons.map(a=>`<label class="radio"><input type="checkbox" data-addon="${esc(a.id)}" data-line="${index}"${line.addons?.includes(a.id)?' checked':''}><span>${esc(addonText(a.id))}</span></label>`).join('')}</div></div>`:'');
+ };
+ function renderLines(){
+  linesBox.innerHTML=lines.map((line,index)=>`<section class="order-line" data-line-row="${index}"><div class="order-line-head"><b>${index+1}.</b>${lines.length>1?`<button type="button" class="ghost danger" data-remove-line="${index}">${esc(t('remove'))}</button>`:''}</div><div class="form">${productPicker(line,index)}${lineChoices(line,index)}${field(t('quantity'),`<input type="number" min="1" max="20" value="${line.quantity||1}" data-line-quantity="${index}">`)}</div></section>`).join('');
  }
- form.elements.product_id.addEventListener('change',renderOptions);
+ renderLines();
+ linesBox.addEventListener('change',e=>{
+  const el=e.target,index=Number(el.dataset.line??el.dataset.lineProduct??el.dataset.lineQuantity);
+  const line=lines[index];if(!line)return;
+  if(el.dataset.lineProduct!==undefined){lines[index]={product_id:el.value,quantity:line.quantity||1};renderLines();return;}
+  if(el.dataset.lineQuantity!==undefined){line.quantity=Number(el.value)||1;return;}
+  if(el.dataset.option){line.options={...line.options,[el.dataset.option]:el.value};return;}
+  if(el.dataset.addon){const picked=new Set(line.addons||[]);el.checked?picked.add(el.dataset.addon):picked.delete(el.dataset.addon);line.addons=[...picked];}
+ });
+ linesBox.addEventListener('click',e=>{
+  const button=e.target.closest('[data-remove-line]');if(!button)return;
+  lines.splice(Number(button.dataset.removeLine),1);renderLines();
+ });
+ document.getElementById('add-line').addEventListener('click',()=>{lines.push({});renderLines();document.querySelector('[data-line-row="'+(lines.length-1)+'"] select')?.focus();});
  form.elements.fulfillment_type.addEventListener('change',()=>{document.getElementById('delivery-fields').hidden=form.elements.fulfillment_type.value!=='delivery';});
  form.addEventListener('submit',async e=>{
   e.preventDefault();const error=document.getElementById('order-error');error.textContent='';
   const body=Object.fromEntries(new FormData(form));
-  body.quantity=Number(body.quantity)||1;
-  body.options=Object.fromEntries([...optionsBox.querySelectorAll('[data-option]')].map(el=>[el.dataset.option,el.value]));
-  body.addons=[...optionsBox.querySelectorAll('[data-addon]:checked')].map(el=>el.dataset.addon);
+  if(lines.some(line=>!line.product_id)){error.textContent=t('pickProduct');return;}
+  // Each line carries the defaults of the groups staff never touched, so the Worker prices what is on screen.
+  body.items=lines.map(line=>{
+   const p=product(line.product_id),options={...line.options};
+   for(const [group,choices] of Object.entries(p?.options||{}))if(!options[group])options[group]=choices[0]?.id||'';
+   return {product_id:line.product_id,quantity:Number(line.quantity)||1,options,addons:line.addons||[]};
+  });
   const button=form.querySelector('[type=submit]');button.disabled=true;
   try{const data=await api('/api/admin/orders',{method:'POST',body});toast(t('created'));location.hash='#/orders/'+encodeURIComponent(data.order.id);}
   catch(err){error.textContent=describe(err);button.disabled=false;}
@@ -637,7 +745,7 @@ async function orderDetail(id){
     <h3 style="margin-top:16px">${esc(t('messageCard'))}</h3><blockquote class="card-message">${o.message_card?esc(o.message_card):`<span class="muted">${esc(t('noCard'))}</span>`}</blockquote>
    </section>
    <section class="card"><h3>${esc(t('fulfillment'))}</h3><div class="contact-block">
-    ${line(t('fulfillment'),fulfillmentPill(o))}${line(t('date'),esc(formatDate(o.fulfillment_date)))}${line(t('timeSlot'),esc(slotLabel(o.time_slot))||'—')}
+    ${line(t('fulfillment'),fulfillmentPill(o))}${line(t('date'),esc(formatDate(o.fulfillment_date)))}${line(t('timeSlot'),esc(slotLabel(o.time_slot))||'—')}${o.table_number?line(t('tableNumber'),esc(o.table_number)):''}
     ${o.fulfillment_type==='delivery'?line(t('recipient'),esc([o.recipient_name,o.recipient_phone].filter(Boolean).join(' · ')))+line(t('address'),esc(o.delivery_address))+(o.delivery_note?line(t('deliveryNote'),esc(o.delivery_note)):''):''}
     ${o.note?line(t('note'),esc(o.note)):''}
    </div></section>
@@ -647,6 +755,7 @@ async function orderDetail(id){
    ${field(t('customer'),`<input name="customer_name" required maxlength="100" value="${esc(o.customer_name)}">`)}
    ${field(t('phone'),`<input name="customer_phone" type="tel" maxlength="40" value="${esc(o.customer_phone)}">`)}
    ${field(t('fulfillment'),`<select name="fulfillment_type">${options(FULFILLMENT_TYPES,o.fulfillment_type,T[lang].fulfillmentType)}</select>`)}
+  ${field(t('tableNumber'),`<input name="table_number" maxlength="4" inputmode="numeric" value="${esc(o.table_number||'')}">`)}
    ${field(t('date'),`<input type="date" name="fulfillment_date" required value="${esc(o.fulfillment_date)}">`)}
    ${field(t('timeSlot'),`<select name="time_slot"><option value="">—</option>${(ordering().timeSlots||[]).map(s=>`<option value="${esc(s.id)}"${s.id===o.time_slot?' selected':''}>${esc(slotLabel(s.id))}</option>`).join('')}</select>`)}
    ${field(t('deliveryFee'),`<input name="delivery_fee" type="number" min="0" step="1000" value="${esc(o.delivery_fee)}">`)}
@@ -688,6 +797,8 @@ const routes=[
  [/^\/reservations\/new$/,'reservations',()=>reservationForm('')],
  [/^\/reservations\/([^/?]+)$/,'reservations',m=>reservationForm(decodeURIComponent(m[1]))],
  [/^\/orders$/,'orders',(m,q)=>orderList(q)],
+ [/^\/orders\/queue$/,'orders',(m,q)=>orderQueue(q)],
+ [/^\/menu$/,'menu',()=>menuList()],
  [/^\/orders\/schedule$/,'orders',(m,q)=>orderSchedule(q)],
  [/^\/orders\/new$/,'orders',()=>orderNew()],
  [/^\/orders\/([^/?]+)$/,'orders',m=>orderDetail(decodeURIComponent(m[1]))],

@@ -64,7 +64,7 @@ test('public config lists the window, slots with remaining capacity, stock per s
   assert.equal(data.deadlinePassed, false);
   assert.deepEqual(data.capacity[day(1)].slots.am, {used: 0, capacity: 2, remaining: 2, open: true});
   assert.deepEqual(data.capacity[day(1)].slots.pm, {used: 0, capacity: null, remaining: null, open: true});
-  assert.deepEqual(data.products['sale-1'], {stock: 3, sold: 0, remaining: 3, soldOut: false, preorder: true, deadlinePassed: false});
+  assert.deepEqual(data.products['sale-1'], {stock: 3, sold: 0, remaining: 3, soldOut: false, soldOutByStaff: false, preorder: true, deadlinePassed: false});
   assert.equal(data.products['sale-2'].stock, null);
   assert.equal(data.products['sale-3'].deadlinePassed, true);
   assert.equal(data.products['rental-1'], undefined);
@@ -90,6 +90,35 @@ test('pricing: base + option deltas (product overrides config) + add-ons, times 
   // The customer's own data is not echoed back beyond what the confirmation screen shows.
   assert.equal(o.delivery_address, undefined);
   assert.equal(o.message_card, undefined);
+});
+
+test('multi-item orders recalculate every line on the server and reject one invalid line atomically', async () => {
+  const {publicPost} = await harness();
+  const created = await publicPost(order({items: [
+    {product_id: 'sale-1', quantity: 2, options: {size: 'medium', tone: 'pink'}, addons: ['giftbag'], unit_price: 1, line_total: 1},
+    {product_id: 'sale-2', quantity: 1, options: {}, addons: [], unit_price: 1, line_total: 1}
+  ]}));
+  assert.equal(created.status, 201, JSON.stringify(created.data));
+  assert.equal(created.data.order.items.length, 2);
+  assert.equal(created.data.order.items[0].unit_price, 349000 + 30000);
+  assert.equal(created.data.order.items[0].line_total, 2 * 379000);
+  assert.equal(created.data.order.items[1].unit_price, 499000);
+  assert.equal(created.data.order.total, 2 * 379000 + 499000);
+
+  const rejected = await publicPost(order({items: [
+    {product_id: 'sale-1', quantity: 1, options: {size: 'medium'}, addons: []},
+    {product_id: 'sale-1', quantity: 1, options: {size: 'not-an-option'}, addons: []}
+  ], customer_phone: '0900000098'}));
+  assert.equal(rejected.status, 400);
+  assert.equal(rejected.data.fields['items.1.options.size'], 'invalid');
+
+  const cumulative = await harness();
+  const overStock = await cumulative.publicPost(order({items: [
+    {product_id: 'sale-1', quantity: 2, options: {size: 'small'}, addons: []},
+    {product_id: 'sale-1', quantity: 2, options: {size: 'large'}, addons: []}
+  ], customer_phone: '0900000097'}));
+  assert.equal(overStock.status, 409);
+  assert.equal(overStock.data.error, 'sold_out');
 });
 
 test('validation: unknown product, rental product, bad option, bad add-on, quantity, window, slot, delivery fields, channel, consent', async () => {
@@ -121,6 +150,46 @@ test('validation: unknown product, rental product, bad option, bad add-on, quant
   const closed = await publicPost(order({product_id: 'sale-3', options: {}}));
   assert.equal(closed.status, 409);
   assert.equal(closed.data.error, 'deadline_passed');
+});
+
+test('dine-in orders require a valid table number and accept the table flow', async () => {
+  const {publicPost} = await harness({
+    STORE_TIMEZONE: 'Asia/Ho_Chi_Minh',
+  }, {
+    ...store,
+    ordering: {
+      ...store.ordering,
+      fulfillment: {...store.ordering.fulfillment, dine_in: true},
+      tables: {min: 1, max: 24},
+      timeSlots: [{id: 'lunch', start: '11:00', end: '13:00', capacity: 5}]
+    }
+  });
+
+  const badTable = await publicPost(order({fulfillment_type: 'dine_in', time_slot: 'lunch', table_number: 'A12', options: {}}));
+  assert.equal(badTable.status, 400);
+  assert.equal(badTable.data.fields.table_number, 'invalid');
+
+  // The QR code is a URL: a guest can type any number into it, so the configured range is the wall.
+  const beyond = await publicPost(order({fulfillment_type: 'dine_in', time_slot: 'lunch', table_number: 25, options: {}}));
+  assert.equal(beyond.status, 400);
+  assert.equal(beyond.data.fields.table_number, 'out_of_range');
+  const zero = await publicPost(order({fulfillment_type: 'dine_in', time_slot: 'lunch', table_number: 0, options: {}}));
+  assert.equal(zero.data.fields.table_number, 'out_of_range');
+
+  // A guest who is already sitting down needs no name and no phone number to be served.
+  const anonymous = await publicPost(order({fulfillment_type: 'dine_in', time_slot: 'lunch', table_number: '007', options: {}, customer_name: '', customer_phone: '', preferred_contact_channel: ''}));
+  assert.equal(anonymous.status, 201, JSON.stringify(anonymous.data));
+  assert.equal(anonymous.data.order.table_number, '7', 'leading zeros are dropped so one table is one table');
+
+  // Pickup still needs both: staff have to call the customer when the bag is ready.
+  const namelessPickup = await publicPost(order({time_slot: 'lunch', customer_name: '', options: {}}));
+  assert.equal(namelessPickup.status, 400);
+  assert.equal(namelessPickup.data.fields.customer_name, 'required');
+
+  const created = await publicPost(order({fulfillment_type: 'dine_in', time_slot: 'lunch', table_number: 12, options: {}}));
+  assert.equal(created.status, 201, JSON.stringify(created.data));
+  assert.equal(created.data.order.fulfillment_type, 'dine_in');
+  assert.equal(created.data.order.table_number, '12');
 });
 
 test('skipped option groups take the first choice; the same order sent twice is folded', async () => {
@@ -282,4 +351,48 @@ test('public POST needs the same-origin headers; admin routes need a session; re
   assert.equal(refused.data.error, 'read_only');
   assert.equal((await admin('POST', '/api/admin/inventory', {body: {id: 'rental-1-01', product_id: 'rental-1'}})).status, 403);
   assert.equal((await admin('POST', '/api/admin/logout', {body: {}})).status, 200);
+});
+
+test('staff can switch a product off and back on, and a sold-out product is refused while it is off', async () => {
+  const {admin, publicPost, call} = await harness();
+
+  // sale-2 has no stock count at all, so only the staff switch can take it off the menu.
+  const before = await publicPost(order({product_id: 'sale-2', options: {}, customer_name: 'Khach Mot', customer_phone: '0900000101'}));
+  assert.equal(before.status, 201, JSON.stringify(before.data));
+
+  const off = await admin('PATCH', '/api/admin/products/sale-2', {body: {sold_out: true}});
+  assert.equal(off.status, 200);
+  assert.equal(off.data.products.find(p => p.product_id === 'sale-2').soldOutByStaff, true);
+  assert.equal(off.data.products.find(p => p.product_id === 'sale-2').soldOut, true);
+  // Products the staff never touched are reported as they always were.
+  assert.equal(off.data.products.find(p => p.product_id === 'sale-1').soldOutByStaff, false);
+  // Rental products have no switch to flip.
+  assert.equal(off.data.products.some(p => p.product_id === 'rental-1'), false);
+
+  // The customer sees it before they try, and the server refuses it if they try anyway.
+  const config = await call('GET', '/api/orders/config');
+  assert.equal(config.data.products['sale-2'].soldOut, true);
+  const refused = await publicPost(order({product_id: 'sale-2', options: {}, customer_name: 'Khach Hai', customer_phone: '0900000102'}));
+  assert.equal(refused.status, 409);
+  assert.equal(refused.data.error, 'sold_out');
+
+  // Back on the next morning.
+  const on = await admin('PATCH', '/api/admin/products/sale-2', {body: {sold_out: false}});
+  assert.equal(on.data.products.find(p => p.product_id === 'sale-2').soldOut, false);
+  const after = await publicPost(order({product_id: 'sale-2', options: {}, customer_name: 'Khach Ba', customer_phone: '0900000103'}));
+  assert.equal(after.status, 201, JSON.stringify(after.data));
+
+  // Validation and auth.
+  assert.equal((await admin('PATCH', '/api/admin/products/sale-2', {body: {sold_out: 'yes'}})).status, 400);
+  assert.equal((await admin('PATCH', '/api/admin/products/nope', {body: {sold_out: true}})).status, 404);
+  assert.equal((await admin('PATCH', '/api/admin/products/rental-1', {body: {sold_out: true}})).status, 400);
+  assert.equal((await call('GET', '/api/admin/products')).status, 401);
+  assert.equal((await call('PATCH', '/api/admin/products/sale-2', {body: {sold_out: true}, headers: {'x-requested-with': 'fetch'}})).status, 401);
+});
+
+test('read-only demo mode refuses the sold-out switch', async () => {
+  const {admin} = await harness({ADMIN_READ_ONLY: '1'});
+  const refused = await admin('PATCH', '/api/admin/products/sale-2', {body: {sold_out: true}});
+  assert.equal(refused.status, 403);
+  assert.equal(refused.data.error, 'read_only');
 });

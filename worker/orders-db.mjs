@@ -10,10 +10,10 @@ const NOW = "strftime('%Y-%m-%dT%H:%M:%fZ','now')";
 const placeholders = list => list.map(() => '?').join(',');
 const active = `status IN (${ACTIVE_ORDER_STATUSES.map(s => `'${s}'`).join(',')})`;
 const COLUMNS = ['customer_name', 'customer_phone', 'preferred_contact_channel', 'customer_whatsapp', 'customer_messenger_url', 'customer_zalo_phone',
-  'fulfillment_type', 'fulfillment_date', 'time_slot', 'recipient_name', 'recipient_phone', 'delivery_address', 'delivery_note', 'message_card', 'note',
+  'fulfillment_type', 'fulfillment_date', 'time_slot', 'table_number', 'recipient_name', 'recipient_phone', 'delivery_address', 'delivery_note', 'message_card', 'note',
   'subtotal', 'delivery_fee', 'total', 'currency', 'status', 'source', 'privacy_consent', 'privacy_consent_at'];
 const NUMERIC = new Set(['subtotal', 'delivery_fee', 'total', 'privacy_consent']);
-const DEFAULTS = {customer_phone: '', preferred_contact_channel: '', customer_whatsapp: '', customer_messenger_url: '', customer_zalo_phone: '', time_slot: '', recipient_name: '', recipient_phone: '', delivery_address: '', delivery_note: '', message_card: '', note: '', subtotal: 0, delivery_fee: 0, total: 0, currency: 'VND', status: 'pending', source: 'admin', privacy_consent: 0, privacy_consent_at: ''};
+const DEFAULTS = {customer_phone: '', preferred_contact_channel: '', customer_whatsapp: '', customer_messenger_url: '', customer_zalo_phone: '', time_slot: '', table_number: '', recipient_name: '', recipient_phone: '', delivery_address: '', delivery_note: '', message_card: '', note: '', subtotal: 0, delivery_fee: 0, total: 0, currency: 'VND', status: 'pending', source: 'admin', privacy_consent: 0, privacy_consent_at: ''};
 
 function orderId(now = new Date()) {
   const alphabet = 'abcdefghjkmnpqrstuvwxyz23456789';
@@ -85,11 +85,14 @@ export async function createOrder(db, data, {slotCapacity = null, dailyCapacity 
     const insertOrder = db.prepare(`INSERT INTO orders (id, ${COLUMNS.join(', ')}) SELECT ?, ${placeholders(COLUMNS)}${conditions.length ? ' WHERE ' + conditions.join(' AND ') : ''}`).bind(...params);
     // Lines are inserted only when the order row made it in (so a refused order raises no foreign-key
     // error inside the batch) and, with a stock limit, only while the product still has enough units.
+    const batchQuantity = {};
     const insertItems = items.map(item => {
       const limit = guard ? stock[item.product_id] ?? null : null;
+      const remainingLimit = limit === null ? null : limit - (batchQuantity[item.product_id] || 0);
+      batchQuantity[item.product_id] = (batchQuantity[item.product_id] || 0) + item.quantity;
       const values = [id, item.product_id, item.quantity, JSON.stringify(item.options || {}), JSON.stringify(item.addons || []), item.unit_price, item.line_total];
-      const where = ['EXISTS (SELECT 1 FROM orders WHERE id = ?)'], extra = [id];
-      if (limit !== null) { where.push(`(SELECT COALESCE(SUM(i.quantity), 0) FROM order_items i JOIN orders o ON o.id = i.order_id WHERE o.${active} AND i.product_id = ? AND o.id <> ?) + ? <= ?`); extra.push(item.product_id, id, item.quantity, limit); }
+      const where = ['EXISTS (SELECT 1 FROM orders WHERE id = ?)'], extra = /** @type {any[]} */ ([id]);
+      if (remainingLimit !== null) { where.push(`(SELECT COALESCE(SUM(i.quantity), 0) FROM order_items i JOIN orders o ON o.id = i.order_id WHERE o.${active} AND i.product_id = ? AND o.id <> ?) + ? <= ?`); extra.push(item.product_id, id, item.quantity, remainingLimit); }
       return db.prepare(`INSERT INTO order_items (order_id, product_id, quantity, options, addons, unit_price, line_total) SELECT ?, ?, ?, ?, ?, ?, ? WHERE ${where.join(' AND ')}`).bind(...values, ...extra);
     });
     const results = await db.batch([insertOrder, ...insertItems]);
@@ -129,10 +132,12 @@ export async function setOrderNotification(db, id, {status, channel = '', note =
 }
 // The same customer sending the same order twice (double tap, reload) gets the first one back.
 export async function findOpenOrder(db, {customer_phone, fulfillment_date, time_slot, items}) {
-  const productId = items?.[0]?.product_id || '';
-  const row = await db.prepare(`SELECT o.* FROM orders o JOIN order_items i ON i.order_id = o.id WHERE o.source = 'public' AND o.status = 'pending' AND o.customer_phone = ? AND o.fulfillment_date = ? AND o.time_slot = ? AND i.product_id = ? ORDER BY o.created_at DESC`)
-    .bind(customer_phone, fulfillment_date, time_slot || '', productId).first();
-  return row ? (await attachItems(db, [row]))[0] : null;
+  const canonical = lines => [...(lines || [])].map(item => ({product_id: item.product_id, quantity: item.quantity, options: item.options || {}, addons: [...(item.addons || [])].sort()})).sort((a, b) => `${a.product_id}${JSON.stringify(a.options)}${a.addons.join(',')}`.localeCompare(`${b.product_id}${JSON.stringify(b.options)}${b.addons.join(',')}`));
+  const expected = JSON.stringify(canonical(items));
+  const {results} = await db.prepare(`SELECT * FROM orders WHERE source = 'public' AND status = 'pending' AND customer_phone = ? AND fulfillment_date = ? AND time_slot = ? ORDER BY created_at DESC`)
+    .bind(customer_phone, fulfillment_date, time_slot || '').all();
+  for (const row of await attachItems(db, results)) if (JSON.stringify(canonical(row.items)) === expected) return row;
+  return null;
 }
 
 // --- Dashboard / alerts --------------------------------------------------------------------------------
@@ -150,4 +155,17 @@ export async function orderAlerts(db, today) {
     orderNotifications: pendingNotifications,
     upcomingOrders: upcoming
   };
+}
+
+// --- Staff sold-out override ---------------------------------------------------------------------------
+// One row per product staff switched off by hand. Absent row = whatever the catalog says.
+export async function soldOutProducts(db) {
+  const {results} = await db.prepare('SELECT product_id FROM product_availability WHERE sold_out = 1').all();
+  return new Set(results.map(r => r.product_id));
+}
+/** @param {any} db @param {string} productId @param {boolean} soldOut */
+export async function setProductSoldOut(db, productId, soldOut) {
+  await db.prepare(`INSERT INTO product_availability (product_id, sold_out, updated_at) VALUES (?, ?, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    ON CONFLICT (product_id) DO UPDATE SET sold_out = excluded.sold_out, updated_at = excluded.updated_at`).bind(productId, soldOut ? 1 : 0).run();
+  return {product_id: productId, sold_out: soldOut};
 }

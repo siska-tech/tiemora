@@ -15,8 +15,12 @@ const catalog = [
   {id: 'ad-0005', name: {vi: 'Sản phẩm năm', ja: '商品五'}, category: 'rental', sizes: ['L'], inventory: {managed: true}, cover: '/catalog/a/1.jpg', images: ['/catalog/a/1.jpg'], videos: [], variants: {'/catalog/a/1.jpg': {thumb: '/catalog/a/1.thumb.webp'}}},
   {id: 'ad-0002', name: {vi: 'Sản phẩm hai'}, category: 'rental', sizes: ['S', 'M'], inventory: {managed: true}, cover: null, images: [], videos: []}
 ];
+const saleCatalog = [
+  {id: 'pho-1', name: {vi: 'Phở bò'}, category: 'pho', type: 'sale', price: {sale: 40000}, currency: 'VND', options: {size: [{id: 'regular'}, {id: 'large', price: 10000}]}, addons: [{id: 'quay'}], cover: null, images: [], videos: []},
+  {id: 'tra-1', name: {vi: 'Trà đá'}, category: 'drink', type: 'sale', price: {sale: 15000}, currency: 'VND', cover: null, images: [], videos: []}
+];
 // The staff language starts from admin.defaultLanguage; the Vietnamese assertions below rely on it.
-const store = {store: {name: 'Test Store'}, languages: ['vi', 'en', 'ja'], defaultLanguage: 'vi', phoneCountryCode: '84', contact: {messenger: 'https://m.me/teststore'}, admin: {defaultLanguage: 'vi'}};
+const store = {store: {name: 'Test Store'}, languages: ['vi', 'en', 'ja'], defaultLanguage: 'vi', phoneCountryCode: '84', contact: {messenger: 'https://m.me/teststore'}, ordering: {fulfillment: {pickup: true, delivery: true, dine_in: true}, timeSlots: [], options: {size: {label: {vi: 'Size'}, choices: {regular: {label: {vi: 'Thường'}}, large: {label: {vi: 'Lớn'}, price: 10000}}}}, addons: {quay: {label: {vi: 'Quẩy'}, price: 10000}}}, admin: {defaultLanguage: 'vi'}};
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function until(check, label, timeout = 3000) {
   const started = Date.now();
@@ -24,11 +28,11 @@ async function until(check, label, timeout = 3000) {
   throw new Error(`Timed out waiting for ${label}`);
 }
 
-async function setup(t, {hash = '#/', storeConfig = store, extraEnv = {}} = {}) {
+async function setup(t, {hash = '#/', storeConfig = store, extraEnv = {}, products = catalog} = {}) {
   resetCatalogCache(); resetStoreCache();
   const env = {
     DB: await migratedDatabase(),
-    ASSETS: {fetch: async request => { const p = new URL(request.url).pathname; return p === '/catalog.json' ? Response.json(catalog) : p === '/store.json' ? Response.json(storeConfig) : new Response('', {status: 404}); }},
+    ASSETS: {fetch: async request => { const p = new URL(request.url).pathname; return p === '/catalog.json' ? Response.json(products) : p === '/store.json' ? Response.json(storeConfig) : new Response('', {status: 404}); }},
     ADMIN_PASSWORD: 'pw', RESERVATION_BUFFER_DAYS: '0', STORE_TIMEZONE: 'Asia/Ho_Chi_Minh', ...extraEnv
   };
   const login = await worker.fetch(new Request(ORIGIN + '/api/admin/login', {method: 'POST', headers: {'content-type': 'application/json', 'x-requested-with': 'fetch'}, body: JSON.stringify({password: 'pw'})}), env);
@@ -41,7 +45,7 @@ async function setup(t, {hash = '#/', storeConfig = store, extraEnv = {}} = {}) 
   t.after(() => dom.window.close());
   const {window} = dom;
   window.fetch = async (path, init = {}) => {
-    if (path === '/catalog.json') return Response.json(catalog);
+    if (path === '/catalog.json') return Response.json(products);
     if (path === '/store.json') return Response.json(storeConfig);
     const headers = {...(init.headers || {}), cookie};
     return worker.fetch(new Request(ORIGIN + path, {...init, headers}), env);
@@ -214,6 +218,11 @@ test('a public request shows in the bell and the dashboard, is confirmed with an
   assert.match(text(d.querySelector('.contact-block')), /Zalo0901234567 · Giống số điện thoại.*Thời điểm đồng ý[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}/);
   assert.equal(text(d.querySelector('.channel-row.preferred .channel-label')), 'Zalo Ưu tiên');
   assert(d.querySelector('.channel-row.preferred [data-copy=zalo]').classList.contains('primary'));
+  // Only the channel the customer asked for is open; the others are folded away, still one click from reach.
+  assert.deepEqual([...notify.children].filter(el => el.classList.contains('channel-row')).map(el => text(el.querySelector('.channel-label'))), ['Zalo Ưu tiên', 'Sao chép tin nhắn']);
+  const folded = notify.querySelector('.more-channels');
+  assert.equal(text(folded.querySelector('summary')), 'Cách liên hệ khác (3)');
+  assert.deepEqual([...folded.querySelectorAll('.channel-label')].map(text), ['WhatsApp', 'Messenger', 'Điện thoại']);
   const wa = notify.querySelector('[data-wa]');
   assert.equal(wa.getAttribute('target'), '_blank');
   assert.equal(wa.getAttribute('rel'), 'noopener noreferrer');
@@ -287,6 +296,43 @@ test('the booking form saves the contact preferences and can copy the phone into
   assert.deepEqual([...d.querySelectorAll('.contact-block .contact-line')].map(el => [text(el.querySelector('span')), text(el.querySelector('b'))]), [['Kênh liên hệ ưu tiên', 'WhatsApp'], ['Điện thoại', '0900000009'], ['WhatsApp', '0900000009 · Giống số điện thoại'], ['Messenger', 'm.me/linh'], ['Zalo', '0900000009 · Giống số điện thoại'], ['Đồng ý bảo mật', 'Chưa ghi nhận (tạo tại cửa hàng)']]);
 });
 
+test('a staff order takes several products, each with its own options and quantity', async t => {
+  const {document: d, window, api, go} = await setup(t, {hash: '#/orders/new', products: saleCatalog});
+  const form = await until(() => d.getElementById('order-form'), 'order form');
+  const lines = d.getElementById('order-lines');
+  // One line to start with, no way to remove the last one.
+  assert.equal(lines.querySelectorAll('.order-line').length, 1);
+  assert.equal(lines.querySelector('[data-remove-line]'), null);
+  const pick = (index, id) => { const el = lines.querySelector(`[data-line-product="${index}"]`); el.value = id; el.dispatchEvent(new window.Event('change', {bubbles: true})); };
+  pick(0, 'pho-1');
+  // Choosing the product reveals its own options and add-ons; a second line is independent of the first.
+  const large = lines.querySelector('[data-option="size"][data-line="0"]');
+  large.value = 'large'; large.dispatchEvent(new window.Event('change', {bubbles: true}));
+  const quay = lines.querySelector('[data-addon="quay"][data-line="0"]');
+  quay.checked = true; quay.dispatchEvent(new window.Event('change', {bubbles: true}));
+  d.getElementById('add-line').click();
+  pick(1, 'tra-1');
+  assert.equal(lines.querySelectorAll('[data-line-row="1"] [data-option]').length, 0, 'the drink has no options of its own');
+  const quantity = lines.querySelector('[data-line-quantity="1"]');
+  quantity.value = '2'; quantity.dispatchEvent(new window.Event('change', {bubbles: true}));
+  form.elements.customer_name.value = 'Nguyễn Mai';
+  form.elements.fulfillment_date.value = form.elements.fulfillment_date.value || '2026-01-01';
+  form.dispatchEvent(new window.Event('submit', {bubbles: true, cancelable: true}));
+  await until(() => window.location.hash.startsWith('#/orders/ord-') || d.getElementById('order-error').textContent, 'redirect to the new order');
+  assert.equal(d.getElementById('order-error').textContent, '');
+  const id = decodeURIComponent(window.location.hash.slice('#/orders/'.length));
+  const {data} = await api('GET', `/api/admin/orders/${id}`);
+  assert.deepEqual(data.order.items.map(i => [i.product_id, i.quantity, i.options.size ?? null, i.addons]), [['pho-1', 1, 'large', ['quay']], ['tra-1', 2, null, []]]);
+  // 40,000 + 10,000 (large) + 10,000 (quẩy) + 2 × 15,000
+  assert.equal(data.order.total, 90000);
+  // A line can be taken back out again before sending.
+  await go('#/orders/new');
+  const again = await until(() => d.getElementById('order-lines'), 'form again');
+  d.getElementById('add-line').click();
+  assert.equal(again.querySelectorAll('.order-line').length, 2);
+  again.querySelector('[data-remove-line="1"]').click();
+  assert.equal(again.querySelectorAll('.order-line').length, 1);
+});
 test('the admin opens in English when the store says so; the settings page explains that push is not configured', async t => {
   const {document: d, go} = await setup(t, {storeConfig: {...store, admin: {defaultLanguage: 'en'}}});
   await until(() => d.querySelector('.stat'), 'dashboard stats');

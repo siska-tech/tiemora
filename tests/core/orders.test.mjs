@@ -7,7 +7,7 @@ import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {collectCatalog} from '../../core/catalog/collect.mjs';
 import {normalizeStoreConfig} from '../../core/config/store.mjs';
-import {priceOrderLine, orderTotals, orderDateWindow, orderDateError, deadlinePassed, capacityByDate, stockSummary, nextOrderStatuses, MAX_QUANTITY} from '../../core/orders/rules.mjs';
+import {priceOrderLine, orderTotals, orderDateWindow, orderDateError, openingHoursError, tableNumberError, normalizeTableNumber, deadlinePassed, capacityByDate, stockSummary, nextOrderStatuses, MAX_QUANTITY} from '../../core/orders/rules.mjs';
 import {buildOrderConfirmationMessage, buildOrderSummary, buildOrderNotification, describeOrderItems} from '../../core/notifications/orders.mjs';
 
 const ordering = normalizeStoreConfig({ordering: {
@@ -35,10 +35,10 @@ test('catalog: sale products carry type, price.sale, options, add-ons, fulfillme
   assert.deepEqual(a.categories, ['gifts', 'seasonal']);
   assert.deepEqual(a.options, {size: [{id: 'small'}, {id: 'large', price: 150000}], tone: [{id: 'pink'}]});
   assert.deepEqual(a.addons, [{id: 'chocolate'}, {id: 'teddy'}]);
-  assert.deepEqual(a.fulfillment, {pickup: true, delivery: false});
+  assert.deepEqual(a.fulfillment, {pickup: true, delivery: false, dine_in: false});
   assert.deepEqual(a.ordering, {preorder: true, stock: 20, deadline: '2026-10-19T20:00:00+07:00'});
   // type is inferred from the price key; a rental never gets sale-only fields.
-  assert.equal(b.type, 'sale'); assert.equal(b.ordering.stock, null); assert.deepEqual(b.fulfillment, {pickup: true, delivery: true});
+  assert.equal(b.type, 'sale'); assert.equal(b.ordering.stock, null); assert.deepEqual(b.fulfillment, {pickup: true, delivery: true, dine_in: false});
   assert.equal(c.type, 'rental'); assert.equal(c.fulfillment, undefined); assert.equal(c.categories, undefined);
   assert.equal(d.type, 'sale'); assert.equal(d.ordering.stock, null);
   for (const text of ['BAD id', 'options.bad must be a list', 'price of "teddy"', 'fulfillment / ordering only apply to type: sale', 'type must be one of', 'ordering.stock must be']) assert(warnings.some(m => m.includes(text)), text);
@@ -58,7 +58,7 @@ test('config: the ordering section is validated with defaults, generated slot id
     extra: 1
   }}, {warn: m => warnings.push(m)});
   const o = config.ordering;
-  assert.deepEqual(o.fulfillment, {pickup: true, delivery: false, deliveryFee: 0, deliveryNote: null});
+  assert.deepEqual(o.fulfillment, {pickup: true, delivery: false, dine_in: false, deliveryFee: 0, deliveryNote: null});
   assert.deepEqual(o.dates, {from: null, to: null, minLeadDays: 0, maxDaysAhead: 14});
   assert.equal(o.deadline, null);
   assert.equal(o.dailyCapacity, null);
@@ -69,11 +69,24 @@ test('config: the ordering section is validated with defaults, generated slot id
   assert.deepEqual(o.addons, {giftbag: {label: 'Gift bag', price: 0}});
   assert.equal(o.messageCard.maxLength, 200);
   assert.deepEqual(o.messageCard.templates, [{id: 'thanks', label: 'thanks', text: {vi: 'Cảm ơn bạn'}}]);
-  for (const text of ['cannot both be off', 'from is after to', 'ordering.deadline', 'dailyCapacity', 'timeSlots[1]', 'duplicate id "am"', 'Bad Id', 'ordering.extra', 'templates[1]', 'templates[2]']) assert(warnings.some(m => m.includes(text)), text);
+  for (const text of ['at least one fulfillment type', 'from is after to', 'ordering.deadline', 'dailyCapacity', 'timeSlots[1]', 'duplicate id "am"', 'Bad Id', 'ordering.extra', 'templates[1]', 'templates[2]']) assert(warnings.some(m => m.includes(text)), text);
   // Untouched defaults when the section is absent, and a valid one round-trips.
   assert.deepEqual(normalizeStoreConfig({}, {warn: () => {}}).config.ordering.timeSlots, []);
   assert.equal(ordering.timeSlots[1].id, '1300-1500');
   assert.equal(ordering.options.size.choices.small.price, -80000);
+});
+
+test('config: the dine-in table range falls back to the defaults when it is missing or inverted', () => {
+  const warnings = [];
+  const read = raw => normalizeStoreConfig({ordering: raw}, {warn: m => warnings.push(m)}).config.ordering.tables;
+  assert.deepEqual(read({tables: {min: 1, max: 24}}), {min: 1, max: 24});
+  assert.deepEqual(read({}), {min: 1, max: 99}, 'a shop that never set a range still gets one');
+  // A range that counts backwards is a typo, not a shop with no tables: fall back rather than
+  // refuse every table number the guests can see painted on their table.
+  assert.deepEqual(read({tables: {min: 30, max: 10}}), {min: 1, max: 99});
+  assert.deepEqual(read({tables: {min: 0, max: 12}}), {min: 1, max: 12});
+  assert.deepEqual(read({tables: 'twelve'}), {min: 1, max: 99});
+  for (const text of ['ordering.tables: max', 'ordering.tables.min', 'ordering.tables: must be a mapping']) assert(warnings.some(m => m.includes(text)), text);
 });
 
 test('pricing: base + size delta (product override wins) + add-ons, defaults for skipped groups, and every invalid choice', () => {
@@ -111,6 +124,32 @@ test('dates: a campaign window is clipped to tomorrow onwards, a rolling window 
   assert.equal(deadlinePassed(null), false);
   assert.equal(deadlinePassed('2026-10-19T20:00:00+07:00', new Date('2026-10-19T12:59:59Z')), false);
   assert.equal(deadlinePassed('2026-10-19T20:00:00+07:00', new Date('2026-10-19T13:00:00Z')), true);
+});
+
+test('opening hours reject closed weekdays and slots outside the configured intervals', () => {
+  const hours = {1: [{start: '10:00', end: '13:00'}], 2: [{start: '10:00', end: '13:00'}]};
+  assert.deepEqual(openingHoursError('2026-10-19', {start: '10:30', end: '11:00'}, hours), null);
+  assert.deepEqual(openingHoursError('2026-10-20', {start: '09:00', end: '10:30'}, hours), {field: 'time_slot', code: 'closed_hours'});
+  assert.deepEqual(openingHoursError('2026-10-18', {start: '10:30', end: '11:00'}, hours), {field: 'fulfillment_date', code: 'closed_day'});
+  assert.equal(openingHoursError('2026-10-19', null, {}), null);
+});
+
+test("a table number has to be a whole number inside the range the shop configured", () => {
+  const tables = {min: 1, max: 24};
+  assert.equal(tableNumberError(12, tables), null);
+  assert.equal(tableNumberError('24', tables), null);
+  // A QR link carries the number as text, and text is whatever the guest edits it into.
+  assert.deepEqual(tableNumberError('A12', tables), {field: 'table_number', code: 'invalid'});
+  assert.deepEqual(tableNumberError('', tables), {field: 'table_number', code: 'invalid'});
+  assert.deepEqual(tableNumberError(null, tables), {field: 'table_number', code: 'invalid'});
+  assert.deepEqual(tableNumberError('1.5', tables), {field: 'table_number', code: 'invalid'});
+  assert.deepEqual(tableNumberError('-3', tables), {field: 'table_number', code: 'invalid'});
+  assert.deepEqual(tableNumberError(25, tables), {field: 'table_number', code: 'out_of_range'});
+  assert.deepEqual(tableNumberError(0, tables), {field: 'table_number', code: 'out_of_range'});
+  // Without a configured range the default 1-99 applies, so a shop that never set one is still guarded.
+  assert.equal(tableNumberError(99), null);
+  assert.deepEqual(tableNumberError(100), {field: 'table_number', code: 'out_of_range'});
+  assert.equal(normalizeTableNumber('007'), '7', 'one table, one stored number');
 });
 
 test('capacity: slots close on their own limit or the day limit; unlimited slots stay open; stock counts units', () => {

@@ -90,6 +90,19 @@ test('a store with fewer languages hides the others; without contact channels th
  d.querySelector('[data-id="outfit-red-001"]').click();
  assert.equal(d.getElementById('dialog-chat').hidden,true);
 });
+test('the environmental hero layout marks the body and hands focus / subject to the scroll zoom',async t=>{
+ const store={...storeFixture,store:{...storeFixture.store,hero:{layout:'environmental',title:null,fit:'cover',focus:'38% 50%',subject:'68% 70%'}}};
+ const {document:d}=await setup(t,{store});
+ assert(d.body.classList.contains('hero-environmental'));
+ const image=d.getElementById('hero-image');
+ assert.equal(image.dataset.focus,'38% 50%');
+ assert.equal(image.dataset.subject,'68% 70%');
+ assert.equal(image.style.objectPosition,'38% 50%');
+ assert(d.querySelector('.hero-visual .hero-scroll-hint'));
+ const split=await setup(t);
+ assert(!split.document.body.classList.contains('hero-environmental'));
+ assert.equal(split.document.getElementById('hero-image').dataset.subject,undefined);
+});
 test('when store.json is unavailable the page still renders with defaults',async t=>{
  const {document:d}=await setup(t,{storeFails:true});
  assert.equal(d.querySelectorAll('.product').length,2);

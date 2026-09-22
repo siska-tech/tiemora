@@ -98,7 +98,7 @@ export async function collectCatalog(root, {warn=console.warn, currency='VND'}={
         if(product.type==='sale') {
           const f=isMap(data.fulfillment)?data.fulfillment:{};
           if(data.fulfillment!=null&&!isMap(data.fulfillment))warning(folder,'fulfillment must be a mapping; using defaults.');
-          product.fulfillment={pickup:f.pickup!==false,delivery:f.delivery!==false};
+          product.fulfillment={pickup:f.pickup!==false,delivery:f.delivery!==false,dine_in:f.dine_in===true};
           const o=isMap(data.ordering)?data.ordering:{};
           if(data.ordering!=null&&!isMap(data.ordering))warning(folder,'ordering must be a mapping; using defaults.');
           product.ordering={preorder:o.preorder!==false,stock:null,deadline:null};

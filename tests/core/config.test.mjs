@@ -62,8 +62,18 @@ test('the shipped config/store.yaml is valid and free of warnings', async () => 
   const warnings = [];
   const {config} = normalizeStoreConfig(raw, {warn: m => warnings.push(m)});
   assert.deepEqual(warnings, []);
-  assert.equal(config.store.name, 'Tiemora Demo Store');
-  assert.equal(config.catalog.dir, 'examples/catalog');
-  // No real contact details ship with the demo configuration.
-  assert(Object.values(config.contact).every(v => v === null));
+  assert.equal(config.store.name, 'Phở Góc Phố');
+  assert.equal(config.catalog.dir, 'examples/pho-demo');
+  assert.equal(config.defaultLanguage, 'vi');
+  assert.equal(config.ordering.fulfillment.dine_in, true);
+});
+
+test('hero.focus and hero.subject accept "X% Y%" and warn about anything else', () => {
+  const warnings = [];
+  const {config} = normalizeStoreConfig({store: {hero: {layout: 'environmental', fit: 'cover', focus: '38% 50%', subject: '68% 70%'}}}, {warn: m => warnings.push(m)});
+  assert.deepEqual(config.store.hero, {layout: 'environmental', eyebrow: null, title: null, subtitle: null, image: null, fit: 'cover', focus: '38% 50%', subject: '68% 70%'});
+  assert.deepEqual(warnings, []);
+  const bad = normalizeStoreConfig({store: {hero: {subject: 'the bowl'}}}, {warn: m => warnings.push(m)});
+  assert.equal(bad.config.store.hero.subject, null);
+  assert(warnings.some(w => w.includes('store.hero.subject')));
 });

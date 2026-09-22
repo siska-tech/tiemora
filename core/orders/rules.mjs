@@ -9,7 +9,7 @@ export const ORDER_STATUSES = ['pending', 'confirmed', 'preparing', 'ready', 'ou
 // Statuses that count against capacity and stock. A cancelled order frees its slot; a pending one
 // already holds it so the shop cannot accept more than it can make while it confirms.
 export const ACTIVE_ORDER_STATUSES = ['pending', 'confirmed', 'preparing', 'ready', 'out_for_delivery', 'completed'];
-export const FULFILLMENT_TYPES = ['pickup', 'delivery'];
+export const FULFILLMENT_TYPES = ['pickup', 'delivery', 'dine_in'];
 export const ORDER_SOURCES = ['admin', 'public'];
 // The status buttons the admin offers. `out_for_delivery` only makes sense for a delivery.
 export function nextOrderStatuses(status, fulfillmentType = 'pickup') {
@@ -101,6 +101,30 @@ export function orderDateError(date, window) {
 }
 export const deadlinePassed = (deadline, now = new Date()) => Boolean(deadline) && now.getTime() >= Date.parse(deadline);
 export const findSlot = (timeSlots, id) => (timeSlots || []).find(s => s.id === id) || null;
+const dayNumber = date => { const [year, month, day] = String(date).split('-').map(Number); return Number.isInteger(year) && Number.isInteger(month) && Number.isInteger(day) ? new Date(Date.UTC(year, month - 1, day)).getUTCDay() : null; };
+// --- Dine-in tables ---------------------------------------------------------------------------------
+// A table number is where the food goes, not something that gets reserved. A QR code puts it in the
+// URL, so the number a customer sends is never trusted: it has to be a whole number inside the range
+// the shop configured. Leading zeros are dropped so "007" and "7" are the same table.
+/** @param {any} value @param {{min?: number, max?: number}} [tables] */
+export function tableNumberError(value, tables = {}) {
+  const text = value == null ? '' : String(value).trim();
+  if (!/^\d{1,4}$/.test(text)) return {field: 'table_number', code: 'invalid'};
+  const number = Number(text), min = tables.min ?? 1, max = tables.max ?? 99;
+  if (number < min || number > max) return {field: 'table_number', code: 'out_of_range'};
+  return null;
+}
+/** The stored form of a table number that `tableNumberError` accepted. */
+export const normalizeTableNumber = value => String(Number(String(value).trim()));
+
+export function openingHoursError(date, slot, openingHours = {}) {
+  if (!openingHours || !Object.keys(openingHours).length) return null;
+  const weekday = dayNumber(date), intervals = weekday === null ? null : openingHours[weekday];
+  if (!intervals?.length) return {field: 'fulfillment_date', code: 'closed_day'};
+  if (!slot) return null;
+  if (!intervals.some(interval => slot.start >= interval.start && slot.end <= interval.end)) return {field: 'time_slot', code: 'closed_hours'};
+  return null;
+}
 
 // --- Capacity --------------------------------------------------------------------------------------
 // `counts` is what the repository counted from active orders: {[date]: {total, slots: {[slotId]: n}}}.

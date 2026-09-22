@@ -8,7 +8,7 @@ const LANGUAGE_NAMES={vi:'Tiếng Việt',en:'English',zh:'中文',ja:'日本語
 let store={store:{name:document.getElementById('brand-name').textContent||'Tiemora Store',tagline:null,description:null,logo:null,logoStyle:'mark',hero:{eyebrow:null,title:null,subtitle:null,image:null,fit:'pan'},announcement:null,values:[],text:{}},languages:['vi','en','ja','zh'],defaultLanguage:'vi',currency:'VND',phoneCountryCode:'84',contact:{},categories:{}};
 const copy={
 vi:{
-discover:'Khám phá',navCollection:'Sản phẩm',navHow:'Cách đặt',navContact:'Liên hệ',heroTitle:'Chọn một món đồ.\nGiữ một <em>kỷ niệm.</em>',explore:'Xem sản phẩm',consult:'Nhắn tin cho cửa hàng',bookCta:'Đặt chỗ',privacy:'Chính sách bảo mật',heroNote:'Chọn ngày, kiểm tra lịch trống và gửi yêu cầu chỉ trong một phút.',visualCaption:'Catalog · Booking · Inventory',collectionEyebrow:'BỘ SƯU TẬP',collectionTitle:'Tìm món đồ cho riêng bạn.',collectionDescription:'Xem sản phẩm, chọn ngày thuê để thấy sản phẩm còn trống và gửi yêu cầu đặt chỗ.',all:'Tất cả',placeholderNotice:'Một số hình bên dưới là hình minh họa tạm, không thể hiện sản phẩm thực tế.',sample:'HÌNH MINH HỌA',price:'Liên hệ cửa hàng để biết giá',howEyebrow:'CÁCH ĐẶT CHỖ',howTitle:'Ba bước đơn giản.',step1Title:'Chọn sản phẩm',step1Description:'Xem hình ảnh, kích cỡ và giá thuê của từng sản phẩm.',step2Title:'Chọn ngày và gửi yêu cầu',step2Description:'Chọn ngày nhận, ngày trả, kiểm tra lịch trống và gửi yêu cầu đặt chỗ kèm cách liên hệ bạn thích.',step3Title:'Cửa hàng xác nhận',step3Description:'Cửa hàng liên hệ qua Zalo, WhatsApp, Messenger hoặc điện thoại để xác nhận. Đặt chỗ chỉ có hiệu lực sau khi được xác nhận.',contactTitle:'Liên hệ với cửa hàng.',contactDescription:'Có câu hỏi về sản phẩm, giá thuê hay lịch trống? Nhắn cho cửa hàng qua kênh bạn thích.',contactFacebook:'Facebook',contactMessenger:'Messenger',contactZalo:'Zalo',contactWhatsapp:'WhatsApp',contactPhone:'Gọi điện',contactEmail:'Email',contactAddress:'Địa chỉ',contactMap:'Xem bản đồ',footer:'Giá, tình trạng còn hàng và điều kiện thuê được xác nhận bởi cửa hàng.',count:'sản phẩm',close:'Đóng',copied:'Đã sao chép thông tin sản phẩm · Dán vào tin nhắn nhé!'
+discover:'Khám phá',navCollection:'Sản phẩm',navHow:'Cách đặt',navContact:'Liên hệ',heroTitle:'Chọn một món đồ.\nGiữ một <em>kỷ niệm.</em>',explore:'Xem sản phẩm',consult:'Nhắn tin cho cửa hàng',bookCta:'Đặt chỗ',privacy:'Chính sách bảo mật',heroNote:'Chọn món, chọn giờ và gửi đơn trong một phút.',visualCaption:'Phố · Bếp · Bát nóng',heroDineIn:'Ăn tại quán',heroTakeaway:'Mang về',heroQr:'QR tại bàn',collectionEyebrow:'THỰC ĐƠN',collectionTitle:'Một bát nóng,\nđúng vị Hà Nội.',collectionDescription:'Chọn món, thêm topping, mang về hoặc ăn tại quán.',all:'Tất cả',placeholderNotice:'Một số hình bên dưới là hình minh họa tạm, không thể hiện sản phẩm thực tế.',sample:'HÌNH MINH HỌA',price:'Liên hệ cửa hàng để biết giá',howEyebrow:'GỌI MÓN',howTitle:'Ba bước đơn giản.',step1Title:'Chọn món',step1Description:'Chọn phở bò, phở gà và các món thêm trong thực đơn.',step2Title:'Chọn giờ nhận',step2Description:'Chọn mang về hoặc nhập số bàn để ăn tại quán.',step3Title:'Bếp chuẩn bị',step3Description:'Quán xác nhận đơn và chuẩn bị bát phở nóng cho bạn.',contactTitle:'Ghé quán nhé.',contactDescription:'Cần hỏi món hoặc đặt bàn? Nhắn cho cửa hàng qua kênh bạn thích.',contactFacebook:'Facebook',contactMessenger:'Messenger',contactZalo:'Zalo',contactWhatsapp:'WhatsApp',contactPhone:'Gọi điện',contactEmail:'Email',contactAddress:'Địa chỉ',contactMap:'Xem bản đồ',footer:'Món, giờ nhận và tình trạng còn hàng được quán xác nhận.',count:'sản phẩm',close:'Đóng',copied:'Đã sao chép thông tin sản phẩm · Dán vào tin nhắn nhé!'
 },
 en:{
 discover:'Explore',navCollection:'Catalog',navHow:'How it works',navContact:'Contact',heroTitle:'Pick something beautiful.\nKeep the <em>memory.</em>',explore:'Browse the catalog',consult:'Message the store',bookCta:'Book now',privacy:'Privacy policy',heroNote:'Pick your dates, check availability and send a request in a minute.',visualCaption:'Catalog · Booking · Inventory',collectionEyebrow:'THE COLLECTION',collectionTitle:'Find the one for you.',collectionDescription:'Browse the catalog, pick rental dates to see what is free, and send a booking request.',all:'All',placeholderNotice:'Some images below are temporary illustrations and do not show the actual items.',sample:'PLACEHOLDER IMAGE',price:'Contact the store for prices',howEyebrow:'HOW IT WORKS',howTitle:'Three simple steps.',step1Title:'Choose an item',step1Description:'Look at the photos, sizes and rental price of each item.',step2Title:'Pick dates and send a request',step2Description:'Choose pick-up and return dates, check availability and send a request with your preferred contact channel.',step3Title:'The store confirms',step3Description:'The store gets in touch on Zalo, WhatsApp, Messenger or by phone to confirm. A booking is only final once confirmed.',contactTitle:'Get in touch.',contactDescription:'Questions about an item, prices or dates? Message the store on the channel you prefer.',contactFacebook:'Facebook',contactMessenger:'Messenger',contactZalo:'Zalo',contactWhatsapp:'WhatsApp',contactPhone:'Call',contactEmail:'Email',contactAddress:'Address',contactMap:'Open map',footer:'Prices, availability and rental terms are confirmed by the store.',count:'items',close:'Close',copied:'Item details copied · Paste them into your message!'
@@ -72,6 +72,7 @@ function renderStore(){
  for(const id of ['brand-tagline','footer-tagline'])document.getElementById(id).textContent=tagline;
  const mark=document.getElementById('brand-mark');
  const wordmark=s.logoStyle==='wordmark';
+ document.body.classList.toggle('hero-environmental',s.hero?.layout==='environmental');
  if(s.logo){mark.hidden=false;mark.innerHTML=`<img src="${escapeMarkup(s.logo)}" alt="${wordmark?escapeMarkup(s.name):''}"${wordmark?'':' width="144" height="144"'}>`;document.getElementById('brand').classList.add('brand-with-logo');}
  else{mark.hidden=true;mark.innerHTML='';document.getElementById('brand').classList.remove('brand-with-logo');}
  document.getElementById('brand').classList.toggle('brand-wordmark-logo',Boolean(s.logo&&wordmark));
@@ -83,7 +84,10 @@ function renderStore(){
  if(s.hero?.image)document.getElementById('hero-image').src=s.hero.image;
  // fit: 'pan' (tall crop that slides on scroll, the default) or 'cover' (fills the frame, no slide).
  document.getElementById('hero-art').classList.toggle('hero-cover',s.hero?.fit==='cover');
- if(s.hero?.focus)document.getElementById('hero-image').style.objectPosition=s.hero.focus;
+ const heroImg=document.getElementById('hero-image');
+ if(s.hero?.focus){heroImg.style.objectPosition=s.hero.focus;heroImg.dataset.focus=s.hero.focus;}
+ // subject: the point of the image ("X% Y%") the scroll zoom of the environmental layout closes in on.
+ if(s.hero?.subject)heroImg.dataset.subject=s.hero.subject;
  const announcement=localizedText(s.announcement),bar=document.getElementById('announcement');
  bar.hidden=!announcement;document.getElementById('announcement-text').textContent=announcement;
  const values=(s.values||[]).map(v=>localizedText(v)).filter(Boolean),strip=document.getElementById('values');
@@ -110,9 +114,56 @@ function setLanguage(next){
  try{localStorage.setItem('tiemora-language',language);}catch{}
 }
 // The hero artwork is wider than its frame; scrolling pans it right so the whole scene is seen.
-const heroArt=document.getElementById('hero-art'),heroImage=document.getElementById('hero-image');
+const heroArt=document.getElementById('hero-art'),heroImage=document.getElementById('hero-image'),heroSection=document.querySelector('.hero'),heroCopy=document.querySelector('.hero-copy');
 let panQueued=false;
+const clamp01=v=>Math.min(1,Math.max(0,v));
+const percentPair=(value,fallback)=>{const m=/^(\d{1,3})% (\d{1,3})%$/.exec(value||'');return m?[+m[1]/100,+m[2]/100]:fallback;};
+// Where the cover-fitted image sits inside its frame, and where hero.subject (the bowl) lands in frame pixels.
+function heroGeometry(objectPosition){
+ const W=heroArt.clientWidth,H=heroArt.clientHeight,nw=heroImage.naturalWidth||1600,nh=heroImage.naturalHeight||1000;
+ const s=Math.max(W/nw,H/nh),rw=nw*s,rh=nh*s,[fx,fy]=objectPosition,[px,py]=percentPair(heroImage.dataset.subject,objectPosition);
+ const ox=(W-rw)*fx,oy=(H-rh)*fy;
+ return {W,H,rw,rh,ox,oy,sx:ox+rw*px,sy:oy+rh*py};
+}
+// Scales the image about the subject and drifts the subject towards (tx,ty), never uncovering the frame
+// (object-fit clips the picture to the element box, so the box edges are the limit, not the picture's).
+function zoomTowards(g,scale,tx,ty){
+ const left=g.sx*(1-scale),right=g.sx+(g.W-g.sx)*scale,top=g.sy*(1-scale),bottom=g.sy+(g.H-g.sy)*scale;
+ const dx=Math.min(-left,Math.max(g.W-right,tx-g.sx)),dy=Math.min(-top,Math.max(g.H-bottom,ty-g.sy));
+ heroImage.style.transformOrigin=`${g.sx}px ${g.sy}px`;
+ heroImage.style.transform=`translate3d(${dx.toFixed(1)}px,${dy.toFixed(1)}px,0) scale(${scale.toFixed(4)})`;
+}
 function drawHeroPan(){
+ if(document.body.classList.contains('hero-environmental')){
+  const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches,phone=window.matchMedia('(max-width: 640px)').matches;
+  const focus=percentPair(heroImage.dataset.focus,[.5,.5]);
+  if(!heroArt.clientWidth||!heroArt.clientHeight)return;
+  if(phone){
+   // The frame is a portrait slice of a landscape scene: crop with the subject on the right third and its
+   // surroundings to the left, then, while the section is pinned (styles.css), push in on the subject
+   // until it sits centred, lifting the copy away as the visitor scrolls.
+   const probe=heroGeometry(focus),fx=probe.rw>probe.W?clamp01((probe.W*.68-(probe.sx-probe.ox))/(probe.W-probe.rw)):.5;
+   heroImage.style.objectPosition=`${(fx*100).toFixed(2)}% ${focus[1]*100}%`;
+   const runway=heroSection.offsetHeight-heroArt.offsetHeight,progress=runway>0&&!reduced?clamp01(-heroSection.getBoundingClientRect().top/runway):0;
+   const eased=1-Math.pow(1-progress,3),fade=clamp01((progress-.15)/.5);
+   heroSection.style.setProperty('--hero-progress',progress.toFixed(4));
+   heroSection.style.setProperty('--hero-copy-fade',fade.toFixed(4));
+   heroCopy.classList.toggle('is-faded',fade>=.98);
+   if(reduced){heroImage.style.transform='';return;}
+   const g=heroGeometry([fx,focus[1]]);
+   zoomTowards(g,1+eased*.32,g.sx+(g.W/2-g.sx)*eased,g.sy+(g.H*.52-g.sy)*eased);
+   return;
+  }
+  heroImage.style.objectPosition=heroImage.dataset.focus||'';
+  heroCopy.classList.remove('is-faded');
+  heroSection.style.setProperty('--hero-copy-fade','0');
+  if(reduced){heroImage.style.transform='';heroSection.style.setProperty('--hero-progress','0');return;}
+  // Desktop: a slow push-in on the subject as the scene scrolls away.
+  const frame=heroArt.getBoundingClientRect(),progress=clamp01(-frame.top/frame.height);
+  heroSection.style.setProperty('--hero-progress',(progress*.5).toFixed(4));
+  const g=heroGeometry(focus);zoomTowards(g,1+progress*.12,g.sx,g.sy);
+  return;
+ }
  if(heroArt.classList.contains('hero-cover')){heroImage.style.transform='';return;}
  const frame=heroArt.getBoundingClientRect();
  const distance=Math.max(0,heroImage.offsetWidth-heroArt.clientWidth);
@@ -122,7 +173,7 @@ function drawHeroPan(){
 }
 function queueHeroPan(){if(panQueued)return;panQueued=true;requestAnimationFrame(()=>{drawHeroPan();panQueued=false;});}
 drawHeroPan();
-if(!heroImage.complete)heroImage.addEventListener('load',drawHeroPan);
+heroImage.addEventListener('load',queueHeroPan);
 addEventListener('scroll',queueHeroPan,{passive:true});
 addEventListener('resize',queueHeroPan);
 document.getElementById('language').addEventListener('change',e=>setLanguage(e.target.value));
@@ -189,4 +240,4 @@ async function loadStore(){
  // store.text overrides the built-in copy per language (e.g. bookCta: 'Đặt hoa' for a florist).
  for(const [key,value] of Object.entries(store.store.text||{}))for(const lang of Object.keys(copy)){const text=typeof value==='string'?value:value?.[lang];if(typeof text==='string'&&text.trim())copy[lang][key]=text;}
 }
-loadStore().then(()=>{renderLanguageOptions();setLanguage(pickLanguage());loadCatalog();revealOnScroll();});
+loadStore().then(()=>{renderLanguageOptions();setLanguage(pickLanguage());loadCatalog();revealOnScroll();queueHeroPan();});
