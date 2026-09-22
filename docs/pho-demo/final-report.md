@@ -175,14 +175,20 @@ fulfillment types** — instead of re-deriving dine-in.
 Also decide `stock.period` before then. A café restocks pastries daily, so it will hit the lifetime
 stock problem on day one.
 
-## 18. Suggested commits
+## 18. Commits
 
-1. `feat(secrets): add setup-secrets script for Turnstile and VAPID` — unrelated to this demo; split
-   out so the Core delta stays measurable
-2. `feat(storefront): environmental hero layout` — likewise unrelated
-3. `feat(orders): accept multi-item orders and reprice every line server-side`
-4. `feat(orders): add dine_in fulfillment, table numbers and opening hours`
-5. `feat(storefront): add a generic cart and the QR table-order flow`
-6. `feat(admin): add the Order Queue and the sold-out switch`
-7. `feat(demo): Phở Góc Phố reference implementation`
-8. `docs(pho-demo): setup log, core feedback and final report`
+Three, in this order:
+
+1. `feat(secrets): one-command Turnstile and Web Push setup` — unrelated to this demo, committed
+   on its own so the food-ordering delta stays measurable and so it can be cherry-picked into a
+   Core branch by itself.
+2. `feat(orders): dine-in, carts, opening hours and a kitchen queue` — the Core extension: core,
+   worker, migrations 0007 and 0008, storefront, admin, and all 18 new tests.
+3. `feat(demo): Phở Góc Phố, a local food shop on Core v0.2` — demo config, menu, art and these
+   documents.
+
+Commit 2 is the one a v0.3 branch would take. It could not be split further by file: the
+`store.hero.layout: environmental` work from a separate hero stream is interleaved with the config
+changes in `core/config/store.mjs`, `storefront/app.js` and `storefront/styles.css`, so it rode
+along rather than being reconstructed after the fact. It is the only foreign change in that commit
+and it touches nothing in the order domain.
