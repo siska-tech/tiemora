@@ -53,7 +53,10 @@
   function remove(index) { if (items[index]) items.splice(index, 1); persist(); return snapshot(); }
   function clear() { items = []; persist(); return snapshot(); }
   function totals(fee = 0) { const subtotal = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0); return {subtotal, delivery_fee: fee, total: subtotal + fee}; }
-  function subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); }
+  // A subscriber is handed the current cart at once, then every change. Without that first call a
+  // page that loads with a restored cart shows nothing until the next change: cart.js restores (and
+  // notifies) before the page scripts that listen have even run.
+  function subscribe(listener) { listeners.add(listener); listener(snapshot()); return () => listeners.delete(listener); }
 
   window.TiemoraCart = {VERSION, STORAGE_KEY, keyOf, restore, snapshot, add, update, remove, clear, totals, subscribe};
   restore();

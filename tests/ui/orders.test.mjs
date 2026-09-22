@@ -33,6 +33,17 @@ test('generic cart state merges identical selections, separates variants, persis
   assert.equal(cart.snapshot().length, 1);
   cart.clear();
   assert.deepEqual(cart.snapshot(), []);
+  // A subscriber is handed the cart it is joining, not just the changes after it. cart.js restores
+  // before the page scripts that listen exist, so without this a reload shows an empty cart bar.
+  cart.add({productId: "pho-ga", options: {}, addons: [], unitPrice: 45000, lineTotal: 45000, quantity: 1});
+  const seen = [];
+  const stop = cart.subscribe(items => seen.push(items.length));
+  assert.deepEqual(seen, [1], "subscribing reports the current cart at once");
+  cart.add({productId: "quay", options: {}, addons: [], unitPrice: 10000, lineTotal: 10000, quantity: 1});
+  assert.deepEqual(seen, [1, 2]);
+  stop();
+  cart.clear();
+  assert.deepEqual(seen, [1, 2], "unsubscribing stops the updates");
   local.set(cart.STORAGE_KEY, '{broken');
   assert.deepEqual(cart.restore(), []);
 });
@@ -79,7 +90,7 @@ async function backend(extraEnv = {}, shop = store) {
   };
   return {env, cookie, api};
 }
-async function storefront(t, env, {hash = '', search = '', shop = store} = {}) {
+async function storefront(t, env, {hash = '', search = '', shop = store, savedCart = null} = {}) {
   const dom = new JSDOM(await readFile(new URL('../../storefront/index.html', import.meta.url), 'utf8'), {url: ORIGIN + '/' + search + hash, runScripts: 'outside-only'});
   t.after(() => dom.window.close());
   const {window} = dom;
@@ -97,6 +108,9 @@ async function storefront(t, env, {hash = '', search = '', shop = store} = {}) {
   window.requestAnimationFrame = callback => { callback(0); return 0; };
   window.IntersectionObserver = class { observe() {} unobserve() {} disconnect() {} };
   // Read every script first, then run them back to back as deferred scripts do (no fetch can resolve in between).
+  // What a returning visitor's browser already holds, written before any script runs -- the same
+  // state a reload lands in.
+  if (savedCart) window.localStorage.setItem('tiemora-cart-v1', JSON.stringify({version: 1, items: savedCart}));
   const scripts = await Promise.all(['catalog.js', 'gallery.js', 'app.js', 'booking.js', 'cart.js', 'order.js'].map(async file => new vm.Script(await readFile(new URL('../../storefront/' + file, import.meta.url), 'utf8'), {filename: file})));
   for (const script of scripts) script.runInContext(dom.getInternalVMContext());
   await until(() => window.document.getElementById('products').getAttribute('aria-busy') === 'false', 'catalog render');
@@ -393,4 +407,21 @@ test('the admin Menu switches a dish off, and the storefront then shows it sold 
   const {document: d} = await storefront(t, env);
   assert.equal(text(d.querySelector('[data-id="sale-2"] .availability')), 'Hết hàng');
   assert.equal(d.querySelector('[data-id="sale-2"] .availability').className.includes('unavailable'), true);
+});
+
+test('a reload with a cart already saved shows the cart bar without touching anything', async t => {
+  const {env} = await backend();
+  // cart.js restores and notifies while it loads, before order.js has subscribed. A subscriber that
+  // only hears about later changes would leave the bar hidden until the next add -- this is that.
+  const {window, document: d} = await storefront(t, env, {
+    savedCart: [{productId: 'sale-1', name: {vi: 'Sản phẩm mẫu'}, quantity: 2, options: {size: 'medium', tone: 'pink'}, addons: [], unitPrice: 349000, lineTotal: 698000}]
+  });
+  assert.equal(d.getElementById('cart-bar').hidden, false, 'the saved cart is visible on arrival');
+  assert.match(text(d.getElementById('cart-bar')), /2/);
+
+  // And it is the real cart, not just a visible bar: opening it shows the line.
+  d.getElementById('cart-bar').click();
+  await until(() => d.querySelectorAll('.cart-item').length === 1, 'the restored line');
+  assert.equal(d.getElementById('order-dialog').hasAttribute('open'), true);
+  void window;
 });

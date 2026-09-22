@@ -23,7 +23,9 @@ Plain HTML/CSS/JS, no framework, scripts deferred, images built to WebP at three
 `storefront/cart.js` holds selection intent only. An item is identified by product + stable options
 + sorted add-ons, so two identical bowls merge into a quantity and a bowl with extra chilli stays
 separate. Persisted in `localStorage` under `tiemora-cart-v1`; a corrupt or wrong-version payload
-resets to empty rather than throwing. No customer data is ever stored there.
+resets to empty rather than throwing. No customer data is ever stored there. Subscribing
+hands the listener the cart it is joining, not only later changes -- cart.js restores before the
+page scripts that listen have run, so a reload would otherwise show an empty bar until the next add.
 
 Checkout posts `items[]`. **The server reprices every line** from the live catalog and store config
 — unit prices, option deltas, add-ons, stock, capacity, fulfillment — so a tampered cart buys
