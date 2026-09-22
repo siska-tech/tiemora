@@ -25,3 +25,5 @@ jobs:
       - run: npm run build
       # The dry run validates wrangler.jsonc and bundles the Worker without any account or secret.
       - run: npx wrangler deploy --dry-run --outdir /tmp/wrangler-dry-run
+      # Keep the isolated reference shop buildable without changing Core defaults.
+      - run: npm run build:pho-demo

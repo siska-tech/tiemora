@@ -254,4 +254,3 @@ button:disabled{opacity:.5;cursor:default}
 .queue-actions{display:flex;flex-wrap:wrap;gap:6px}
 @media(max-width:1100px){.queue-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:620px){.queue-grid{grid-template-columns:1fr}}
-
