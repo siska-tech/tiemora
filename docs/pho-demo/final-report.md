@@ -82,12 +82,12 @@ All additive; each defaults to v0.2 behaviour.
 
 | Area | Change |
 |---|---|
-| `core/orders/rules.mjs` | `dine_in` in `FULFILLMENT_TYPES`; `openingHoursError`; `tableNumberError` + `normalizeTableNumber` |
+| `core/orders/rules.mjs` | `dine_in` in `FULFILLMENT_TYPES`; `openingHoursError`; `tableNumberError` + `normalizeTableNumber`; `stockPeriodOf` + `dailyStockSummary` |
 | `core/config/store.mjs` | `ordering.fulfillment.dine_in`, `ordering.tables`, `ordering.openingHours`, `messageCard.title` |
-| `core/catalog/collect.mjs` | per-product `fulfillment.dine_in` |
+| `core/catalog/collect.mjs` | per-product `fulfillment.dine_in` and `ordering.stockPeriod` |
 | `core/notifications/orders.mjs` | dine-in labels and the table in order summaries, four languages |
 | `worker/orders.mjs` | `items[]` with server-side repricing; dine-in validation and its relaxed contact rules; opening-hours check; table range; sold-out override; `GET`/`PATCH /api/admin/products` |
-| `worker/orders-db.mjs` | `table_number`; `soldOutProducts` / `setProductSoldOut` |
+| `worker/orders-db.mjs` | `table_number`; `soldOutProducts` / `setProductSoldOut`; `soldByProductAndDate`; a date-scoped stock guard |
 | `migrations/0007_dine_in.sql` | `dine_in` + `table_number`, as a **new** migration — 0006 shipped in v0.2.0 and is left untouched |
 | `migrations/0008_product_availability.sql` | the staff sold-out switch |
 | `storefront/cart.js` (new) | generic cart state |
@@ -102,9 +102,9 @@ Nothing food-specific was written into Core.
 
 ## 11. Tests
 
-`npm run check` green: **128 tests**, lint, typecheck, build. v0.2 had 106; all of them still pass.
+`npm run check` green: **130 tests**, lint, typecheck, build. v0.2 had 106; all of them still pass.
 
-The 18 added:
+The 20 added:
 
 - **Cart** — add, merge identical, separate variants, quantity, remove, totals, persistence, corrupt-payload reset; two products combined into one order through the UI
 - **Multi-item orders** — every line repriced server-side, one bad line rejects the whole order
@@ -114,6 +114,7 @@ The 18 added:
 - **Table range config** — defaults, inverted range, non-mapping value
 - **Order Queue** — lanes, card contents, `pending → confirmed → preparing → ready → completed`
 - **Sold out** — switch off, storefront shows it, order refused, switch back on, order accepted; validation, 404, rental products refused, unauthenticated refused, read-only mode refused
+- **Daily stock** — a day sells out while the next stays full, the config reports `byDate` per day and a lifetime product reports none, and the SQL guard refuses a full day while still accepting the next
 - **Migration** — a populated v0.2.0 database upgraded by `0007` keeps its orders *and* their lines, gets its indexes back, and accepts `dine_in` afterwards
 
 Capacity, order status transitions, CSRF, admin auth and read-only mode were already covered by v0.2
@@ -147,19 +148,18 @@ Full version in [core-feedback.md](core-feedback.md). The four Flower-era assump
 found in v0.2:
 
 1. Every customer has a name, a phone and a contact channel — false for dine-in
-2. **`ordering.stock` is a lifetime total** — `stock: 30` means thirty bowls *ever*. The sharpest
-   remaining Flower assumption; the demo works around it with `stock: null` plus the sold-out switch
+2. **`ordering.stock` was a lifetime total** — `stock: 30` meant thirty bowls *ever*. The sharpest
+   remaining Flower assumption, and the one this branch fixed outright with `stockPeriod: daily`
 3. Sold-out is a count reaching zero, not something staff can declare
 4. The admin schedule is a delivery board, not a kitchen board
 
 ## 16. v0.3 candidates
 
 Written and tested here, so promoting them is a merge decision: `dine_in` + `table_number` +
-`ordering.tables`; `openingHours`; Order Queue; sold-out switch; multi-item orders with server
-repricing.
+`ordering.tables`; `openingHours`; `ordering.stockPeriod: daily`; Order Queue; sold-out switch;
+multi-item orders with server repricing.
 
-New work: **`ordering.stock.period: daily`** (closes assumption 2 above), ASAP pickup, QR sheet
-generation.
+New work: ASAP pickup and QR sheet generation.
 
 Deliberately postponed: the cart state contract, until the Café demo says whether food and
 merchandise share one cart.
@@ -172,8 +172,8 @@ workshops in one shop; if it starts from a Core that already has these, it can s
 the genuinely new question — **one cart or several, and what happens when one order mixes
 fulfillment types** — instead of re-deriving dine-in.
 
-Also decide `stock.period` before then. A café restocks pastries daily, so it will hit the lifetime
-stock problem on day one.
+A café restocks pastries daily, so it would have hit the lifetime-stock problem on day one;
+`stockPeriod` is in place for it.
 
 ## 18. Commits
 

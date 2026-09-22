@@ -101,8 +101,12 @@ export async function collectCatalog(root, {warn=console.warn, currency='VND'}={
           product.fulfillment={pickup:f.pickup!==false,delivery:f.delivery!==false,dine_in:f.dine_in===true};
           const o=isMap(data.ordering)?data.ordering:{};
           if(data.ordering!=null&&!isMap(data.ordering))warning(folder,'ordering must be a mapping; using defaults.');
-          product.ordering={preorder:o.preorder!==false,stock:null,deadline:null};
+          // stockPeriod says what `stock` counts. `total` is a campaign ("40 bouquets for Tet") and
+          // never refills; `daily` is a kitchen ("30 bowls a day") and is counted per fulfillment
+          // date, so tomorrow starts full again. Default stays `total`: that is what v0.2 did.
+          product.ordering={preorder:o.preorder!==false,stock:null,stockPeriod:'total',deadline:null};
           if(Number.isInteger(o.stock)&&o.stock>=0)product.ordering.stock=o.stock;else if(o.stock!=null)warning(folder,'ordering.stock must be a whole number >= 0; treating as unlimited.');
+          if(o.stockPeriod==='daily'||o.stockPeriod==='total')product.ordering.stockPeriod=o.stockPeriod;else if(o.stockPeriod!=null)warning(folder,'ordering.stockPeriod must be "total" or "daily"; using total.');
           if(typeof o.deadline==='string'&&!Number.isNaN(Date.parse(o.deadline)))product.ordering.deadline=o.deadline;else if(o.deadline!=null)warning(folder,'ordering.deadline must be an ISO date-time; ignored.');
         } else if(data.fulfillment!=null||data.ordering!=null)warning(folder,'fulfillment / ordering only apply to type: sale; ignored.');
         for(const key of ['featured','available','placeholder']) {

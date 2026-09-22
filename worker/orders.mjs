@@ -10,7 +10,7 @@ import {PHONE, contactFields, optionalPhone} from './customer.mjs';
 import {PUBLIC_CONTACT_CHANNELS, NOTIFICATION_CHANNELS, NOTIFICATION_STATUSES} from '../core/notifications/index.mjs';
 import {buildOrderNotification} from '../core/notifications/orders.mjs';
 import {localized} from '../core/i18n/localized.mjs';
-import {ORDER_STATUSES, FULFILLMENT_TYPES, priceOrderLine, orderTotals, orderDateWindow, orderDateError, openingHoursError, tableNumberError, normalizeTableNumber, deadlinePassed, findSlot, capacityByDate, stockSummary, nextOrderStatuses} from '../core/orders/rules.mjs';
+import {ORDER_STATUSES, FULFILLMENT_TYPES, priceOrderLine, orderTotals, orderDateWindow, orderDateError, openingHoursError, tableNumberError, normalizeTableNumber, deadlinePassed, findSlot, capacityByDate, stockSummary, stockPeriodOf, dailyStockSummary, nextOrderStatuses} from '../core/orders/rules.mjs';
 import {publicRequestGuard, turnstileStatus} from './public-requests.mjs';
 import {pushEnabled, notifyAdmins, newOrderPayload} from './push.mjs';
 import {shiftDate} from '../core/booking/dates.mjs';
@@ -36,11 +36,18 @@ async function orderState(env, request) {
   const {today} = bookingContext(env, store);
   const window = orderDateWindow(store.ordering.dates, today);
   const dates = windowDates(window);
-  const [counts, sold, switchedOff] = await Promise.all([dates.length ? ordersDb.countCapacity(env.DB, dates[0], dates.at(-1)) : {}, ordersDb.soldByProduct(env.DB), ordersDb.soldOutProducts(env.DB)]);
+  const [counts, sold, soldByDate, switchedOff] = await Promise.all([
+    dates.length ? ordersDb.countCapacity(env.DB, dates[0], dates.at(-1)) : {},
+    ordersDb.soldByProduct(env.DB),
+    dates.length ? ordersDb.soldByProductAndDate(env.DB, dates[0], dates.at(-1)) : {},
+    ordersDb.soldOutProducts(env.DB)
+  ]);
   const products = {};
   // A staff toggle only ever takes a product off the menu; it never puts a counted-out one back on.
   for (const product of catalog.products) if (product.type === 'sale') {
-    const summary = stockSummary(product, sold.get(product.id) || 0);
+    // A daily-stock product is measured per fulfillment date; `byDate` carries each day and the top
+    // level summarises the window, so the product card can speak before a date is picked.
+    const summary = stockPeriodOf(product) === 'daily' ? dailyStockSummary(product, dates, soldByDate) : stockSummary(product, sold.get(product.id) || 0);
     const offByStaff = switchedOff.has(product.id);
     products[product.id] = {...summary, soldOut: summary.soldOut || offByStaff, soldOutByStaff: offByStaff, preorder: product.ordering?.preorder !== false, deadlinePassed: deadlinePassed(product.ordering?.deadline)};
   }
@@ -133,7 +140,11 @@ function limitsFor(state, data) {
   const slot = findSlot(state.store.ordering.timeSlots, data.time_slot);
   /** @type {any} */
   const stock = {};
-  for (const line of data.items) stock[line.product_id] = state.products[line.product_id]?.stock ?? null;
+  for (const line of data.items) {
+    const info = state.products[line.product_id];
+    // A daily-stock product is guarded against the units already ordered for this same day.
+    stock[line.product_id] = info?.stock == null ? null : info.stockPeriod === 'daily' ? {limit: info.stock, daily: true} : info.stock;
+  }
   return {slotCapacity: slot?.capacity ?? null, dailyCapacity: state.store.ordering.dailyCapacity, stock};
 }
 async function orderCreate(request, env, url, params, admin, ctx) {
@@ -155,8 +166,10 @@ async function orderCreate(request, env, url, params, admin, ctx) {
   const day = state.capacity[data.fulfillment_date];
   if (day && (!day.open || (data.time_slot && day.slots[data.time_slot] && !day.slots[data.time_slot].open))) throw new HttpError(409, 'capacity_full', 'This time slot is full. Please choose another one.', {fulfillment_date: data.fulfillment_date, time_slot: data.time_slot});
   for (const line of data.items) {
-    const stock = state.products[line.product_id];
-    if (stock?.soldOutByStaff) throw new HttpError(409, 'sold_out', 'This product is sold out.', {product_id: line.product_id, remaining: 0});
+    const product = state.products[line.product_id];
+    if (product?.soldOutByStaff) throw new HttpError(409, 'sold_out', 'This product is sold out.', {product_id: line.product_id, remaining: 0});
+    // A daily-stock product is read for the day the customer chose, not for the whole window.
+    const stock = product?.byDate?.[data.fulfillment_date] ?? product;
     if (stock?.stock !== null && stock.remaining < line.quantity) throw new HttpError(409, 'sold_out', stock.remaining ? `Only ${stock.remaining} left.` : 'This product is sold out.', {product_id: line.product_id, remaining: stock.remaining});
   }
   const existing = await ordersDb.findOpenOrder(env.DB, data);

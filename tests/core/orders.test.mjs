@@ -7,7 +7,7 @@ import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {collectCatalog} from '../../core/catalog/collect.mjs';
 import {normalizeStoreConfig} from '../../core/config/store.mjs';
-import {priceOrderLine, orderTotals, orderDateWindow, orderDateError, openingHoursError, tableNumberError, normalizeTableNumber, deadlinePassed, capacityByDate, stockSummary, nextOrderStatuses, MAX_QUANTITY} from '../../core/orders/rules.mjs';
+import {priceOrderLine, orderTotals, orderDateWindow, orderDateError, openingHoursError, tableNumberError, normalizeTableNumber, deadlinePassed, capacityByDate, stockSummary, stockPeriodOf, dailyStockSummary, nextOrderStatuses, MAX_QUANTITY} from '../../core/orders/rules.mjs';
 import {buildOrderConfirmationMessage, buildOrderSummary, buildOrderNotification, describeOrderItems} from '../../core/notifications/orders.mjs';
 
 const ordering = normalizeStoreConfig({ordering: {
@@ -36,7 +36,7 @@ test('catalog: sale products carry type, price.sale, options, add-ons, fulfillme
   assert.deepEqual(a.options, {size: [{id: 'small'}, {id: 'large', price: 150000}], tone: [{id: 'pink'}]});
   assert.deepEqual(a.addons, [{id: 'chocolate'}, {id: 'teddy'}]);
   assert.deepEqual(a.fulfillment, {pickup: true, delivery: false, dine_in: false});
-  assert.deepEqual(a.ordering, {preorder: true, stock: 20, deadline: '2026-10-19T20:00:00+07:00'});
+  assert.deepEqual(a.ordering, {preorder: true, stock: 20, stockPeriod: 'total', deadline: '2026-10-19T20:00:00+07:00'});
   // type is inferred from the price key; a rental never gets sale-only fields.
   assert.equal(b.type, 'sale'); assert.equal(b.ordering.stock, null); assert.deepEqual(b.fulfillment, {pickup: true, delivery: true, dine_in: false});
   assert.equal(c.type, 'rental'); assert.equal(c.fulfillment, undefined); assert.equal(c.categories, undefined);
@@ -164,9 +164,9 @@ test('capacity: slots close on their own limit or the day limit; unlimited slots
   assert.deepEqual(capacityByDate({timeSlots: [], dailyCapacity: 1}, ['2026-10-19'], {'2026-10-19': {total: 1, slots: {}}})['2026-10-19'].open, false);
   const free = capacityByDate({timeSlots: [{id: 'x'}]}, ['2026-10-19'], {})['2026-10-19'];
   assert.deepEqual([free.capacity, free.open, free.slots.x], [null, true, {used: 0, capacity: null, remaining: null, open: true}]);
-  assert.deepEqual(stockSummary(product, 9), {stock: 10, sold: 9, remaining: 1, soldOut: false});
-  assert.deepEqual(stockSummary(product, 12), {stock: 10, sold: 12, remaining: 0, soldOut: true});
-  assert.deepEqual(stockSummary({ordering: {stock: null}}, 500), {stock: null, sold: 500, remaining: null, soldOut: false});
+  assert.deepEqual(stockSummary(product, 9), {stock: 10, stockPeriod: 'total', sold: 9, remaining: 1, soldOut: false});
+  assert.deepEqual(stockSummary(product, 12), {stock: 10, stockPeriod: 'total', sold: 12, remaining: 0, soldOut: true});
+  assert.deepEqual(stockSummary({ordering: {stock: null}}, 500), {stock: null, stockPeriod: 'total', sold: 500, remaining: null, soldOut: false});
 });
 
 test('status flow: pickup and delivery differ only at "ready"; terminal states offer nothing', () => {
@@ -213,4 +213,30 @@ test('notification texts: localized product, option and slot labels, delivery bl
   assert.equal(n.zalo.number, '84900000010');
   assert.equal(n.messenger.url, 'https://m.me/shop');
   assert.deepEqual(Object.keys(n.messages), ['vi', 'en', 'ja', 'zh']);
+});
+
+test('daily stock is counted per service day, total stock is counted once and never refills', () => {
+  const campaign = {id: 'bouquet', ordering: {stock: 3}};
+  const bowl = {id: 'pho', ordering: {stock: 2, stockPeriod: 'daily'}};
+  assert.equal(stockPeriodOf(campaign), 'total', 'a product that says nothing keeps the v0.2 meaning');
+  assert.equal(stockPeriodOf(bowl), 'daily');
+
+  // Total: every active order ever counts against the same three.
+  assert.deepEqual(stockSummary(campaign, 3), {stock: 3, stockPeriod: 'total', sold: 3, remaining: 0, soldOut: true});
+
+  // Daily: two bowls sold for Monday leave Monday sold out and Tuesday untouched.
+  const dates = ['2026-10-19', '2026-10-20'];
+  const summary = dailyStockSummary(bowl, dates, {'2026-10-19': {pho: 2}});
+  assert.equal(summary.byDate['2026-10-19'].soldOut, true);
+  assert.equal(summary.byDate['2026-10-19'].remaining, 0);
+  assert.equal(summary.byDate['2026-10-20'].soldOut, false, 'tomorrow starts full again');
+  assert.equal(summary.byDate['2026-10-20'].remaining, 2);
+  // The card speaks before a date is picked, so it reports the first day that still has bowls.
+  assert.equal(summary.soldOut, false);
+  assert.equal(summary.remaining, 2);
+
+  // Only when every day in the window is gone does the product read as sold out.
+  const gone = dailyStockSummary(bowl, dates, {'2026-10-19': {pho: 2}, '2026-10-20': {pho: 5}});
+  assert.equal(gone.soldOut, true);
+  assert.equal(gone.remaining, 0);
 });

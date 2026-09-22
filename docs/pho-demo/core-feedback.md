@@ -51,17 +51,18 @@ These are the places where v0.2 assumed a florist. Each one cost time in this pa
    True when someone collects a bouquet later. False for a guest sitting at table 12 — the food is
    walked to them. v0.2 made all three mandatory on the public path. Now branched on fulfillment.
 
-2. **`ordering.stock` is a lifetime total.**
-   `stockSummary` counts every active order ever placed, and `completed` is an active status. For a
-   campaign ("40 bouquets for Tết") that is right. For a phở shop, `stock: 30` means *thirty bowls
-   ever* — the 31st is refused forever, with no way back short of editing YAML and rebuilding. This
-   is the sharpest Flower assumption left in the release. The demo works around it by setting
-   `stock: null` everywhere and using the new sold-out switch. **A per-day stock period is a v0.3
-   item** (§9), not something this branch should have invented.
+2. **`ordering.stock` was a lifetime total.** *(fixed on this branch)*
+   `stockSummary` counted every active order ever placed, and `completed` is an active status. For a
+   campaign ("40 bouquets for Tết") that is right. For a phở shop, `stock: 30` meant *thirty bowls
+   ever* — the 31st refused forever, with no way back short of editing YAML and rebuilding. This was
+   the sharpest Flower assumption left in the release, and it was fixed rather than worked around:
+   `ordering.stockPeriod: daily` counts units against the day the order is for, in the pre-check and
+   in the SQL guard alike, so tomorrow starts full again. The default stays `total`, which is
+   exactly what v0.2 did.
 
 3. **Sold-out is a number, not a switch.**
    Running out of beef at 09:40 is an event, not a count reaching zero. v0.2 had no way for staff to
-   say so. Fixed here (§4.5).
+   say so. Fixed here (§4.6).
 
 4. **The admin schedule is a delivery board, not a kitchen board.**
    v0.2's schedule groups a day by time slot, which suits a florist packing a morning's deliveries.
@@ -96,13 +97,20 @@ Lanes for pending / confirmed / preparing / ready, one card per order carrying e
 reads off it, with the status buttons on the card. Terminal states are not lanes: a completed order
 leaves the screen. Nothing on it is phở-specific; a bakery or a café would use it unchanged.
 
-### 4.5 Staff sold-out switch — *generic, promote*
+### 4.5 Daily stock — *generic, promote*
+`ordering.stockPeriod: daily` makes `stock` a per-service-day count instead of a lifetime one,
+enforced against `fulfillment_date` in the pre-check and in the `INSERT … SELECT … WHERE` guard, so
+two customers cannot both take the last bowl of a day. Nothing about it is food-specific: a bakery,
+a café and a shop that hand-makes a few of something each morning all want it. The default is
+unchanged, so no existing store moves.
+
+### 4.6 Staff sold-out switch — *generic, promote*
 `product_availability` (one row per product staff switched off) plus `GET`/`PATCH
 /api/admin/products` and a Menu screen. It only ever takes a product **off** the menu — it never
 resurrects one the stock count already exhausted — which keeps it from becoming a second, competing
 source of truth. Covered by read-only demo mode for free.
 
-### 4.6 Cart — *generic, but hold*
+### 4.7 Cart — *generic, but hold*
 See §7. Multi-item ordering is not food-specific, and the server-side repricing it forced is a
 straight improvement, but the state contract should be proven once more before it moves into Core.
 
@@ -117,7 +125,9 @@ In the order I would take them:
 5. **Multi-item orders (`items[]`) with server-side repricing** — already in the Worker on this
    branch and backward-compatible with single-item payloads. Worth promoting on its own merits even
    if the cart UI waits.
-6. **QR fulfillment context in the storefront** (`?mode=…`) — the mechanism is generic; the dine-in
+6. **`ordering.stockPeriod: daily`** — the fix for §3.2. Small, defaulted to the old behaviour, and
+   the thing that makes `stock` usable for any shop that restocks.
+7. **QR fulfillment context in the storefront** (`?mode=…`) — the mechanism is generic; the dine-in
    reading of it is the only specific part.
 
 ## 6. Stays in the demo
@@ -125,7 +135,7 @@ In the order I would take them:
 - The store name, menu, prices, product images, hero art, palette
 - All Vietnamese-first copy and the local wording ("Ăn tại quán", "Mang về", "Gọi món tại bàn")
 - The choice to not ask dine-in guests for a name — a café with table service might want to
-- The 15-minute pickup slot grid and the specific capacity numbers
+- The 15-minute pickup slot grid, the per-bowl daily counts and the specific capacity numbers
 - The four-language set
 
 ## 7. Cart: promote now or wait?
@@ -163,10 +173,10 @@ wrong shape. The Worker-side half (`items[]`, repricing) has no such doubt and s
 | 3 | Order Queue | Highest operational value added in this pass | M |
 | 4 | Staff sold-out switch | Any made-to-order shop | S |
 | 5 | Multi-item orders + server repricing | Backward compatible, already written | M |
-| 6 | **`ordering.stock.period: daily`** | Closes the sharpest Flower assumption left (§3.2). Without it, stock is unusable for anything that restocks each morning. | M |
+| 6 | ~~`ordering.stock.period: daily`~~ | **Done on this branch** as `ordering.stockPeriod`. Listed here because it is a Core change a v0.3 branch takes with the rest. | M |
 | 7 | ASAP pickup alongside scheduled slots | The one real gap this demo left open | M |
 | 8 | QR sheet generation for tables | Small, and every dine-in shop needs it | S |
 | 9 | Cart state contract | After the Café demo confirms the shape | M |
 
-Items 1–5 are written and tested on this branch; promoting them is a merge decision, not new work.
-Items 6–8 are new work. Item 9 is a decision to postpone deliberately.
+Items 1–6 are written and tested on this branch; promoting them is a merge decision, not new work.
+Items 7–8 are new work. Item 9 is a decision to postpone deliberately.

@@ -78,11 +78,20 @@ addons: [chocolate, giftbag]   # ids from ordering.addons
 fulfillment:
   pickup: true
   delivery: true
+  dine_in: false               # eat-in orders; the order then carries a table number
 ordering:
   preorder: true               # false hides the order button
-  stock: 40                    # units sellable in total (null / omitted = no limit)
+  stock: 40                    # units sellable (null / omitted = no limit)
+  stockPeriod: total           # total (default) = counted once, never refills
+                               # daily = counted per fulfillment date, refills each day
   deadline: 2026-10-19T20:00:00+07:00   # optional, per product
 ```
+
+`stockPeriod` decides what `stock` means. `total` is a campaign — forty bouquets for Tết, and once
+they are gone they are gone. `daily` is a kitchen — thirty bowls a day, counted against the day the
+order is for, so tomorrow starts full again. The default is `total`, which is how stock behaved
+before this setting existed. A shop that restocks every morning wants `daily`; leaving it out there
+means the product sells out permanently once the count is reached.
 
 A sale product is ordered by quantity with options, add-ons, a card message, pickup or delivery in a time slot ([orders.md](orders.md)). It has no inventory items; `available` is ignored. `fulfillment` and `ordering` are only read for sale products.
 

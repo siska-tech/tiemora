@@ -150,8 +150,22 @@ export function capacityByDate(ordering, dates, counts = {}) {
   return out;
 }
 // Units sold per product against `ordering.stock` in product.yaml (null = no limit, never sold out).
+// `total` counts every unit ever ordered, which is what a campaign wants. `daily` counts only the
+// units ordered for the same fulfillment date, which is what a kitchen wants: thirty bowls today
+// does not mean thirty bowls forever.
+export const stockPeriodOf = product => product?.ordering?.stockPeriod === 'daily' ? 'daily' : 'total';
 export function stockSummary(product, sold = 0) {
   const stock = product?.ordering?.stock ?? null;
   const remaining = stock === null ? null : Math.max(0, stock - sold);
-  return {stock, sold, remaining, soldOut: stock !== null && sold >= stock};
+  return {stock, stockPeriod: stockPeriodOf(product), sold, remaining, soldOut: stock !== null && sold >= stock};
+}
+// One summary per date for a daily-stock product, plus the summary the product card shows before a
+// date is picked: the first date that still has units, or the last one when every date is gone.
+/** @param {any} product @param {string[]} dates @param {Record<string, Record<string, number>>} soldByDate */
+export function dailyStockSummary(product, dates, soldByDate = {}) {
+  const byDate = {};
+  for (const date of dates) byDate[date] = stockSummary(product, soldByDate[date]?.[product.id] || 0);
+  const open = dates.find(date => !byDate[date].soldOut);
+  const shown = open ? byDate[open] : byDate[dates.at(-1)] || stockSummary(product, 0);
+  return {...shown, byDate};
 }

@@ -34,8 +34,7 @@ fulfillment:
 
 ordering:
   preorder: true
-  # No count: a phở shop does not tally bowls, it says "hết rồi". Staff flip the sold-out
-  # switch in /admin/ (Menu) when something runs out and back on the next morning.
+  # Drinks do not run out. Staff can still take one off the menu from /admin/ (Menu).
   stock: null
 
 placeholder: false

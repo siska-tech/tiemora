@@ -157,11 +157,13 @@ ordering:
     min: 1
     max: 24
   # Either an explicit campaign window (from / to) or a rolling one (minLeadDays / maxDaysAhead).
+  # A bowl is ordered for today, not for next week: a guest at a table needs minLeadDays 0,
+  # and takeaway a day ahead at most.
   dates:
     from: null
     to: null
-    minLeadDays: 1
-    maxDaysAhead: 14
+    minLeadDays: 0
+    maxDaysAhead: 1
   deadline: null
   dailyCapacity: 80
   timeSlots:

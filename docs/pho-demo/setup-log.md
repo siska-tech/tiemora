@@ -12,7 +12,7 @@ spend the "manual work" time only.
 - Branch: `pho-demo`, from `main` at Tiemora `0.2.0`
 - Node.js `v24.21.0`, catalog root `examples/pho-demo/`
 - Store: **Phở Góc Phố**, Vietnamese-first (`vi`, `en`, `ja`, `zh`)
-- Checks at the end of the pass: `npm run check` green — 128 tests, lint, typecheck, build
+- Checks at the end of the pass: `npm run check` green — 130 tests, lint, typecheck, build
 
 ---
 
@@ -100,11 +100,11 @@ spend the "manual work" time only.
 
 | | |
 |---|---|
-| **Core change** | **None.** v0.2 time-slot and daily capacity were reused as-is. |
-| **Demo change** | Six 15-minute pickup slots (10:30–12:00), 8 orders per slot, 80 per day. |
+| **Core change** | **None** for order capacity — v0.2 time-slot and daily capacity were reused as-is. Per-product daily stock (`ordering.stockPeriod: daily`) was added separately, because v0.2's `stock` never refilled. |
+| **Demo change** | Six 15-minute pickup slots (10:30–12:00), 8 orders per slot, 80 per day, and a per-bowl daily count (30 each, 15 for the specials, drinks unlimited). Order window set to `minLeadDays: 0` so a guest at a table can order for today. |
 | **Manual work** | Choosing the numbers. |
 | **Studio candidate** | "How many orders can you handle per 15 minutes?" as one question. |
-| **Time** | 15 min — the cheapest step in the log, and the clearest reuse win. |
+| **Time** | 15 min for capacity — the clearest reuse win in the log — plus 60 min for daily stock. |
 
 ## 10. Admin
 
@@ -120,7 +120,7 @@ spend the "manual work" time only.
 
 | | |
 |---|---|
-| **Core change** | 18 new tests for food ordering: table number range, opening hours, cart state, multi-item repricing, QR parsing and rejection, dine-in without contact details, queue transitions, the sold-out switch (including read-only demo mode), and the `0007` upgrade from a populated v0.2 database. |
+| **Core change** | 20 new tests for food ordering: table number range, opening hours, cart state, multi-item repricing, QR parsing and rejection, dine-in without contact details, queue transitions, the sold-out switch (including read-only demo mode), and the `0007` upgrade from a populated v0.2 database. |
 | **Demo change** | None. |
 | **Manual work** | None. |
 | **Studio candidate** | None. |
@@ -150,4 +150,4 @@ spend the "manual work" time only.
 
 - **Pickup is scheduled only.** There is no ASAP option; a takeaway customer picks a 15-minute slot. Fine for a shop that batches, wrong for one where most orders are "now".
 - **No QR sheet generator.** Table stickers are made by hand.
-- **`ordering.stock` is a lifetime total**, not a daily one — see [core-feedback.md](core-feedback.md). The demo sets `stock: null` on every product and relies on the sold-out switch instead, which is how a phở shop actually works.
+- ~~`ordering.stock` is a lifetime total~~ — fixed on this branch with `ordering.stockPeriod: daily`. The menu now carries real per-day counts (30 bowls, 15 of each special), and the sold-out switch handles the rest.

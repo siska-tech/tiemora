@@ -269,8 +269,9 @@ function renderDateChips(){
  const c=orderConfig,box=document.getElementById('date-chips'),windowEl=document.getElementById('order-window');
  const dates=c?.dates?.list||[];
  windowEl.textContent=!c||!dates.length?ot('closedWindow'):c.dates.campaign?fill(ot('windowCampaign'),{from:formatDate(c.dates.from),to:formatDate(c.dates.to)}):ot('windowRolling');
- if(!dates.includes(order.date))order.date=dates.find(d=>c.capacity?.[d]?.open!==false)||'';
- box.innerHTML=dates.map(d=>{const open=c.capacity?.[d]?.open!==false;return `<label class="chip date-chip${order.date===d?' is-selected':''}${open?'':' is-full'}"><input type="radio" name="fulfillment_date" value="${d}" class="sr-only"${order.date===d?' checked':''}${open?'':' disabled'}><span>${escapeMarkup(formatDate(d))}</span>${open?'':`<small>${escapeMarkup(ot('dayFull'))}</small>`}</label>`;}).join('');
+ const dayOpen=d=>c.capacity?.[d]?.open!==false&&cart.snapshot().every(item=>{const info=c.products?.[item.productId];const day=info?.byDate?.[d];return !day||day.remaining===null||day.remaining>=item.quantity;});
+ if(!dates.includes(order.date)||!dayOpen(order.date))order.date=dates.find(dayOpen)||'';
+ box.innerHTML=dates.map(d=>{const open=dayOpen(d);return `<label class="chip date-chip${order.date===d?' is-selected':''}${open?'':' is-full'}"><input type="radio" name="fulfillment_date" value="${d}" class="sr-only"${order.date===d?' checked':''}${open?'':' disabled'}><span>${escapeMarkup(formatDate(d))}</span>${open?'':`<small>${escapeMarkup(ot('dayFull'))}</small>`}</label>`;}).join('');
  renderSlotChips();
 }
 function renderSlotChips(){

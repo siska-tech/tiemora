@@ -32,11 +32,11 @@ const store = {
   }
 };
 
-async function harness(overrides = {}, storeOverride = store) {
+async function harness(overrides = {}, storeOverride = store, catalogOverride = catalog) {
   resetCatalogCache(); resetStoreCache();
   const env = {
     DB: await migratedDatabase(),
-    ASSETS: {fetch: async request => { const p = new URL(request.url).pathname; return p === '/catalog.json' ? Response.json(catalog) : p === '/store.json' ? Response.json(storeOverride) : new Response('', {status: 404}); }},
+    ASSETS: {fetch: async request => { const p = new URL(request.url).pathname; return p === '/catalog.json' ? Response.json(catalogOverride) : p === '/store.json' ? Response.json(storeOverride) : new Response('', {status: 404}); }},
     ADMIN_PASSWORD: 'pw', STORE_TIMEZONE: 'Asia/Ho_Chi_Minh', ...overrides
   };
   const call = async (method, path, {body, headers = {}} = {}) => {
@@ -64,7 +64,7 @@ test('public config lists the window, slots with remaining capacity, stock per s
   assert.equal(data.deadlinePassed, false);
   assert.deepEqual(data.capacity[day(1)].slots.am, {used: 0, capacity: 2, remaining: 2, open: true});
   assert.deepEqual(data.capacity[day(1)].slots.pm, {used: 0, capacity: null, remaining: null, open: true});
-  assert.deepEqual(data.products['sale-1'], {stock: 3, sold: 0, remaining: 3, soldOut: false, soldOutByStaff: false, preorder: true, deadlinePassed: false});
+  assert.deepEqual(data.products['sale-1'], {stock: 3, stockPeriod: 'total', sold: 0, remaining: 3, soldOut: false, soldOutByStaff: false, preorder: true, deadlinePassed: false});
   assert.equal(data.products['sale-2'].stock, null);
   assert.equal(data.products['sale-3'].deadlinePassed, true);
   assert.equal(data.products['rental-1'], undefined);
@@ -395,4 +395,42 @@ test('read-only demo mode refuses the sold-out switch', async () => {
   const refused = await admin('PATCH', '/api/admin/products/sale-2', {body: {sold_out: true}});
   assert.equal(refused.status, 403);
   assert.equal(refused.data.error, 'read_only');
+});
+
+test('daily stock refills the next day, and the SQL guard counts only that day', async () => {
+  // sale-1 keeps the v0.2 lifetime count; sale-2 makes two a day.
+  const dailyCatalog = catalog.map(p => p.id === 'sale-2' ? {...p, ordering: {...p.ordering, stock: 2, stockPeriod: 'daily'}} : p);
+  const {publicPost, call, env} = await harness({}, {...store, ordering: {...store.ordering, dailyCapacity: null}}, dailyCatalog);
+    // Slot 'pm' has no capacity of its own, so nothing but the stock can refuse these.
+  const bowl = (day_, phone, quantity = 1) => order({product_id: 'sale-2', options: {}, quantity, fulfillment_date: day_, time_slot: 'pm', customer_phone: phone});
+
+  // Two for day 1 uses day 1 up.
+  assert.equal((await publicPost(bowl(day(1), '0900000201'))).status, 201);
+  assert.equal((await publicPost(bowl(day(1), '0900000202'))).status, 201);
+  const third = await publicPost(bowl(day(1), '0900000203'));
+  assert.equal(third.status, 409);
+  assert.equal(third.data.error, 'sold_out');
+
+  // Day 2 is untouched: this is the whole point.
+  assert.equal((await publicPost(bowl(day(2), '0900000204'))).status, 201, 'tomorrow starts full again');
+
+  const config = await call('GET', '/api/orders/config');
+  const info = config.data.products['sale-2'];
+  assert.equal(info.stockPeriod, 'daily');
+  assert.equal(info.byDate[day(1)].remaining, 0);
+  assert.equal(info.byDate[day(1)].soldOut, true);
+  assert.equal(info.byDate[day(2)].remaining, 1);
+  assert.equal(info.soldOut, false, 'the card stays available while any day still has units');
+  // A lifetime-stock product reports no per-day breakdown at all.
+  assert.equal(config.data.products['sale-1'].stockPeriod, 'total');
+  assert.equal(config.data.products['sale-1'].byDate, undefined);
+
+  // The repository guard is the one that counts: it must scope to the same day, not to all time.
+  const {createOrder} = await import('../../worker/orders-db.mjs');
+  const line = {product_id: 'sale-2', quantity: 1, options: {}, addons: [], unit_price: 499000, line_total: 499000};
+  const staffOrder = date => ({customer_name: 'Bep', fulfillment_type: 'pickup', fulfillment_date: date, time_slot: 'pm', status: 'confirmed', items: [line]});
+  const limits = {stock: {'sale-2': {limit: 2, daily: true}}};
+  await assert.rejects(createOrder(env.DB, staffOrder(day(1)), limits), error => error.error === 'sold_out', 'day 1 is already full');
+  const nextDay = await createOrder(env.DB, staffOrder(day(2)), limits);
+  assert.equal(nextDay.items.length, 1, 'day 2 still has room even though day 1 is gone');
 });

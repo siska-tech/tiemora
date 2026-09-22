@@ -65,6 +65,15 @@ export async function soldByProduct(db) {
   const {results} = await db.prepare(`SELECT i.product_id, SUM(i.quantity) AS n FROM order_items i JOIN orders o ON o.id = i.order_id WHERE o.${active} GROUP BY i.product_id`).all();
   return new Map(results.map(r => [r.product_id, r.n]));
 }
+// The same count split by the day the order is for, so a product whose stock refills each morning
+// can be measured against its own date: {[date]: {[product_id]: units}}.
+export async function soldByProductAndDate(db, from, to) {
+  const {results} = await db.prepare(`SELECT o.fulfillment_date AS date, i.product_id, SUM(i.quantity) AS n FROM order_items i JOIN orders o ON o.id = i.order_id
+    WHERE o.${active} AND o.fulfillment_date >= ? AND o.fulfillment_date <= ? GROUP BY o.fulfillment_date, i.product_id`).bind(from, to).all();
+  const out = {};
+  for (const row of results) (out[row.date] || (out[row.date] = {}))[row.product_id] = row.n;
+  return out;
+}
 
 // --- Create ------------------------------------------------------------------------------------------
 // `limits` carries what the handler resolved from config: slot capacity, daily capacity and per-product stock.
@@ -87,12 +96,20 @@ export async function createOrder(db, data, {slotCapacity = null, dailyCapacity 
     // error inside the batch) and, with a stock limit, only while the product still has enough units.
     const batchQuantity = {};
     const insertItems = items.map(item => {
-      const limit = guard ? stock[item.product_id] ?? null : null;
+      // A limit is a plain number (counted over every active order) or {limit, daily: true}, which
+      // counts only the orders for this same fulfillment date.
+      const raw = guard ? stock[item.product_id] ?? null : null;
+      const limit = raw === null ? null : typeof raw === 'number' ? raw : raw.limit ?? null;
+      const daily = raw !== null && typeof raw === 'object' && raw.daily === true;
       const remainingLimit = limit === null ? null : limit - (batchQuantity[item.product_id] || 0);
       batchQuantity[item.product_id] = (batchQuantity[item.product_id] || 0) + item.quantity;
       const values = [id, item.product_id, item.quantity, JSON.stringify(item.options || {}), JSON.stringify(item.addons || []), item.unit_price, item.line_total];
       const where = ['EXISTS (SELECT 1 FROM orders WHERE id = ?)'], extra = /** @type {any[]} */ ([id]);
-      if (remainingLimit !== null) { where.push(`(SELECT COALESCE(SUM(i.quantity), 0) FROM order_items i JOIN orders o ON o.id = i.order_id WHERE o.${active} AND i.product_id = ? AND o.id <> ?) + ? <= ?`); extra.push(item.product_id, id, item.quantity, remainingLimit); }
+      if (remainingLimit !== null) {
+        where.push(`(SELECT COALESCE(SUM(i.quantity), 0) FROM order_items i JOIN orders o ON o.id = i.order_id WHERE o.${active}${daily ? ' AND o.fulfillment_date = ?' : ''} AND i.product_id = ? AND o.id <> ?) + ? <= ?`);
+        if (daily) extra.push(row.fulfillment_date);
+        extra.push(item.product_id, id, item.quantity, remainingLimit);
+      }
       return db.prepare(`INSERT INTO order_items (order_id, product_id, quantity, options, addons, unit_price, line_total) SELECT ?, ?, ?, ?, ?, ?, ? WHERE ${where.join(' AND ')}`).bind(...values, ...extra);
     });
     const results = await db.batch([insertOrder, ...insertItems]);

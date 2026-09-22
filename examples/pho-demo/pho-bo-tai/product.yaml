@@ -44,9 +44,10 @@ fulfillment:
 
 ordering:
   preorder: true
-  # No count: a phở shop does not tally bowls, it says "hết rồi". Staff flip the sold-out
-  # switch in /admin/ (Menu) when something runs out and back on the next morning.
-  stock: null
+  # What the kitchen makes in a morning. stockPeriod: daily counts per service day, so
+  # tomorrow starts full again -- unlike the default "total", which never refills.
+  stock: 30
+  stockPeriod: daily
 
 placeholder: false
 color: "#b65b3d"

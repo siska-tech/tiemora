@@ -6,7 +6,7 @@ Products with `type: sale` are sold by quantity, not booked by date. A customer 
 
 | Entity | Where | Notes |
 |---|---|---|
-| Product (`type: sale`) | `product.yaml` | price, option ids, add-on ids, `fulfillment`, `ordering.stock`, `ordering.deadline` ([catalog.md](catalog.md)) |
+| Product (`type: sale`) | `product.yaml` | price, option ids, add-on ids, `fulfillment`, `ordering.stock`, `ordering.stockPeriod`, `ordering.deadline` ([catalog.md](catalog.md)) |
 | Options / add-ons / time slots / limits | `config/store.yaml` `ordering:` | labels and default price deltas, slots with capacity, campaign window, deadline, daily capacity, card templates ([configuration.md](configuration.md)) |
 | Order | D1 `orders` | who, how (pickup / delivery + recipient / address), when (date + slot), card message, totals at order time, notification record, consent |
 | Order line | D1 `order_items` | product id, quantity, chosen option ids (JSON), add-on ids (JSON), unit and line price at order time |
@@ -25,10 +25,22 @@ Inventory is **capacity**, not items: a time slot takes N orders, a day takes N 
 
 | Route | Purpose |
 |---|---|
-| `GET /api/orders/config` | the window (`dates.list`), time slots, `capacity[date].slots[id] = {used, capacity, remaining, open}`, `products[id] = {stock, sold, remaining, soldOut, deadlinePassed}`, option / add-on labels, card templates, delivery fee, Turnstile state |
+| `GET /api/orders/config` | the window (`dates.list`), time slots, `capacity[date].slots[id] = {used, capacity, remaining, open}`, `products[id] = {stock, stockPeriod, sold, remaining, soldOut, soldOutByStaff, deadlinePassed}` (plus `byDate[date]` for a `daily` stock product, one summary per orderable day), option / add-on labels, card templates, delivery fee, Turnstile state |
 | `POST /api/orders` | one line per order: `product_id, quantity, options, addons, fulfillment_type, fulfillment_date, time_slot, message_card, recipient_*, delivery_*, customer_name, customer_phone, preferred_contact_channel, privacy_consent: true` |
 
-`POST` validates every field against the catalog and config, refuses a closed deadline (`409 deadline_passed`), a full slot or day (`409 capacity_full`) and missing stock (`409 sold_out`), runs Turnstile and the per-IP throttle, folds a duplicate (same phone, product, date, slot while pending) and pushes to admin devices. The insert is guarded in SQL (`INSERT … SELECT … WHERE count < capacity`) inside one transaction, so two customers cannot both take the last place.
+`POST` validates every field against the catalog and config, refuses a closed deadline (`409 deadline_passed`), a full slot or day (`409 capacity_full`) and missing stock (`409 sold_out`), runs Turnstile and the per-IP throttle, folds a duplicate (same phone, product, date, slot while pending) and pushes to admin devices. The insert is guarded in SQL (`INSERT … SELECT … WHERE count < capacity`) inside one transaction, so two customers cannot both take the last place. A `daily` stock product is counted, in the pre-check and in that guard, only against the orders for the same `fulfillment_date`.
+
+### Stock and sold-out
+
+A product leaves the menu in two ways, and they do not compete:
+
+- **Counted out.** `ordering.stock` with `stockPeriod: total` counts every unit ever ordered;
+  with `stockPeriod: daily` it counts only the units ordered for the same day, so the count
+  refills each morning. A shop that restocks daily and leaves the period at `total` will sell out
+  permanently once the count is reached.
+- **Switched off.** Staff flip a product off in `/admin/#/menu` (`PATCH /api/admin/products/:id`,
+  stored in `product_availability`). This only ever takes a product off the menu; it never puts a
+  counted-out one back on, so the count stays the single source of truth for units.
 
 ## Admin API
 
