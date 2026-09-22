@@ -10,10 +10,10 @@ const NOW = "strftime('%Y-%m-%dT%H:%M:%fZ','now')";
 const placeholders = list => list.map(() => '?').join(',');
 const active = `status IN (${ACTIVE_ORDER_STATUSES.map(s => `'${s}'`).join(',')})`;
 const COLUMNS = ['customer_name', 'customer_phone', 'preferred_contact_channel', 'customer_whatsapp', 'customer_messenger_url', 'customer_zalo_phone',
-  'fulfillment_type', 'fulfillment_date', 'time_slot', 'table_number', 'recipient_name', 'recipient_phone', 'delivery_address', 'delivery_note', 'message_card', 'note',
+  'fulfillment_type', 'fulfillment_date', 'time_slot', 'asap', 'table_number', 'recipient_name', 'recipient_phone', 'delivery_address', 'delivery_note', 'message_card', 'note',
   'subtotal', 'delivery_fee', 'total', 'currency', 'status', 'source', 'privacy_consent', 'privacy_consent_at'];
-const NUMERIC = new Set(['subtotal', 'delivery_fee', 'total', 'privacy_consent']);
-const DEFAULTS = {customer_phone: '', preferred_contact_channel: '', customer_whatsapp: '', customer_messenger_url: '', customer_zalo_phone: '', time_slot: '', table_number: '', recipient_name: '', recipient_phone: '', delivery_address: '', delivery_note: '', message_card: '', note: '', subtotal: 0, delivery_fee: 0, total: 0, currency: 'VND', status: 'pending', source: 'admin', privacy_consent: 0, privacy_consent_at: ''};
+const NUMERIC = new Set(['subtotal', 'delivery_fee', 'total', 'privacy_consent', 'asap']);
+const DEFAULTS = {customer_phone: '', preferred_contact_channel: '', customer_whatsapp: '', customer_messenger_url: '', customer_zalo_phone: '', time_slot: '', asap: 0, table_number: '', recipient_name: '', recipient_phone: '', delivery_address: '', delivery_note: '', message_card: '', note: '', subtotal: 0, delivery_fee: 0, total: 0, currency: 'VND', status: 'pending', source: 'admin', privacy_consent: 0, privacy_consent_at: ''};
 
 function orderId(now = new Date()) {
   const alphabet = 'abcdefghjkmnpqrstuvwxyz23456789';

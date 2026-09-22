@@ -52,6 +52,10 @@ export const DEFAULT_STORE = {
     deadline: null,
     dailyCapacity: null,
     timeSlots: [],
+    // "As soon as you can": an order with no time slot, accepted only while the shop is open and
+    // only for today. `leadMinutes` is what the customer is told to expect, not a promise the
+    // server enforces. Off unless a store turns it on, so a shop that batches its work is unmoved.
+    asap: {enabled: false, leadMinutes: null},
     openingHours: {},
     options: {},
     addons: {},
@@ -286,6 +290,13 @@ function normalizeOrdering(raw, config, note) {
         seen.add(id);
         config.timeSlots.push({id, start, end, capacity: nullableInt(slot.capacity, `${where}.capacity`, note, {min: 1}), label: optionalLocalized(slot.label, `${where}.label`, note)});
       });
+    }
+  }
+  if (raw.asap != null) {
+    if (!isMap(raw.asap)) note('ordering.asap: must be a mapping; ignored.');
+    else {
+      config.asap.enabled = raw.asap.enabled === true;
+      config.asap.leadMinutes = nullableInt(raw.asap.leadMinutes, 'ordering.asap.leadMinutes', note, {min: 1});
     }
   }
   if (raw.openingHours != null) {

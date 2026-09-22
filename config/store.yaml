@@ -88,6 +88,32 @@ store:
     heroDineIn: {vi: "Ăn tại quán", en: "Dine in", ja: "店内食事", zh: "堂食"}
     heroTakeaway: {vi: "Mang về", en: "Takeaway", ja: "持ち帰り", zh: "外带"}
     heroQr: {vi: "QR tại bàn", en: "QR at table", ja: "テーブルQR", zh: "桌边 QR"}
+    # --- Order wording -------------------------------------------------------------------
+    # The Core defaults speak like a florist taking pre-orders. These keys belong to the catalog
+    # and order-form copy (storefront/catalog.js, storefront/order.js) and are overridden here.
+    orderCta: {vi: "Gọi món", en: "Order", ja: "注文する", zh: "点餐"}
+    perUnit: {vi: "/ phần", en: "/ portion", ja: "/ 1人前", zh: "/ 份"}
+    cta: {vi: "Gọi món", en: "Order", ja: "注文する", zh: "点餐"}
+    preorder: {vi: "Còn hàng", en: "Available", ja: "注文できます", zh: "有售"}
+    soldOut: {vi: "Hết món", en: "Sold out", ja: "品切れ", zh: "已售完"}
+    ctaSoldOut: {vi: "Hết món", en: "Sold out", ja: "品切れ", zh: "已售完"}
+    closed: {vi: "Ngoài giờ bán", en: "Outside opening hours", ja: "営業時間外", zh: "非营业时间"}
+    ctaClosed: {vi: "Ngoài giờ bán", en: "Outside opening hours", ja: "営業時間外", zh: "非营业时间"}
+    remaining: {vi: "Còn {n} phần", en: "{n} portions left", ja: "残り {n} 人前", zh: "剩余 {n} 份"}
+    title: {vi: "Gọi món", en: "Order", ja: "注文", zh: "点餐"}
+    formTitle: {vi: "Xác nhận đơn", en: "Confirm your order", ja: "注文の確認", zh: "确认订单"}
+    fulfillmentTitle: {vi: "Ăn tại quán hay mang về?", en: "Eat in or take away?", ja: "店内かお持ち帰りか", zh: "堂食还是外带？"}
+    whenTitle: {vi: "Khi nào", en: "When", ja: "受け取り時間", zh: "取餐时间"}
+    pickup: {vi: "Mang về", en: "Takeaway", ja: "持ち帰り", zh: "外带"}
+    pickupHint: {vi: "Lấy tại quầy", en: "Collect at the counter", ja: "カウンターで受け取り", zh: "柜台取餐"}
+    customerTitle: {vi: "Thông tin của bạn", en: "Your details", ja: "お客様情報", zh: "您的信息"}
+    windowRolling: {vi: "Chọn ngày ăn", en: "Choose a day", ja: "日付を選択", zh: "选择日期"}
+    closedWindow: {vi: "Hiện quán chưa nhận đơn.", en: "The shop is not taking orders right now.", ja: "現在、注文を受け付けていません。", zh: "目前暂不接单。"}
+    terms: {vi: "Đây là yêu cầu gọi món. Quán sẽ xác nhận và chuẩn bị ngay khi nhận được đơn.", en: "This is an order request. The shop confirms it and starts cooking once it arrives.", ja: "これは注文リクエストです。お店が確認し、すぐに調理を始めます。", zh: "这是点餐请求。店铺确认后会立即开始制作。"}
+    doneTitle: {vi: "Cảm ơn bạn", en: "Thank you", ja: "ありがとうございます", zh: "谢谢"}
+    doneSent: {vi: "Đơn của bạn đã được gửi tới bếp.", en: "Your order has been sent to the kitchen.", ja: "注文を厨房にお送りしました。", zh: "您的订单已送达厨房。"}
+    doneContact: {vi: "Quán sẽ xác nhận đơn trong ít phút.", en: "The shop will confirm your order shortly.", ja: "まもなくお店から確認のご連絡があります。", zh: "店铺将很快确认您的订单。"}
+    doneNote: {vi: "Thanh toán tại quầy khi nhận món.", en: "Pay at the counter when you collect.", ja: "お受け取り時にカウンターでお支払いください。", zh: "取餐时在柜台付款。"}
 
 catalog:
   # The live demo catalog for the Phở shop. The generic sample catalog stays untouched for core
@@ -173,6 +199,11 @@ ordering:
     - {id: "1115", start: "11:15", end: "11:30", capacity: 8, label: {vi: "11:15", en: "11:15"}}
     - {id: "1130", start: "11:30", end: "11:45", capacity: 8, label: {vi: "11:30", en: "11:30"}}
     - {id: "1145", start: "11:45", end: "12:00", capacity: 8, label: {vi: "11:45", en: "11:45"}}
+  # A bowl is made while you wait, so "as soon as you can" is the normal choice; the slots below
+  # are for someone collecting later. Only accepted while the shop is actually open.
+  asap:
+    enabled: true
+    leadMinutes: 15
   openingHours:
     mon: [{start: "10:00", end: "13:00"}]
     tue: [{start: "10:00", end: "13:00"}]

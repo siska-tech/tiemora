@@ -52,8 +52,9 @@ The URL is treated as a hint from an editable source throughout.
 Reused from v0.2 unchanged: six 15-minute slots from 10:30 to 12:00, 8 orders each, 80 per day.
 Slots outside `openingHours` are refused server-side, as are orders on a closed day.
 
-**Gap: there is no ASAP option.** Takeaway customers pick a slot. This is the one acceptance item
-this pass did not deliver, and it is listed as a v0.3 candidate rather than faked.
+Takeaway can also be **ASAP**: no slot, the kitchen starts now. The chip is offered only when the
+store enables it, the order is for today, and the shop is open at this minute -- all three checked
+again in the Worker. Dine-in defaults to ASAP, because a guest at a table is not collecting later.
 
 ## 7. Kitchen / Admin flow
 
@@ -102,9 +103,9 @@ Nothing food-specific was written into Core.
 
 ## 11. Tests
 
-`npm run check` green: **130 tests**, lint, typecheck, build. v0.2 had 106; all of them still pass.
+`npm run check` green: **132 tests**, lint, typecheck, build. v0.2 had 106; all of them still pass.
 
-The 20 added:
+The 22 added:
 
 - **Cart** — add, merge identical, separate variants, quantity, remove, totals, persistence, corrupt-payload reset; two products combined into one order through the UI
 - **Multi-item orders** — every line repriced server-side, one bad line rejects the whole order
@@ -115,6 +116,7 @@ The 20 added:
 - **Order Queue** — lanes, card contents, `pending → confirmed → preparing → ready → completed`
 - **Sold out** — switch off, storefront shows it, order refused, switch back on, order accepted; validation, 404, rental products refused, unauthenticated refused, read-only mode refused
 - **Daily stock** — a day sells out while the next stays full, the config reports `byDate` per day and a lifetime product reports none, and the SQL guard refuses a full day while still accepting the next
+- **ASAP** — accepted at the open boundary and refused at the closing one, refused for another day, refused when the store never turned it on, refused alongside a slot, and reported to the form as `openNow`
 - **Migration** — a populated v0.2.0 database upgraded by `0007` keeps its orders *and* their lines, gets its indexes back, and accepts `dine_in` afterwards
 
 Capacity, order status transitions, CSRF, admin auth and read-only mode were already covered by v0.2
@@ -156,10 +158,11 @@ found in v0.2:
 ## 16. v0.3 candidates
 
 Written and tested here, so promoting them is a merge decision: `dine_in` + `table_number` +
-`ordering.tables`; `openingHours`; `ordering.stockPeriod: daily`; Order Queue; sold-out switch;
-multi-item orders with server repricing.
+`ordering.tables`; `openingHours`; `ordering.asap`; `ordering.stockPeriod: daily`; Order Queue;
+sold-out switch; multi-item orders with server repricing; store.text reaching the catalog and
+order-form copy.
 
-New work: ASAP pickup and QR sheet generation.
+New work: QR sheet generation.
 
 Deliberately postponed: the cart state contract, until the Café demo says whether food and
 merchandise share one cart.

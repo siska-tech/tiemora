@@ -51,11 +51,16 @@ const orderCopy={
   errors:{required:'请填写姓名和电话号码。',channel:'请选择联系方式。',zaloNumber:'请填写 Zalo 号码或勾选“与电话号码相同”。',whatsappNumber:'请填写 WhatsApp 号码或勾选“与电话号码相同”。',consent:'请先同意隐私政策再发送订单。',phone:'电话号码格式不正确。',recipient:'请填写收件人姓名、电话和地址。',date:'请选择日期。',slot:'请选择时段。',capacity_full:'该时段刚刚约满，请选择其他时段。',sold_out:'很抱歉，该款式刚刚售罄。',deadline_passed:'预订已截止。',too_many_requests:'申请过于频繁，请稍后再试或联系店铺。',turnstile_required:'请完成验证。',turnstile_failed:'验证失败，请重试。',turnstile_unavailable:'暂时无法验证，请稍后再试。',validation_error:'请检查填写的信息。',network:'发送失败，请检查网络后重试。'}}
 };
 const ORDER_CHANNELS=['zalo','whatsapp','messenger','phone'];
+const ASAP_COPY={vi:{asap:'Ngay bây giờ',asapHint:'Bếp làm ngay, khoảng {n} phút',asapHintNoLead:'Bếp làm ngay',asapClosed:'Ngoài giờ bán, vui lòng chọn khung giờ',later:'Chọn giờ nhận'},en:{asap:'As soon as possible',asapHint:'Cooked now, about {n} min',asapHintNoLead:'Cooked now',asapClosed:'Closed right now; please choose a time slot',later:'Choose a pickup time'},ja:{asap:'できあがり次第',asapHint:'今から調理、約{n}分',asapHintNoLead:'今から調理',asapClosed:'営業時間外です。時間帯を選んでください',later:'受取時間を選ぶ'},zh:{asap:'尽快',asapHint:'现做，约 {n} 分钟',asapHintNoLead:'现做',asapClosed:'当前非营业时间，请选择时段',later:'选择取餐时间'}};
 const DINE_IN_COPY={vi:{dine_in:'Ăn tại quán',dineInHint:'Gọi món tại bàn',tableNumber:'Số bàn',tableNumberError:'Vui lòng nhập số bàn từ {min} đến {max}.'},en:{dine_in:'Dine in',dineInHint:'Order from your table',tableNumber:'Table number',tableNumberError:'Please enter a table number between {min} and {max}.'},ja:{dine_in:'店内注文',dineInHint:'テーブルから注文',tableNumber:'テーブル番号',tableNumberError:'{min}〜{max} のテーブル番号を入力してください。'},zh:{dine_in:'堂食',dineInHint:'从餐桌点餐',tableNumber:'桌号',tableNumberError:'请输入 {min} 到 {max} 之间的桌号。'}};
 const CART_COPY={vi:{add:'Thêm vào giỏ',view:'Xem giỏ hàng',items:'Giỏ hàng · {n} món',remove:'Xóa',subtotal:'Tạm tính',total:'Tổng cộng',continue:'Tiếp tục chọn món',empty:'Giỏ hàng đang trống'},en:{add:'Add to cart',view:'View cart',items:'Cart · {n} items',remove:'Remove',subtotal:'Subtotal',total:'Total',continue:'Continue shopping',empty:'Your cart is empty'},ja:{add:'カートに追加',view:'カートを見る',items:'カート · {n}点',remove:'削除',subtotal:'小計',total:'合計',continue:'買い物を続ける',empty:'カートは空です'},zh:{add:'加入购物车',view:'查看购物车',items:'购物车 · {n}件',remove:'删除',subtotal:'小计',total:'合计',continue:'继续购物',empty:'购物车为空'}};
 const ot=key=>orderCopy[language]?.[key]??orderCopy.en[key]??orderCopy.vi[key];
 const orderText=key=>DINE_IN_COPY[language]?.[key]??DINE_IN_COPY.en[key];
 const cartText=key=>CART_COPY[language]?.[key]??CART_COPY.en[key];
+const asapText=key=>ASAP_COPY[language]?.[key]??ASAP_COPY.en[key];
+// ASAP is offered only when the store turned it on, the shop is open now, and the customer is
+// ordering for today. The Worker checks all three again before it writes the order.
+const asapOffered=()=>Boolean(orderConfig?.asap?.enabled&&orderConfig?.asap?.openNow&&order.date&&order.date===orderConfig?.dates?.from);
 const fill=(text,values)=>String(text).replace(/\{(\w+)\}/g,(m,k)=>k in values?values[k]:m);
 const orderBlock=document.getElementById('dialog-order'),orderOpen=document.getElementById('order-open'),orderQty=document.getElementById('order-qty');
 const orderDialog=document.getElementById('order-dialog'),orderForm=document.getElementById('order-form'),orderDone=document.getElementById('order-done'),orderError=document.getElementById('order-error');
@@ -69,7 +74,7 @@ const cart=window.TiemoraCart;
 // What the form offers, from /api/orders/config. null until loaded; refreshed when the form opens.
 let orderConfig=null,orderConfigLoading=null;
 // The customer's current choice for the open product.
-let order={productId:'',options:{},addons:[],quantity:1,fulfillment:'',date:'',slot:'',tableNumber:qrTable};
+let order={productId:'',options:{},addons:[],quantity:1,fulfillment:'',date:'',slot:'',asap:false,tableNumber:qrTable};
 const isSaleProduct=p=>Boolean(p&&p.type==='sale');
 
 async function loadOrderConfig({force=false}={}){
@@ -156,8 +161,25 @@ function saleLabel(p){
  return catalogCopy[language].unknown;
 }
 const saleClass=p=>({closed:' unavailable',soldOut:' unavailable',low:' status-low'}[saleStatus(p).code]||'');
+// store.text overrides the order form's wording the same way app.js applies it to the page copy, so
+// a shop is not stuck with the defaults: a kitchen says "Chọn món" where the default says
+// "Pre-order". Only keys the order copy actually has are taken, so page keys do not leak in, and it
+// runs once -- on the first call after /store.json landed.
+let orderTextApplied=false;
+function applyOrderTextOverrides(){
+ if(orderTextApplied)return;
+ const overrides=typeof store==='undefined'?null:store?.store?.text;
+ if(!overrides||!Object.keys(overrides).length)return;
+ orderTextApplied=true;
+ for(const [key,value] of Object.entries(overrides))for(const lang of Object.keys(orderCopy)){
+  if(!(key in orderCopy[lang]))continue;
+  const text=typeof value==='string'?value:value?.[lang];
+  if(typeof text==='string'&&text.trim())orderCopy[lang][key]=text;
+ }
+}
 // --- The block inside the product dialog --------------------------------------------------------------
 function refreshOrderText(){
+ applyOrderTextOverrides();
  document.querySelectorAll('[data-order-i18n]').forEach(el=>{el.textContent=ot(el.dataset.orderI18n);});
  document.getElementById('close-order').setAttribute('aria-label',ot('close'));
  const [before,after]=ot('consent').split('{policy}');
@@ -173,7 +195,7 @@ function updateOrderBlock(){
  orderBlock.hidden=!sale;
  if(!sale)return;
  if(order.productId!==p.id){
-  order={productId:p.id,options:{},addons:[],quantity:1,fulfillment:'',date:'',slot:'',tableNumber:qrTable};
+  order={productId:p.id,options:{},addons:[],quantity:1,fulfillment:'',date:'',slot:'',asap:false,tableNumber:qrTable};
   for(const [group,choices] of Object.entries(p.options||{}))order.options[group]=choices[0]?.id||'';
  }
  loadOrderConfig();
@@ -279,8 +301,13 @@ function renderSlotChips(){
  const slots=c?.timeSlots||[],day=c?.capacity?.[order.date];
  if(!slots.length||!order.date){box.innerHTML='';order.slot='';return;}
  const state=id=>day?.slots?.[id]||{open:true,capacity:null,remaining:null};
+ // Dine-in is always "now": a guest at a table is not collecting later.
+ if(!asapOffered())order.asap=false; else if(order.fulfillment==='dine_in'&&!order.slot)order.asap=true;
  if(!slots.some(s=>s.id===order.slot&&state(s.id).open))order.slot='';
- box.innerHTML=`<span class="option-label">${escapeMarkup(ot('pickSlot'))}</span><div class="chips">`+slots.map(s=>{const st=state(s.id);const label=localizedText(s.label)||`${s.start}–${s.end}`;return `<label class="chip slot-chip${order.slot===s.id?' is-selected':''}${st.open?'':' is-full'}"><input type="radio" name="time_slot" value="${escapeMarkup(s.id)}" class="sr-only"${order.slot===s.id?' checked':''}${st.open?'':' disabled'}><span>${escapeMarkup(label)}</span>${!st.open?`<small>${escapeMarkup(ot('slotFull'))}</small>`:st.capacity!==null?`<small>${escapeMarkup(fill(ot('slotLeft'),{n:st.remaining}))}</small>`:''}</label>`;}).join('')+'</div>';
+ if(order.asap)order.slot='';
+ const lead=orderConfig?.asap?.leadMinutes;
+ const asapChip=asapOffered()?`<label class="chip slot-chip asap-chip${order.asap?' is-selected':''}"><input type="radio" name="time_slot" value="" data-asap class="sr-only"${order.asap?' checked':''}><span>${escapeMarkup(asapText('asap'))}</span><small>${escapeMarkup(lead?fill(asapText('asapHint'),{n:lead}):asapText('asapHintNoLead'))}</small></label>`:'';
+ box.innerHTML=`<span class="option-label">${escapeMarkup(ot('pickSlot'))}</span><div class="chips">`+asapChip+slots.map(s=>{const st=state(s.id);const label=localizedText(s.label)||`${s.start}–${s.end}`;return `<label class="chip slot-chip${order.slot===s.id?' is-selected':''}${st.open?'':' is-full'}"><input type="radio" name="time_slot" value="${escapeMarkup(s.id)}" class="sr-only"${order.slot===s.id?' checked':''}${st.open?'':' disabled'}><span>${escapeMarkup(label)}</span>${!st.open?`<small>${escapeMarkup(ot('slotFull'))}</small>`:st.capacity!==null?`<small>${escapeMarkup(fill(ot('slotLeft'),{n:st.remaining}))}</small>`:''}</label>`;}).join('')+'</div>';
 }
 function renderOrderForm(){
  const c=orderConfig;if(!c||!cart.snapshot().length)return;
@@ -339,7 +366,8 @@ orderForm.addEventListener('change',e=>{
  if(name==='fulfillment_type')syncFulfillment();
  if(['preferred_contact_channel','zalo_same','whatsapp_same'].includes(name))syncOrderChannelFields();
  if(name==='fulfillment_date'){order.date=e.target.value;renderDateChips();}
- if(name==='time_slot'){order.slot=e.target.value;renderSlotChips();}
+ // The ASAP chip shares the time_slot radio group, so picking it clears the slot and vice versa.
+ if(name==='time_slot'){order.asap=e.target.hasAttribute('data-asap');order.slot=order.asap?'':e.target.value;renderSlotChips();}
  if(name==='privacy_consent'&&e.target.checked)document.getElementById('order-consent-row').classList.remove('is-invalid');
 });
 orderForm.addEventListener('input',e=>{if(e.target.name==='message_card'){const ta=e.target;document.getElementById('card-counter').textContent=`${ta.value.length} / ${ta.maxLength} · ${fill(ot('cardHint'),{n:ta.maxLength})}`;}});
@@ -378,7 +406,7 @@ orderForm.addEventListener('submit',async e=>{
  const value=name=>(f[name]?.value||'').trim();
  const channel=chosenOrderChannel();
  const body={items:cartItems.map(item=>({product_id:item.productId,quantity:item.quantity,options:item.options,addons:item.addons})),fulfillment_type:order.fulfillment,fulfillment_date:order.date,time_slot:order.slot,
-  table_number:value('table_number'),message_card:value('message_card'),note:value('note'),customer_name:value('customer_name'),customer_phone:value('customer_phone'),preferred_contact_channel:channel,customer_zalo_phone:'',customer_whatsapp:'',customer_messenger_url:''};
+  asap:order.asap,table_number:value('table_number'),message_card:value('message_card'),note:value('note'),customer_name:value('customer_name'),customer_phone:value('customer_phone'),preferred_contact_channel:channel,customer_zalo_phone:'',customer_whatsapp:'',customer_messenger_url:''};
  const dineIn=order.fulfillment==='dine_in';
  if(dineIn&&!tableNumberOk(body.table_number))return fail(fill(orderText('tableNumberError'),tableRange()),f.table_number);
  if(order.fulfillment==='delivery'){
@@ -387,7 +415,7 @@ orderForm.addEventListener('submit',async e=>{
   if(!phonePattern.test(body.recipient_phone))return fail(errors.phone,f.recipient_phone);
  }
  if(!order.date)return fail(errors.date,document.getElementById('date-chips'));
- if((orderConfig?.timeSlots||[]).length&&!order.slot)return fail(errors.slot,document.getElementById('slot-chips'));
+ if(!order.asap&&(orderConfig?.timeSlots||[]).length&&!order.slot)return fail(errors.slot,document.getElementById('slot-chips'));
  // Dine-in asks for none of this: the guest is at the table and the bowl goes there. A phone number
  // typed anyway still has to look like one, because staff may call about the order.
  if(!dineIn&&(!body.customer_name||!body.customer_phone))return fail(errors.required,body.customer_name?f.customer_phone:f.customer_name);

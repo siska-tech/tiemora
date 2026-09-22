@@ -86,7 +86,22 @@ function refreshCatalogText(){
  if(!controls.some(c=>c.id===filter))filter='all';
  document.querySelector('.filters').innerHTML=controls.map(c=>`<button type="button" data-filter="${escapeMarkup(c.id)}" aria-pressed="${filter===c.id}">${escapeMarkup(c.label)}</button>`).join('');
 }
+// store.text reaches the catalog wording too, so a food shop can say "Chọn món" where the default
+// says "Pre-order". Same rule as app.js and order.js: only keys this copy owns, applied once.
+let catalogTextApplied=false;
+function applyCatalogTextOverrides(){
+ if(catalogTextApplied)return;
+ const overrides=typeof store==='undefined'?null:store?.store?.text;
+ if(!overrides||!Object.keys(overrides).length)return;
+ catalogTextApplied=true;
+ for(const [key,value] of Object.entries(overrides))for(const lang of Object.keys(catalogCopy)){
+  if(!(key in catalogCopy[lang]))continue;
+  const text=typeof value==='string'?value:value?.[lang];
+  if(typeof text==='string'&&text.trim())catalogCopy[lang][key]=text;
+ }
+}
 function renderProducts(){
+ applyCatalogTextOverrides();
  refreshCatalogText();
  const t=copy[language],labels=catalogCopy[language];
  let shown=products.filter(p=>filter==='all'||filter==='featured'&&p.featured||productCategories(p).some(c=>filter===`category:${c}`));

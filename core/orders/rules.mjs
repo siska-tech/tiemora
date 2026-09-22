@@ -126,6 +126,22 @@ export function openingHoursError(date, slot, openingHours = {}) {
   return null;
 }
 
+// --- ASAP ------------------------------------------------------------------------------------------
+// "As soon as you can" is the order with no time slot: the kitchen starts on it now. That only means
+// anything while the shop is actually open, and only for today, so both are checked here rather than
+// trusted from the form. `now` is the wall clock in the store's zone as "HH:MM".
+/** @param {{date: string, today: string, now: string}} when @param {any} openingHours @param {{enabled?: boolean}} [asap] */
+export function asapError(when, openingHours = {}, asap = {}) {
+  if (!asap.enabled) return {field: 'asap', code: 'not_offered'};
+  if (when.date !== when.today) return {field: 'fulfillment_date', code: 'not_today'};
+  // A shop that never wrote its hours down is taken at its word and stays open.
+  if (!openingHours || !Object.keys(openingHours).length) return null;
+  const weekday = dayNumber(when.today), intervals = weekday === null ? null : openingHours[weekday];
+  if (!intervals?.length) return {field: 'fulfillment_date', code: 'closed_day'};
+  if (!intervals.some(interval => when.now >= interval.start && when.now < interval.end)) return {field: 'asap', code: 'closed_now'};
+  return null;
+}
+
 // --- Capacity --------------------------------------------------------------------------------------
 // `counts` is what the repository counted from active orders: {[date]: {total, slots: {[slotId]: n}}}.
 // Every slot of the configured list is reported for every date, with `open` false once its own

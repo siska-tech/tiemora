@@ -7,7 +7,7 @@ import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {collectCatalog} from '../../core/catalog/collect.mjs';
 import {normalizeStoreConfig} from '../../core/config/store.mjs';
-import {priceOrderLine, orderTotals, orderDateWindow, orderDateError, openingHoursError, tableNumberError, normalizeTableNumber, deadlinePassed, capacityByDate, stockSummary, stockPeriodOf, dailyStockSummary, nextOrderStatuses, MAX_QUANTITY} from '../../core/orders/rules.mjs';
+import {priceOrderLine, orderTotals, orderDateWindow, orderDateError, openingHoursError, asapError, tableNumberError, normalizeTableNumber, deadlinePassed, capacityByDate, stockSummary, stockPeriodOf, dailyStockSummary, nextOrderStatuses, MAX_QUANTITY} from '../../core/orders/rules.mjs';
 import {buildOrderConfirmationMessage, buildOrderSummary, buildOrderNotification, describeOrderItems} from '../../core/notifications/orders.mjs';
 
 const ordering = normalizeStoreConfig({ordering: {
@@ -239,4 +239,24 @@ test('daily stock is counted per service day, total stock is counted once and ne
   const gone = dailyStockSummary(bowl, dates, {'2026-10-19': {pho: 2}, '2026-10-20': {pho: 5}});
   assert.equal(gone.soldOut, true);
   assert.equal(gone.remaining, 0);
+});
+
+test('ASAP is only for today, only while the shop is open, and only when the store offers it', () => {
+  const hours = {1: [{start: '10:00', end: '13:00'}]};   // Mondays 10:00-13:00
+  const monday = '2026-10-19', tuesday = '2026-10-20';
+  const on = {enabled: true};
+
+  assert.equal(asapError({date: monday, today: monday, now: '10:30'}, hours, on), null);
+  // The boundaries: open at the start, closed the moment the shutters come down.
+  assert.equal(asapError({date: monday, today: monday, now: '10:00'}, hours, on), null);
+  assert.deepEqual(asapError({date: monday, today: monday, now: '13:00'}, hours, on), {field: 'asap', code: 'closed_now'});
+  assert.deepEqual(asapError({date: monday, today: monday, now: '09:59'}, hours, on), {field: 'asap', code: 'closed_now'});
+  // "As soon as you can" cannot mean tomorrow.
+  assert.deepEqual(asapError({date: tuesday, today: monday, now: '10:30'}, hours, on), {field: 'fulfillment_date', code: 'not_today'});
+  // A day the shop does not open at all.
+  assert.deepEqual(asapError({date: tuesday, today: tuesday, now: '10:30'}, hours, on), {field: 'fulfillment_date', code: 'closed_day'});
+  // Off by default, so no v0.2 store starts taking ASAP orders.
+  assert.deepEqual(asapError({date: monday, today: monday, now: '10:30'}, hours, {}), {field: 'asap', code: 'not_offered'});
+  // A shop that never wrote its hours down is taken at its word.
+  assert.equal(asapError({date: monday, today: monday, now: '03:00'}, {}, on), null);
 });

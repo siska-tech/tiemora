@@ -36,7 +36,7 @@ additive: every change defaults to the v0.2 behaviour, so a Flower deployment se
 
 The v0.2 features that came *from* the Flower demo, tested a second time:
 
-- **Pickup** — reused directly for takeaway. The only gap is ASAP (§4).
+- **Pickup** — reused directly for takeaway, once ASAP was added beside it (§4.7).
 - **Time-slot capacity** — reused directly. Best-travelling feature in the release.
 - **Options / add-ons** — reused directly. Per-product option sets mattered more here than for
   flowers (a drink has ice and sweetness, a bowl has noodles and herbs), and v0.2 already did it.
@@ -110,7 +110,21 @@ unchanged, so no existing store moves.
 resurrects one the stock count already exhausted — which keeps it from becoming a second, competing
 source of truth. Covered by read-only demo mode for free.
 
-### 4.7 Cart — *generic, but hold*
+### 4.7 ASAP — *generic, promote*
+`ordering.asap` is the order with no time slot: the kitchen starts now. It is the third Flower
+assumption this demo tripped over — v0.2 assumed every order names a window, because a florist
+always knows when a bouquet is due. A shop that cooks to order often cannot say. Guarded by the
+store switch, by "today only", and by the wall clock against `openingHours`, all re-checked server
+side. Off by default.
+
+### 4.8 Storefront copy overrides — *generic, promote*
+`store.text` reached only the page copy; the catalog cards and the order form were hard-coded, so
+every product read "Nhận đặt trước / 予約受付中" and the CTA said "Pre-order" no matter what the shop
+sells. The override now reaches all three tables, each taking only the keys it owns. This is the
+least glamorous change in the pass and possibly the most reusable: it is what lets a demo be a
+different kind of shop rather than a florist with new photos.
+
+### 4.9 Cart — *generic, but hold*
 See §7. Multi-item ordering is not food-specific, and the server-side repricing it forced is a
 straight improvement, but the state contract should be proven once more before it moves into Core.
 
@@ -127,7 +141,10 @@ In the order I would take them:
    if the cart UI waits.
 6. **`ordering.stockPeriod: daily`** — the fix for §3.2. Small, defaulted to the old behaviour, and
    the thing that makes `stock` usable for any shop that restocks.
-7. **QR fulfillment context in the storefront** (`?mode=…`) — the mechanism is generic; the dine-in
+7. **`ordering.asap`** — the order with no slot, for any shop that makes things to order.
+8. **`store.text` reaching the catalog and order-form copy** — one-line change per file, and the
+   difference between reskinning a florist and configuring a shop.
+9. **QR fulfillment context in the storefront** (`?mode=…`) — the mechanism is generic; the dine-in
    reading of it is the only specific part.
 
 ## 6. Stays in the demo

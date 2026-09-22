@@ -12,7 +12,7 @@ spend the "manual work" time only.
 - Branch: `pho-demo`, from `main` at Tiemora `0.2.0`
 - Node.js `v24.21.0`, catalog root `examples/pho-demo/`
 - Store: **Phở Góc Phố**, Vietnamese-first (`vi`, `en`, `ja`, `zh`)
-- Checks at the end of the pass: `npm run check` green — 130 tests, lint, typecheck, build
+- Checks at the end of the pass: `npm run check` green — 132 tests, lint, typecheck, build
 
 ---
 
@@ -120,7 +120,7 @@ spend the "manual work" time only.
 
 | | |
 |---|---|
-| **Core change** | 20 new tests for food ordering: table number range, opening hours, cart state, multi-item repricing, QR parsing and rejection, dine-in without contact details, queue transitions, the sold-out switch (including read-only demo mode), and the `0007` upgrade from a populated v0.2 database. |
+| **Core change** | 22 new tests for food ordering: table number range, opening hours, cart state, multi-item repricing, QR parsing and rejection, dine-in without contact details, queue transitions, the sold-out switch (including read-only demo mode), and the `0007` upgrade from a populated v0.2 database. |
 | **Demo change** | None. |
 | **Manual work** | None. |
 | **Studio candidate** | None. |
@@ -148,6 +148,6 @@ spend the "manual work" time only.
 
 ## Known gaps
 
-- **Pickup is scheduled only.** There is no ASAP option; a takeaway customer picks a 15-minute slot. Fine for a shop that batches, wrong for one where most orders are "now".
+- ~~Pickup is scheduled only~~ — fixed: `ordering.asap` adds an "as soon as you can" choice, on by default for dine-in.
 - **No QR sheet generator.** Table stickers are made by hand.
 - ~~`ordering.stock` is a lifetime total~~ — fixed on this branch with `ordering.stockPeriod: daily`. The menu now carries real per-day counts (30 bowls, 15 of each special), and the sold-out switch handles the rest.

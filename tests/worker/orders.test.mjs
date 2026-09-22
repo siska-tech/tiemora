@@ -434,3 +434,46 @@ test('daily stock refills the next day, and the SQL guard counts only that day',
   const nextDay = await createOrder(env.DB, staffOrder(day(2)), limits);
   assert.equal(nextDay.items.length, 1, 'day 2 still has room even though day 1 is gone');
 });
+
+test('an ASAP order carries no slot, is refused outside opening hours and refused for another day', async () => {
+  // ASAP means today, so the window has to start today: minLeadDays 0.
+  const open = {...store, ordering: {...store.ordering, dates: {from: today, to: day(3), minLeadDays: 0}, asap: {enabled: true, leadMinutes: 15}, timeSlots: [{id: 'am', start: '09:00', end: '11:00', capacity: 5}], dailyCapacity: null}};
+  const {publicPost, call} = await harness({}, open);
+  const asap = extra => order({options: {}, time_slot: '', asap: true, fulfillment_date: today, ...extra});
+
+  // No opening hours configured, so the shop is taken at its word and ASAP works at any hour.
+  const created = await publicPost(asap({customer_phone: '0900000301'}));
+  assert.equal(created.status, 201, JSON.stringify(created.data));
+  assert.equal(created.data.order.asap, 1);
+  assert.equal(created.data.order.time_slot, '', 'ASAP replaces the slot rather than sitting beside it');
+
+  // A slot and ASAP together is a contradiction.
+  const both = await publicPost(asap({time_slot: 'am', customer_phone: '0900000302'}));
+  assert.equal(both.status, 400);
+  assert.equal(both.data.fields.time_slot, 'not_allowed');
+
+  // ASAP cannot mean tomorrow.
+  const tomorrow = await publicPost(asap({fulfillment_date: day(1), customer_phone: '0900000303'}));
+  assert.equal(tomorrow.status, 400);
+  assert.equal(tomorrow.data.fields.fulfillment_date, 'not_today');
+
+  // The config tells the form whether the chip may be shown at all.
+  const config = await call('GET', '/api/orders/config');
+  assert.equal(config.data.asap.enabled, true);
+  assert.equal(config.data.asap.leadMinutes, 15);
+  assert.equal(config.data.asap.openNow, true);
+
+  // A shop that wrote its hours down is held to them: these close before the test clock can match.
+  const shut = {...open, ordering: {...open.ordering, openingHours: {0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: []}}};
+  const closed = await harness({}, shut);
+  const refused = await closed.publicPost(asap({customer_phone: '0900000304'}));
+  assert.equal(refused.status, 400);
+  assert.equal(refused.data.fields.fulfillment_date, 'closed_day');
+  assert.equal((await closed.call('GET', '/api/orders/config')).data.asap.openNow, false);
+
+  // A store that never turned ASAP on refuses it outright, which is every v0.2 store.
+  const off = await harness({}, {...store, ordering: {...store.ordering, dates: {from: today, to: day(3), minLeadDays: 0}, timeSlots: []}});
+  const notOffered = await off.publicPost(asap({customer_phone: '0900000305'}));
+  assert.equal(notOffered.status, 400);
+  assert.equal(notOffered.data.fields.asap, 'not_offered');
+});

@@ -10,7 +10,7 @@ import {PHONE, contactFields, optionalPhone} from './customer.mjs';
 import {PUBLIC_CONTACT_CHANNELS, NOTIFICATION_CHANNELS, NOTIFICATION_STATUSES} from '../core/notifications/index.mjs';
 import {buildOrderNotification} from '../core/notifications/orders.mjs';
 import {localized} from '../core/i18n/localized.mjs';
-import {ORDER_STATUSES, FULFILLMENT_TYPES, priceOrderLine, orderTotals, orderDateWindow, orderDateError, openingHoursError, tableNumberError, normalizeTableNumber, deadlinePassed, findSlot, capacityByDate, stockSummary, stockPeriodOf, dailyStockSummary, nextOrderStatuses} from '../core/orders/rules.mjs';
+import {ORDER_STATUSES, FULFILLMENT_TYPES, priceOrderLine, orderTotals, orderDateWindow, orderDateError, openingHoursError, asapError, tableNumberError, normalizeTableNumber, deadlinePassed, findSlot, capacityByDate, stockSummary, stockPeriodOf, dailyStockSummary, nextOrderStatuses} from '../core/orders/rules.mjs';
 import {publicRequestGuard, turnstileStatus} from './public-requests.mjs';
 import {pushEnabled, notifyAdmins, newOrderPayload} from './push.mjs';
 import {shiftDate} from '../core/booking/dates.mjs';
@@ -33,7 +33,7 @@ const tableRange = ordering => ({min: ordering.tables?.min ?? 1, max: ordering.t
 // public config and for the create handler so the customer never sees a slot the server would refuse.
 async function orderState(env, request) {
   const [store, catalog] = await Promise.all([loadStore(env, request), loadCatalog(env, request)]);
-  const {today} = bookingContext(env, store);
+  const {today, now} = bookingContext(env, store);
   const window = orderDateWindow(store.ordering.dates, today);
   const dates = windowDates(window);
   const [counts, sold, soldByDate, switchedOff] = await Promise.all([
@@ -51,7 +51,7 @@ async function orderState(env, request) {
     const offByStaff = switchedOff.has(product.id);
     products[product.id] = {...summary, soldOut: summary.soldOut || offByStaff, soldOutByStaff: offByStaff, preorder: product.ordering?.preorder !== false, deadlinePassed: deadlinePassed(product.ordering?.deadline)};
   }
-  return {store, catalog, today, window, dates, capacity: capacityOf(store.ordering, dates, counts), products, deadlinePassed: deadlinePassed(store.ordering.deadline)};
+  return {store, catalog, today, now, window, dates, capacity: capacityOf(store.ordering, dates, counts), products, deadlinePassed: deadlinePassed(store.ordering.deadline)};
 }
 
 // --- Public --------------------------------------------------------------------------------------------
@@ -60,7 +60,7 @@ async function orderConfig(request, env) {
   const {ordering} = state.store;
   const turnstile = turnstileStatus(env);
   return json({
-    fulfillment: ordering.fulfillment, tables: tableRange(ordering), dates: {...state.window, list: state.dates}, deadline: ordering.deadline, deadlinePassed: state.deadlinePassed,
+    fulfillment: ordering.fulfillment, tables: tableRange(ordering), asap: {...ordering.asap, openNow: !asapError({date: state.today, today: state.today, now: state.now}, ordering.openingHours, ordering.asap)}, now: state.now, dates: {...state.window, list: state.dates}, deadline: ordering.deadline, deadlinePassed: state.deadlinePassed,
     dailyCapacity: ordering.dailyCapacity, timeSlots: ordering.timeSlots, openingHours: ordering.openingHours, capacity: state.capacity, products: state.products,
     options: ordering.options, addons: ordering.addons, messageCard: ordering.messageCard, currency: state.store.currency,
     turnstileSiteKey: turnstile.enabled ? env.TURNSTILE_SITE_KEY : '', turnstile
@@ -95,13 +95,27 @@ function orderFields(body, state, {strict}) {
     const problem = orderDateError(fulfillment_date, state.window);
     if (problem) throw badRequest({invalid: 'fulfillment_date must be a date in YYYY-MM-DD format.', too_early: 'fulfillment_date is too soon or ordering is closed.', too_late: 'fulfillment_date is beyond the ordering window.'}[problem.code], {fulfillment_date: problem.code});
   } else if (!isIsoDate(fulfillment_date)) throw badRequest('fulfillment_date must be a date in YYYY-MM-DD format.', {fulfillment_date: 'invalid'});
+  // "As soon as you can" replaces the slot rather than sitting next to it: the kitchen starts now,
+  // so there is no window to promise. It only holds while the shop is open, and only for today.
+  const asap = body.asap === true;
   let time_slot = optionalText(body.time_slot, 'time_slot', 40);
-  if (ordering.timeSlots.length) {
+  if (asap) {
+    if (time_slot) throw badRequest('An ASAP order has no time slot.', {time_slot: 'not_allowed'});
+    const problem = asapError({date: fulfillment_date, today: state.today, now: state.now}, ordering.openingHours, ordering.asap);
+    if (problem) throw badRequest({
+      not_offered: 'This shop does not take ASAP orders.',
+      not_today: 'An ASAP order can only be for today.',
+      closed_day: 'The shop is closed today.',
+      closed_now: 'The shop is closed right now; please choose a time slot.'
+    }[problem.code], {[problem.field]: problem.code});
+  } else if (ordering.timeSlots.length) {
     if (!time_slot) throw badRequest('time_slot is required.', {time_slot: 'required'});
     if (!findSlot(ordering.timeSlots, time_slot)) throw badRequest('Unknown time_slot.', {time_slot: 'invalid'});
   } else time_slot = '';
-  const openingProblem = openingHoursError(fulfillment_date, findSlot(ordering.timeSlots, time_slot), ordering.openingHours);
-  if (openingProblem) throw badRequest(openingProblem.code === 'closed_day' ? 'The shop is closed on this day.' : 'This time slot is outside opening hours.', {[openingProblem.field]: openingProblem.code});
+  if (!asap) {
+    const openingProblem = openingHoursError(fulfillment_date, findSlot(ordering.timeSlots, time_slot), ordering.openingHours);
+    if (openingProblem) throw badRequest(openingProblem.code === 'closed_day' ? 'The shop is closed on this day.' : 'This time slot is outside opening hours.', {[openingProblem.field]: openingProblem.code});
+  }
   // A dine-in guest is already sitting in the shop and the bowl goes to their table, so neither a
   // name nor a phone number is needed to hand the order over. Pickup and delivery still need both.
   const dineIn = fulfillment_type === 'dine_in';
@@ -109,7 +123,7 @@ function orderFields(body, state, {strict}) {
   const data = {
     customer_name: dineIn ? optionalText(body.customer_name, 'customer_name', 100) : requireText(body.customer_name, 'customer_name', 100),
     customer_phone: strict && !dineIn ? requireText(body.customer_phone, 'customer_phone', 40) : optionalPhone(body.customer_phone, 'customer_phone'),
-    fulfillment_type, fulfillment_date, time_slot,
+    fulfillment_type, fulfillment_date, time_slot, asap: asap ? 1 : 0,
     table_number: '',
     recipient_name: '', recipient_phone: '', delivery_address: '', delivery_note: '',
     message_card: ordering.messageCard.enabled ? optionalText(body.message_card, 'message_card', ordering.messageCard.maxLength) : '',
@@ -182,8 +196,8 @@ async function orderCreate(request, env, url, params, admin, ctx) {
       if (ctx?.waitUntil) ctx.waitUntil(delivery); else await delivery;
     }
   }
-  const {id, status, customer_name, fulfillment_type, fulfillment_date, time_slot, table_number, total, currency, created_at, privacy_consent_at} = order;
-  return json({order: {id, status, customer_name, fulfillment_type, fulfillment_date, time_slot, table_number, total, currency, items: order.items, created_at, privacy_consent: true, privacy_consent_at}, duplicate: Boolean(existing)}, existing ? 200 : 201);
+  const {id, status, customer_name, fulfillment_type, fulfillment_date, time_slot, asap, table_number, total, currency, created_at, privacy_consent_at} = order;
+  return json({order: {id, status, customer_name, fulfillment_type, fulfillment_date, time_slot, asap, table_number, total, currency, items: order.items, created_at, privacy_consent: true, privacy_consent_at}, duplicate: Boolean(existing)}, existing ? 200 : 201);
 }
 
 // --- Admin ---------------------------------------------------------------------------------------------
@@ -235,6 +249,10 @@ async function orderUpdate(request, env, id) {
   if (has('fulfillment_type')) patch.fulfillment_type = requireEnum(body.fulfillment_type, 'fulfillment_type', FULFILLMENT_TYPES);
   if (has('fulfillment_date')) { if (!isIsoDate(body.fulfillment_date)) throw badRequest('fulfillment_date must be a date in YYYY-MM-DD format.', {fulfillment_date: 'invalid'}); patch.fulfillment_date = body.fulfillment_date; }
   if (has('time_slot')) patch.time_slot = optionalText(body.time_slot, 'time_slot', 40);
+  // Staff correcting an order: an ASAP order that gets a slot stops being ASAP, and vice versa.
+  if (has('asap')) patch.asap = body.asap === true ? 1 : 0;
+  if (patch.asap === 1) patch.time_slot = '';
+  else if (patch.time_slot) patch.asap = 0;
   // Staff may clear the table (an order that moved to takeaway) or move a guest to another one.
   if (has('table_number')) {
     const value = String(body.table_number ?? '').trim();

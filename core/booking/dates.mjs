@@ -18,6 +18,12 @@ export function todayIn(timeZone = 'Asia/Ho_Chi_Minh', now = new Date()) {
   try { return new Intl.DateTimeFormat('en-CA', {timeZone, year: 'numeric', month: '2-digit', day: '2-digit'}).format(now); }
   catch { return now.toISOString().slice(0, 10); }
 }
+// The wall-clock time in the store's zone, as "HH:MM" -- the same shape opening hours and time
+// slots are written in, so they can be compared as plain strings.
+export function timeIn(timeZone = 'Asia/Ho_Chi_Minh', now = new Date()) {
+  try { return new Intl.DateTimeFormat('en-GB', {timeZone, hour: '2-digit', minute: '2-digit', hour12: false}).format(now); }
+  catch { return now.toISOString().slice(11, 16); }
+}
 // The period a booking blocks once the store's buffer of free days is added on both sides.
 export function paddedPeriod(from, to, buffer = 0) {
   return {start: shiftDate(from, -buffer), end: shiftDate(to, buffer)};

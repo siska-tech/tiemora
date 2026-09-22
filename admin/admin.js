@@ -78,6 +78,8 @@ const T={
 for(const [key,label] of Object.entries({en:['Dine in','Dine-in orders','Table'],vi:['Ăn tại quán','Đơn tại quán','Số bàn'],ja:['店内注文','店内注文','テーブル番号']})){T[key].fulfillmentType.dine_in=label[0];T[key].dineInSchedule=label[1];T[key].tableNumber=label[2];}
 // Order Queue: the kitchen-facing lanes. Same strings pattern as the dine-in labels above.
 for(const [key,label] of Object.entries({en:['Order queue','Nothing in this lane','Ordered at','No orders for this day'],vi:['Hàng đợi đơn','Không có đơn nào','Đặt lúc','Chưa có đơn nào trong ngày'],ja:['注文キュー','この列は空です','注文時刻','この日の注文はありません']})){T[key].queue=label[0];T[key].laneEmpty=label[1];T[key].orderedAt=label[2];T[key].queueEmpty=label[3];}
+// ASAP orders carry no slot.
+for(const [key,label] of Object.entries({en:['ASAP'],vi:['Ngay bây giờ'],ja:['できあがり次第']})){T[key].asap=label[0];}
 // Menu / sold-out switch.
 for(const [key,label] of Object.entries({en:['Menu','Switch a dish off while it lasts; the catalog decides everything else.','Category','Stock','Sold out'],vi:['Thực đơn','Tắt món khi hết; mọi thứ còn lại do catalog quyết định.','Danh mục','Tồn','Hết món'],ja:['メニュー','品切れの品をここで止めます。それ以外はカタログの設定に従います。','カテゴリ','在庫','品切れ']})){T[key].navMenu=label[0];T[key].menuHint=label[1];T[key].category=label[2];T[key].stock=label[3];T[key].soldOut=label[4];}
 const CONTACT_CHANNELS=['messenger','zalo','whatsapp','phone','other'];
@@ -533,6 +535,7 @@ async function settings(){
 // the order rows. Capacity per slot is what /api/orders/config and the schedule report.
 const ordering=()=>storeConfig.ordering||{timeSlots:[],options:{},addons:{},fulfillment:{}};
 const slotLabel=id=>{const slot=(ordering().timeSlots||[]).find(s=>s.id===id);return slot?(localized(slot.label)||`${slot.start}–${slot.end}`):(id||'');};
+const whenLabel=o=>o?.asap?t('asap'):(slotLabel(o?.time_slot)||formatDate(o?.fulfillment_date));
 const optionText=(group,id)=>localized(ordering().options?.[group]?.choices?.[id]?.label)||id;
 const addonText=id=>localized(ordering().addons?.[id]?.label)||id;
 function money(amount,currency){try{return new Intl.NumberFormat({vi:'vi-VN',ja:'ja-JP',en:'en-US'}[lang]||'en-US',{style:'currency',currency:currency||storeConfig.currency||'VND',maximumFractionDigits:0}).format(amount);}catch{return `${amount} ${currency||''}`;}}
@@ -546,7 +549,7 @@ function orderTable(rows,quickAction){
   <td data-label="${esc(t('product'))}">${orderLines(o)}</td>
   <td data-label="${esc(t('fulfillment'))}">${fulfillmentPill(o)}</td>
   <td data-label="${esc(t('date'))}">${esc(formatDate(o.fulfillment_date))}</td>
-  <td data-label="${esc(t('timeSlot'))}">${esc(slotLabel(o.time_slot))||'—'}</td>
+  <td data-label="${esc(t('timeSlot'))}">${esc(o.asap?t('asap'):slotLabel(o.time_slot))||'—'}</td>
   <td data-label="${esc(t('status'))}">${pill('orderStatus',o.status)}</td>
   <td data-label="${esc(t('notification'))}">${notificationPill(o)}</td>
   ${quickAction==='open'?`<td><a class="button small" href="#/orders/${esc(o.id)}">${esc(t('open'))}</a></td>`:quickAction?`<td><button type="button" class="small primary" data-order-quick="${quickAction}" data-id="${esc(o.id)}">${esc(T[lang].orderAction[quickAction])}</button></td>`:''}
@@ -626,7 +629,7 @@ const nextStatuses=(status,fulfillment)=>({
  ready:fulfillment==='delivery'?['out_for_delivery','completed','cancelled']:['completed','cancelled'],
  out_for_delivery:['completed','cancelled']
 }[status]||[]);
-const queueWhen=o=>o.fulfillment_type==='dine_in'?(o.table_number?`${t('tableNumber')} ${o.table_number}`:''):(slotLabel(o.time_slot)||formatDate(o.fulfillment_date));
+const queueWhen=o=>o.fulfillment_type==='dine_in'?(o.table_number?`${t('tableNumber')} ${o.table_number}`:t('asap')):whenLabel(o);
 function queueCard(o){
  const actions=nextStatuses(o.status,o.fulfillment_type);
  const time=(o.created_at||'').slice(11,16);
@@ -745,7 +748,7 @@ async function orderDetail(id){
     <h3 style="margin-top:16px">${esc(t('messageCard'))}</h3><blockquote class="card-message">${o.message_card?esc(o.message_card):`<span class="muted">${esc(t('noCard'))}</span>`}</blockquote>
    </section>
    <section class="card"><h3>${esc(t('fulfillment'))}</h3><div class="contact-block">
-    ${line(t('fulfillment'),fulfillmentPill(o))}${line(t('date'),esc(formatDate(o.fulfillment_date)))}${line(t('timeSlot'),esc(slotLabel(o.time_slot))||'—')}${o.table_number?line(t('tableNumber'),esc(o.table_number)):''}
+    ${line(t('fulfillment'),fulfillmentPill(o))}${line(t('date'),esc(formatDate(o.fulfillment_date)))}${line(t('timeSlot'),esc(o.asap?t('asap'):slotLabel(o.time_slot))||'—')}${o.table_number?line(t('tableNumber'),esc(o.table_number)):''}
     ${o.fulfillment_type==='delivery'?line(t('recipient'),esc([o.recipient_name,o.recipient_phone].filter(Boolean).join(' · ')))+line(t('address'),esc(o.delivery_address))+(o.delivery_note?line(t('deliveryNote'),esc(o.delivery_note)):''):''}
     ${o.note?line(t('note'),esc(o.note)):''}
    </div></section>
