@@ -136,7 +136,7 @@ test('arbitrary ids open translated detail; mixed gallery; video stopped on clos
 test('hero copy, section headings and cards start hidden and reveal once they intersect',async t=>{
  const {document:d,observers}=await setup(t);
  const hero=[...d.querySelectorAll('.hero-copy .reveal')];
- assert.deepEqual(hero.map(el=>el.className),['eyebrow reveal','reveal','intro reveal']);
+ assert.deepEqual(hero.map(el=>el.className),['eyebrow reveal','reveal','hero-subtitle reveal','intro reveal']);
  assert.equal(observers.length,1);
  const [observer]=observers;
  const cards=[...d.querySelectorAll('.product')];

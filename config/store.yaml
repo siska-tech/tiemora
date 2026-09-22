@@ -20,7 +20,12 @@ store:
     zh: "由 Tiemora 驱动的演示商店：浏览商品、查看可用日期并发送预约申请。"
   # Optional logo shown in the header (a path under storefront/assets/, e.g. /assets/logo.webp).
   logo: null
+  # mark (default): a square symbol next to the store name; wordmark: the logo already contains the
+  # name and replaces the text.
+  logoStyle: mark
   hero:
+    # Optional small kicker line above the title; null shows the store name.
+    eyebrow: null
     # Optional. Without a title the storefront uses its built-in generic headline. \n starts a new line
     # and <em>…</em> highlights a word.
     title:
@@ -28,9 +33,14 @@ store:
       en: "Pick something beautiful.\nKeep the <em>memory.</em>"
       ja: "お気に入りを選んで、\n思い出を<em>残す。</em>"
       zh: "选一件心仪之物，\n留住<em>美好回忆。</em>"
+    # Optional italic line under the title.
     subtitle: null
     # Optional hero image (a path under storefront/assets/). The default is a neutral illustration.
     image: null
+    # pan (default): a tall crop that slides sideways on scroll; cover: the image fills the frame.
+    fit: pan
+    # CSS object-position for the cover fit, e.g. "70% 50%"; only used when fit: cover.
+    focus: null
   # Optional banner above the header; null hides it.
   announcement:
     vi: "Đây là cửa hàng mẫu · Dữ liệu chỉ để minh họa"
@@ -42,6 +52,10 @@ store:
     - {vi: "Đặt chỗ trực tuyến", en: "Book online", ja: "オンラインで予約", zh: "在线预约"}
     - {vi: "Xác nhận qua Zalo / WhatsApp", en: "Confirmed on Zalo / WhatsApp", ja: "Zalo / WhatsApp で確認", zh: "通过 Zalo / WhatsApp 确认"}
     - {vi: "Không cần tài khoản", en: "No account needed", ja: "アカウント不要", zh: "无需注册账号"}
+  # Overrides for the storefront's built-in UI copy (keys of `copy` in storefront/app.js). Empty by
+  # default; use this to reword the page for your industry without touching code, e.g.
+  # bookCta: {vi: "Đặt hàng", en: "Order now"}.
+  text: {}
 
 catalog:
   # Folder scanned for product.yaml files, relative to the project root. Point it at catalog/ once you
@@ -74,6 +88,9 @@ contact:
 categories:
   rental: {vi: "Cho thuê", en: "Rental", ja: "レンタル", zh: "租赁"}
   accessories: {vi: "Phụ kiện", en: "Accessories", ja: "小物", zh: "配饰"}
+  # Used by examples/sale/ (type: sale products); unlisted categories are shown by their id.
+  gifts: {vi: "Quà tặng", en: "Gifts", ja: "ギフト", zh: "礼品"}
+  seasonal: {vi: "Theo mùa", en: "Seasonal", ja: "季節限定", zh: "季节性"}
 
 # Brand colours (6-digit hex). Written to /theme.css by the build.
 theme:
@@ -90,6 +107,40 @@ booking:
   maxDaysAhead: 365
   # Free days kept between one rental's return date and the next rental's start date.
   bufferDays: 0
+
+# Sale / pre-order products (type: sale in product.yaml, see examples/sale/ and docs/orders.md).
+# Capacity is counted, not itemised: a time slot holds N orders, a day holds N orders, a product
+# sells N units. Every limit below is optional; leave it null and nothing is enforced or shown as scarce.
+ordering:
+  fulfillment:
+    pickup: true
+    delivery: true
+    deliveryFee: 0
+    deliveryNote: null
+  # Either an explicit campaign window (from / to) or a rolling one (minLeadDays / maxDaysAhead).
+  dates:
+    from: null
+    to: null
+    minLeadDays: 1
+    maxDaysAhead: 14
+  deadline: null
+  dailyCapacity: null
+  timeSlots: []
+  # Labels and default price deltas for the option / add-on ids products list in product.yaml.
+  options:
+    size:
+      label: {vi: "Kích cỡ", en: "Size"}
+      choices:
+        small: {label: {vi: "Nhỏ", en: "Small"}}
+        medium: {label: {vi: "Vừa", en: "Medium"}}
+        large: {label: {vi: "Lớn", en: "Large"}}
+  addons:
+    giftwrap: {label: {vi: "Gói quà", en: "Gift wrap"}, price: 20000}
+  messageCard:
+    enabled: true
+    maxLength: 200
+    placeholder: null
+    templates: []
 
 admin:
   # Language the admin page opens in (vi, en or ja) until staff pick another.

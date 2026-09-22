@@ -11,6 +11,8 @@ Tiemora Core is one Cloudflare Worker, a static site and a D1 database. This pag
 ├──────────────────────────────────────────────────────────────────────────┤
 │ worker/      index.mjs   routing, admin page gating, security headers    │  Cloudflare
 │              api.mjs     HTTP handlers, input validation, responses      │
+│              orders.mjs / orders-db.mjs  sale orders: handlers, SQL      │
+│              customer.mjs  contact validation shared by both flows     │
 │              auth.mjs    password sessions, Cloudflare Access, tokens    │
 │              db.mjs      repository: every SQL statement                 │
 │              push.mjs    Web Push (VAPID + aes128gcm)                    │
@@ -19,6 +21,7 @@ Tiemora Core is one Cloudflare Worker, a static site and a D1 database. This pag
 ├──────────────────────────────────────────────────────────────────────────┤
 │ core/        catalog/    product.yaml scanning and validation            │  pure JS
 │              booking/    dates, statuses, overlap, availability summary  │
+│              orders/     sale statuses, pricing, windows, capacity       │
 │              inventory/  item statuses and ids                           │
 │              notifications/ messages, phone numbers, chat links          │
 │              i18n/       localized values and language fallbacks         │
@@ -42,6 +45,7 @@ Rules of thumb:
 | `catalog/**/product.yaml` → `dist/catalog.json` | Product master data and media list | Git |
 | D1 `inventory_items` | Physical copies of products and their status | Database |
 | D1 `reservations`, `reservation_items` | Bookings, contact preferences, notification record, consent | Database |
+| D1 `orders`, `order_items` | Sale / pre-orders: fulfillment, time slot, card message, prices at order time, notification record, consent | Database |
 | D1 `public_request_log` | Hashed client IPs for the public form throttle (pruned daily) | Database |
 | D1 `push_subscriptions` | Admin devices' Web Push subscriptions | Database |
 

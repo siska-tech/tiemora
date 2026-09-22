@@ -205,3 +205,27 @@ button:disabled{opacity:.5;cursor:default}
 .admin-footer a:hover,.login-card .powered:hover{color:var(--primary)}
 .login-card .powered{text-align:center;margin-top:-6px}
 @media(max-width:760px){.admin-footer{width:calc(100% - 24px);text-align:center}}
+
+/* Orders (sale products): fulfillment pills, the day's schedule, the order detail layout. */
+.pill.fulfillment-pickup{background:#e6efe1;color:var(--ok)}
+.pill.fulfillment-delivery{background:#e4ecf5;color:#345a86}
+.pill.preparing{background:#fbf1de;color:var(--warn)}
+.pill.ready,.pill.completed{background:#e6efe1;color:var(--ok)}
+.pill.out_for_delivery{background:#e4ecf5;color:#345a86}
+.block{display:block}
+.order-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.order-grid .request-summary{align-items:flex-start;padding:8px 0}
+.contact-line .total{font:500 20px var(--serif);color:var(--primary)}
+.card-message{margin:0;padding:12px 14px;border-left:3px solid var(--primary);background:var(--paper);font:italic 15px/1.6 var(--serif)}
+.schedule-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.slot{border-top:1px solid var(--line);padding:10px 0 4px}
+.slot h3{font:600 12px/1.4 'DM Sans',sans-serif;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin:0 0 8px;display:flex;justify-content:space-between;gap:8px}
+.slot h3 small{text-transform:none;letter-spacing:0;font-weight:400}
+.slot-order{display:grid;grid-template-columns:auto auto 1fr;gap:2px 10px;align-items:center;padding:8px;border-radius:4px;font-size:13px;color:inherit}
+.slot-order:hover{background:var(--soft)}
+.slot-order b{font-weight:500}
+.slot-order small,.slot-order em{grid-column:1/-1;color:var(--muted);font-style:normal}
+.slot-order em{font:italic 13px var(--serif);color:var(--ink)}
+.read-only-banner{margin:0;padding:8px 20px;background:#fbf1de;color:#6b4a13;font-size:12px;text-align:center;border-bottom:1px solid #ecd9b0}
+.hint.hint{margin-bottom:14px}
+@media(max-width:760px){.order-grid,.schedule-grid{grid-template-columns:1fr}}

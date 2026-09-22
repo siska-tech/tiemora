@@ -9,7 +9,12 @@ import {localized} from '../i18n/localized.mjs';
 export {localized};
 export const imageExtensions = new Set(['.jpg','.jpeg','.png','.webp','.avif','.gif']);
 export const videoExtensions = new Set(['.mp4','.webm','.mov']);
-const known = new Set(['id','name','category','price','currency','description','sizes','tags','featured','available','model','cover','order','placeholder','color','bg','inventory']);
+const known = new Set(['id','name','category','price','currency','description','sizes','tags','featured','available','model','cover','order','placeholder','color','bg','inventory','type','options','addons','fulfillment','ordering']);
+// Product types Tiemora knows. `rental` books physical items by date range; `sale` sells by quantity
+// (with options, add-ons, pickup / delivery and time slots). Other types are planned, not implemented.
+export const PRODUCT_TYPES = ['rental','sale'];
+const OPTION_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const isMoney = value => typeof value==='number'&&Number.isFinite(value);
 const collator = new Intl.Collator('en', {numeric:true, sensitivity:'base'});
 export const naturalCompare = (a,b) => collator.compare(a,b) || (a < b ? -1 : a > b ? 1 : 0);
 export function webPath(relative) {
@@ -53,15 +58,53 @@ export async function collectCatalog(root, {warn=console.warn, currency='VND'}={
           } else if(data[key]!=null)warning(folder,`${key} must be text or a language mapping; using fallback.`);
         }
         if(!localized(product.name))product.name=path.basename(folder);
-        product.category=typeof data.category==='string'&&data.category.trim()?data.category.trim():(relative.includes('/')?relative.split('/')[0]:'uncategorized');
+        // category: one id, or a list when a product belongs to several collections (the first is primary).
+        const categoryList=Array.isArray(data.category)?data.category.filter(c=>typeof c==='string'&&c.trim()).map(c=>c.trim()):[];
+        if(Array.isArray(data.category)&&categoryList.length!==data.category.length)warning(folder,'category: non-text entries ignored.');
+        product.category=categoryList[0]||(typeof data.category==='string'&&data.category.trim()?data.category.trim():(relative.includes('/')?relative.split('/')[0]:'uncategorized'));
+        if(categoryList.length>1)product.categories=[...new Set(categoryList)];
         product.currency=typeof data.currency==='string'&&/^[A-Za-z]{3}$/.test(data.currency)?data.currency.toUpperCase():currency;
         if(data.currency!=null && product.currency!==String(data.currency).toUpperCase())warning(folder,`Invalid currency; using ${currency}.`);
-        if(isMap(data.price)&&typeof data.price.rental==='number'&&Number.isFinite(data.price.rental)&&data.price.rental>=0)product.price={rental:data.price.rental};
-        else if(data.price!=null)warning(folder,'Invalid rental price; showing contact-for-price.');
+        // type: explicit, else inferred from the price key (price.sale -> sale), else rental.
+        const priceMap=isMap(data.price)?data.price:{};
+        if(typeof data.type==='string'&&PRODUCT_TYPES.includes(data.type))product.type=data.type;
+        else{product.type=isMoney(priceMap.sale)&&!isMoney(priceMap.rental)?'sale':'rental';if(data.type!=null)warning(folder,`type must be one of ${PRODUCT_TYPES.join(', ')}; using ${product.type}.`);}
+        const priceKey=product.type==='sale'?'sale':'rental';
+        if(isMoney(priceMap[priceKey])&&priceMap[priceKey]>=0)product.price={[priceKey]:priceMap[priceKey]};
+        else if(data.price!=null)warning(folder,`Invalid ${priceKey} price; showing contact-for-price.`);
         if(isMap(data.price)&&data.price.original!=null) {
-          if(product.price&&typeof data.price.original==='number'&&Number.isFinite(data.price.original)&&data.price.original>product.price.rental)product.price.original=data.price.original;
-          else warning(folder,'price.original must be a number above price.rental; ignoring the discount.');
+          if(product.price&&isMoney(data.price.original)&&data.price.original>product.price[priceKey])product.price.original=data.price.original;
+          else warning(folder,`price.original must be a number above price.${priceKey}; ignoring the discount.`);
         }
+        // Sale products: option groups (size / tone / wrapping ...), add-ons, fulfillment and ordering rules.
+        // Labels and default prices for the ids live in config/store.yaml (ordering.options / ordering.addons);
+        // a product only lists which ids it offers, optionally with its own price delta.
+        const choice=(value,where)=>{
+          if(typeof value==='string'&&OPTION_ID.test(value))return {id:value};
+          if(isMap(value)&&typeof value.id==='string'&&OPTION_ID.test(value.id)){const c={id:value.id};if(isMoney(value.price))c.price=value.price;else if(value.price!=null)warning(folder,`${where}: price of "${value.id}" must be a number; ignored.`);return c;}
+          warning(folder,`${where}: entries must be ids (lowercase, digits, hyphens) or {id, price}; ${JSON.stringify(value)} ignored.`);return null;
+        };
+        if(isMap(data.options)) {
+          product.options={};
+          for(const [group,list] of Object.entries(data.options)) {
+            if(!OPTION_ID.test(group)){warning(folder,`options.${group}: invalid group id ignored.`);continue;}
+            if(!Array.isArray(list)){warning(folder,`options.${group} must be a list; ignored.`);continue;}
+            const choices=list.map(v=>choice(v,`options.${group}`)).filter(Boolean);
+            if(choices.length)product.options[group]=choices;
+          }
+        } else if(data.options!=null)warning(folder,'options must be a mapping of group -> list; ignored.');
+        if(Array.isArray(data.addons))product.addons=data.addons.map(v=>choice(v,'addons')).filter(Boolean);
+        else if(data.addons!=null)warning(folder,'addons must be a list; ignored.');
+        if(product.type==='sale') {
+          const f=isMap(data.fulfillment)?data.fulfillment:{};
+          if(data.fulfillment!=null&&!isMap(data.fulfillment))warning(folder,'fulfillment must be a mapping; using defaults.');
+          product.fulfillment={pickup:f.pickup!==false,delivery:f.delivery!==false};
+          const o=isMap(data.ordering)?data.ordering:{};
+          if(data.ordering!=null&&!isMap(data.ordering))warning(folder,'ordering must be a mapping; using defaults.');
+          product.ordering={preorder:o.preorder!==false,stock:null,deadline:null};
+          if(Number.isInteger(o.stock)&&o.stock>=0)product.ordering.stock=o.stock;else if(o.stock!=null)warning(folder,'ordering.stock must be a whole number >= 0; treating as unlimited.');
+          if(typeof o.deadline==='string'&&!Number.isNaN(Date.parse(o.deadline)))product.ordering.deadline=o.deadline;else if(o.deadline!=null)warning(folder,'ordering.deadline must be an ISO date-time; ignored.');
+        } else if(data.fulfillment!=null||data.ordering!=null)warning(folder,'fulfillment / ordering only apply to type: sale; ignored.');
         for(const key of ['featured','available','placeholder']) {
           if(typeof data[key]==='boolean')product[key]=data[key];
           else {product[key]=key==='available'?null:false;if(data[key]!=null)warning(folder,`${key} must be a boolean; using default.`);}

@@ -183,3 +183,84 @@ footer .brand-with-logo .brand-wordmark{font-size:25px}
 .values .wrap{flex-wrap:wrap}
 .catalog-message button{margin-left:8px;padding:6px 12px;border:1px solid var(--line);background:#fff;font-size:11px}
 a:focus-visible,button:focus-visible,select:focus-visible{outline-color:var(--accent)}
+
+/* Theme-derived states: the hover / selected tints follow --primary and --accent instead of the
+   original rental brand's fixed colours, so a store only needs config/store.yaml theme:. */
+.button:hover{background:color-mix(in srgb,var(--primary),black 18%)}
+.dialog-copy .booking .button:disabled,.booking-form .button:disabled{background:color-mix(in srgb,var(--muted),white 45%)}
+.choice:has(input:checked),.booking-grid .channel-card.is-selected,.booking-grid .channel-card:has(input:checked){background:color-mix(in srgb,var(--primary),white 93%)}
+.channel-field{border-left-color:color-mix(in srgb,var(--primary),white 60%)}
+.product-cta{border-bottom-color:color-mix(in srgb,var(--primary),white 65%)}
+a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline-color:var(--accent)}
+.sale-badge,.price-badge{background:var(--accent)}
+.product-price.sale-price{color:var(--accent)}
+
+/* Hero: optional kicker line under the title and the "cover" fit (no sideways pan). */
+.hero-subtitle{font:italic 500 clamp(18px,2vw,24px)/1.4 var(--serif);color:var(--muted);margin:-8px 0 20px}
+.hero-art.hero-cover img{position:static;width:100%;height:100%;object-fit:cover;object-position:60% 50%;will-change:auto}
+@media(max-width:640px){.hero-subtitle{font-size:19px;margin-bottom:16px}}
+
+/* Sale products: options, add-ons, quantity and price inside the product dialog. */
+.order-block{margin-top:22px;padding-top:18px;border-top:1px solid var(--line)}
+.order-block .eyebrow{margin-bottom:12px}
+.option-group{margin-bottom:12px}
+.option-label{display:block;font-size:10px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{position:relative;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-height:40px;padding:7px 13px;border:1px solid var(--line);border-radius:3px;background:#fff;font:inherit;font-size:12px;color:var(--ink);cursor:pointer;transition:border-color .18s,background .18s;line-height:1.3}
+.chip small{font-size:10px;color:var(--muted)}
+.chip:hover{border-color:color-mix(in srgb,var(--primary),white 40%)}
+.chip.is-selected,.chip:has(input:checked){border-color:var(--primary);background:color-mix(in srgb,var(--primary),white 93%);color:var(--primary);box-shadow:inset 0 0 0 1px var(--primary)}
+.chip:has(input:focus-visible){outline:3px solid var(--accent);outline-offset:2px}
+.chip.is-full{color:var(--muted);background:#f4f1ec;cursor:not-allowed;text-decoration:line-through}
+.chip.is-full small{text-decoration:none}
+.order-quantity{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:14px 0 10px;font-size:11px;color:var(--muted)}
+.qty{display:inline-flex;border:1px solid var(--line);border-radius:3px;background:#fff}
+.qty button{width:40px;height:40px;border:0;background:transparent;font-size:18px;color:var(--primary)}
+.qty input{width:48px;border:0;border-left:1px solid var(--line);border-right:1px solid var(--line);text-align:center;font:inherit;font-size:14px;color:var(--ink);-moz-appearance:textfield}
+.qty input::-webkit-inner-spin-button,.qty input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.order-total{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin:0 0 6px;font-size:12px;color:var(--muted)}
+.order-total b{font:500 20px var(--serif);color:var(--ink)}
+.order-status{min-height:16px;margin:0 0 4px;font-size:11px;color:#55694d}
+.order-status.is-low{color:var(--accent)}
+.order-status.is-unavailable{color:#a43a3a}
+.dialog-copy .order-block .button{margin-top:10px;width:100%;border:0}
+.dialog-copy .order-block .button:disabled{background:color-mix(in srgb,var(--muted),white 45%);transform:none;cursor:default}
+
+/* The order form: numbered sections, message templates, fulfillment cards, date and slot chips. */
+#order-dialog[open]{display:block;width:min(560px,calc(100% - 32px))}
+.order-section{display:grid;gap:10px;padding-top:16px;border-top:1px solid var(--line)}
+.order-section h3{display:flex;align-items:center;gap:10px;font:500 20px var(--serif);margin:0}
+.order-section .step{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--primary);color:#fff;font:600 11px 'DM Sans',sans-serif}
+.order-section>label,.delivery-fields label{display:grid;gap:5px;font-size:10px;color:var(--muted)}
+.order-section textarea,.delivery-fields input{font:inherit;font-size:13px;color:var(--ink);padding:11px;border:1px solid var(--line);background:#fff;border-radius:2px;min-height:44px;width:100%}
+.order-section textarea{resize:vertical}
+.counter{font-size:10px;color:var(--muted);text-align:right}
+.template-chips{display:flex;flex-wrap:wrap;gap:6px}
+.template-chips .chip{min-height:34px;padding:6px 12px;font-size:11px}
+.delivery-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px 14px;border:1px solid var(--line);border-left:2px solid color-mix(in srgb,var(--primary),white 60%);background:#fff}
+.delivery-fields .full{grid-column:1/-1}
+.delivery-note{grid-column:1/-1;margin:0;font-size:10px;line-height:1.6;color:var(--muted)}
+.order-window{margin:0;font-size:11px;color:#55694d}
+.date-chips,.slot-chips .chips{display:flex;flex-wrap:wrap;gap:6px}
+.date-chip{min-width:96px}
+.slot-chip{min-width:110px}
+.booking-id small{display:block;font-size:11px;color:var(--muted);margin-top:4px}
+#order-submit-total{font-weight:600}
+@media(max-width:640px){
+  .order-section textarea,.delivery-fields input{font-size:16px}
+  .delivery-fields{grid-template-columns:1fr}
+  #order-dialog{max-height:100vh}
+  .chip{min-height:44px;font-size:13px}
+  .date-chip,.slot-chip{flex:1 1 42%}
+}
+
+/* logoStyle: wordmark — the logo carries the store name, so the text brand is only for assistive tech. */
+.brand.brand-wordmark-logo{display:inline-flex;align-items:center;color:var(--primary)}
+.brand.brand-wordmark-logo .brand-mark{position:static;display:block;width:auto;height:72px;overflow:visible;border-radius:0}
+.brand.brand-wordmark-logo .brand-mark img{position:static;display:block;width:auto;height:100%;max-width:min(320px,60vw);object-fit:contain;transform:none}
+.brand.brand-wordmark-logo .brand-wordmark{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media(max-width:640px){.header .brand.brand-wordmark-logo .brand-mark{height:56px}}
+/* The fulfillment choice reuses the contact-channel cards outside .booking-grid. */
+.order-section .channel-card{position:relative;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:14px;align-items:center;min-height:56px;padding:11px 14px 11px 16px;border:1px solid var(--line);border-radius:3px;background:#fff;cursor:pointer;color:var(--ink);font-size:10px;transition:border-color .18s,background .18s,box-shadow .18s}
+.order-section .channel-card:hover{border-color:#cdbfb3}
+.order-section .channel-card.is-selected,.order-section .channel-card:has(input:checked){border-color:var(--primary);background:color-mix(in srgb,var(--primary),white 93%);box-shadow:inset 0 0 0 1px var(--primary)}

@@ -5,32 +5,22 @@ import {authenticate, authMode, checkPassword, createSession, sessionCookie, csr
 import {loadCatalog} from './catalog.mjs';
 import {loadStore, bookingContext} from './store.mjs';
 import * as db from './db.mjs';
-import {CONTACT_CHANNELS, PUBLIC_CONTACT_CHANNELS, NOTIFICATION_CHANNELS, NOTIFICATION_STATUSES, PHONE_PATTERN, normalizeMessengerUrl, buildNotification} from '../core/notifications/index.mjs';
+import {PUBLIC_CONTACT_CHANNELS, NOTIFICATION_CHANNELS, NOTIFICATION_STATUSES, buildNotification} from '../core/notifications/index.mjs';
 import {requestDatesError} from '../core/booking/rules.mjs';
 import {localized} from '../core/i18n/localized.mjs';
 import {publicRequestGuard, turnstileStatus} from './public-requests.mjs';
 import {pushEnabled, pushStatus, notifyAdmins, newRequestPayload} from './push.mjs';
+import {PHONE, optionalPhone, contactFields} from './customer.mjs';
+import {orderRoutes} from './orders.mjs';
+import * as ordersDb from './orders-db.mjs';
+
+// Demo / read-only mode (ADMIN_READ_ONLY=1): the admin can look but not change anything. Public
+// requests and orders still arrive (that is the demo), sign-in still works.
+export const readOnly = env => ['1', 'true', 'yes'].includes(String(env.ADMIN_READ_ONLY || '').toLowerCase());
+const READ_ONLY_EXEMPT = [/^\/api\/admin\/login$/, /^\/api\/admin\/logout$/];
 
 // Today (in the store's zone) and the booking limits, from store.json with env overrides.
 const context = async (request, env) => bookingContext(env, await loadStore(env, request));
-const PHONE = PHONE_PATTERN;
-function optionalPhone(value, field) {
-  const text = optionalText(value, field, 40);
-  if (text && !PHONE.test(text)) throw badRequest(`${field} must be a phone number.`, {[field]: 'invalid'});
-  return text;
-}
-// Contact preferences shared by the admin form and the public request form.
-function contactFields(body, data, has) {
-  if (has('preferred_contact_channel')) data.preferred_contact_channel = requireEnum(body.preferred_contact_channel || null, 'preferred_contact_channel', CONTACT_CHANNELS, '');
-  if (has('customer_whatsapp')) data.customer_whatsapp = optionalPhone(body.customer_whatsapp, 'customer_whatsapp');
-  if (has('customer_zalo_phone')) data.customer_zalo_phone = optionalPhone(body.customer_zalo_phone, 'customer_zalo_phone');
-  if (has('customer_messenger_url')) {
-    const url = normalizeMessengerUrl(optionalText(body.customer_messenger_url, 'customer_messenger_url', 300));
-    if (url === null) throw badRequest('customer_messenger_url must be a web address such as https://m.me/....', {customer_messenger_url: 'invalid'});
-    data.customer_messenger_url = url;
-  }
-  return data;
-}
 
 function periodFrom(url, today) {
   const from = url.searchParams.get('from'), to = url.searchParams.get('to');
@@ -300,13 +290,19 @@ const routes = [
   route('POST', /^\/api\/admin\/push\/unsubscribe$/, pushUnsubscribe, {auth: true}),
   route('POST', /^\/api\/admin\/push\/test$/, pushTest, {auth: true}),
   route('POST', /^\/api\/admin\/logout$/, logout),
-  route('GET', /^\/api\/admin\/session$/, (req, env, url, m, admin) => json({authenticated: true, mode: admin.mode, user: admin.user}), {auth: true}),
+  route('GET', /^\/api\/admin\/session$/, (req, env, url, m, admin) => json({authenticated: true, mode: admin.mode, user: admin.user, readOnly: readOnly(env)}), {auth: true}),
   route('GET', /^\/api\/admin\/dashboard$/, async (req, env) => {
     const [catalog, {today}] = await Promise.all([loadCatalog(env, req), context(req, env)]);
-    return json({products: catalog.products.length, ...await db.dashboard(env.DB, today)});
+    const [rental, orders] = await Promise.all([db.dashboard(env.DB, today), ordersDb.orderAlerts(env.DB, today)]);
+    return json({products: catalog.products.length, ...rental, ...orders, readOnly: readOnly(env)});
   }, {auth: true}),
   // The in-admin notification centre: today's pickups/returns, overdue rentals, new requests, customers still to notify.
-  route('GET', /^\/api\/admin\/notifications$/, async (req, env) => json(await db.alerts(env.DB, (await context(req, env)).today)), {auth: true}),
+  route('GET', /^\/api\/admin\/notifications$/, async (req, env) => {
+    const {today} = await context(req, env);
+    const [rental, orders] = await Promise.all([db.alerts(env.DB, today), ordersDb.orderAlerts(env.DB, today)]);
+    return json({...rental, ...orders});
+  }, {auth: true}),
+  ...orderRoutes(route),
   route('GET', /^\/api\/admin\/inventory$/, inventoryList, {auth: true}),
   route('POST', /^\/api\/admin\/inventory$/, inventoryCreate, {auth: true}),
   route('GET', /^\/api\/admin\/inventory\/([^/]+)$/, async (req, env, url, [id]) => {
@@ -345,6 +341,9 @@ export async function handleApi(request, env, url, ctx) {
     }
     if (match.csrf && admin?.mode !== 'token' && !csrfSafe(request)) {
       throw new HttpError(403, 'csrf_rejected', 'Cross-site request rejected. Send X-Requested-With: fetch from the store page.');
+    }
+    if (match.auth && !['GET', 'HEAD'].includes(request.method) && readOnly(env) && !READ_ONLY_EXEMPT.some(p => p.test(path))) {
+      throw new HttpError(403, 'read_only', 'This demo admin is read-only: changes are not saved.');
     }
     const params = path.match(match.pattern).slice(1).map(decodeURIComponent);
     return await match.handler(request, env, url, params, admin, ctx);

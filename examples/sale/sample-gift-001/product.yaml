@@ -1,0 +1,51 @@
+# A fictional sale product used to demonstrate Tiemora Core's Orders domain (v0.2). Copy this
+# folder to catalog/<your-product>/ and replace every value. See docs/catalog.md and docs/orders.md.
+id: sample-gift-001
+type: sale
+
+name:
+  vi: Quà tặng mẫu
+  en: Sample Gift
+  ja: ギフトサンプル
+  zh: 示例礼品
+
+category: gifts
+
+description:
+  vi: Sản phẩm mẫu dùng để minh họa tính năng đặt hàng (Orders) của Tiemora. Có thể chọn kích cỡ, thêm gói quà và nhận tại cửa hàng hoặc giao tận nơi.
+  en: A sample item used to demonstrate Tiemora's Orders feature. Choose a size, add gift wrapping and pick up in store or have it delivered.
+  ja: Tiemora の注文（Orders）機能を確認するためのサンプル商品です。サイズを選び、ギフトラッピングを追加して、店頭受取または配送を選べます。
+  zh: 用于演示 Tiemora 订单（Orders）功能的示例商品。可选择尺寸、加购礼品包装，并选择到店自取或配送。
+
+price:
+  sale: 250000
+currency: VND
+
+options:
+  size:
+    - small
+    - medium
+    - {id: large, price: 50000}
+
+addons:
+  - giftwrap
+
+fulfillment:
+  pickup: true
+  delivery: true
+
+ordering:
+  preorder: true
+  stock: 25
+
+placeholder: true
+color: "#3b5b6b"
+bg: "#eef2f4"
+
+available: true
+featured: true
+order: 20
+
+tags:
+  - sample
+  - sale
