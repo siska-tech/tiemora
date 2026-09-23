@@ -25,7 +25,7 @@ const isSale=p=>p?.type==='sale';
 function productPrice(p){
  const base=basePrice(p);
  if(base===null)return copy[language].price;
- return formatPrice(base,p.currency);
+ return formatPrice(base,p.currency)+(isSale(p)?'':({vi:' / ngày',en:' / day',ja:' / 日',zh:' / 天'}[language]||' / day'));
 }
 function originalPrice(p){return typeof p.price?.original==='number'?formatPrice(p.price.original,p.currency):'';}
 function discountPercent(p){const original=p.price?.original,base=basePrice(p);return typeof original==='number'&&base!==null&&original>base?Math.round((1-base/original)*100):0;}

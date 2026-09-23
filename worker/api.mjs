@@ -6,9 +6,13 @@ import {loadCatalog} from './catalog.mjs';
 import {loadStore, bookingContext} from './store.mjs';
 import * as db from './db.mjs';
 import {PUBLIC_CONTACT_CHANNELS, NOTIFICATION_CHANNELS, NOTIFICATION_STATUSES, buildNotification} from '../core/notifications/index.mjs';
+import {shiftDate} from '../core/booking/dates.mjs';
 import {requestDatesError} from '../core/booking/rules.mjs';
 import {localized} from '../core/i18n/localized.mjs';
 import {publicRequestGuard, turnstileStatus} from './public-requests.mjs';
+import {rentalPrice} from '../core/booking/pricing.mjs';
+import {at, dateOf, dueAt, readyAt, dayTimeline, handoffWindows, withinHandoff, slotTimes, rentalDaysError, pickupError, isTimeOfDay, isFitting, PURPOSES, visitSpan} from '../core/booking/schedule.mjs';
+import {itemSegments, daySummaries, productDays, nextAvailable, currentSegment} from '../core/inventory/timeline.mjs';
 import {pushEnabled, pushStatus, notifyAdmins, newRequestPayload} from './push.mjs';
 import {PHONE, optionalPhone, contactFields} from './customer.mjs';
 import {orderRoutes} from './orders.mjs';
@@ -19,8 +23,12 @@ import * as ordersDb from './orders-db.mjs';
 export const readOnly = env => ['1', 'true', 'yes'].includes(String(env.ADMIN_READ_ONLY || '').toLowerCase());
 const READ_ONLY_EXEMPT = [/^\/api\/admin\/login$/, /^\/api\/admin\/logout$/];
 
-// Today (in the store's zone) and the booking limits, from store.json with env overrides.
-const context = async (request, env) => bookingContext(env, await loadStore(env, request));
+// Today (in the store's zone) and the booking limits, from store.json with env overrides. `hold` is
+// how long a rental that is overdue keeps its item: until it could be back and cared for from now.
+const context = async (request, env) => {
+  const limits = bookingContext(env, await loadStore(env, request));
+  return {...limits, hold: db.holdUntil(limits)};
+};
 
 function periodFrom(url, today) {
   const from = url.searchParams.get('from'), to = url.searchParams.get('to');
@@ -33,12 +41,54 @@ function availabilityResponse(productId, period, summary) {
   return {...body, total: summary?.total ?? 0, available: summary?.available ?? 0, status: summary?.status ?? 'unavailable'};
 }
 
+// Rental pricing is per 24 hours. Pick-up and return fall in the same window of the day, so the
+// period is exactly (to - from) x 24h. A same-day return is shorter than that and bills as one day.
+function rentalQuote(product, from, to, purpose = 'rental') {
+  // A fitting is an appointment, not a rental: there is nothing to charge for it.
+  if (isFitting(purpose)) return null;
+  const daily = product.price?.rental;
+  if (typeof daily !== 'number' || !isIsoDate(from) || !isIsoDate(to) || from > to) return null;
+  const days = Math.max(1, Math.round((Date.parse(to + 'T00:00:00Z') - Date.parse(from + 'T00:00:00Z')) / 86400000));
+  return rentalPrice(product, days);
+}
+// A month of anonymous availability, optionally for ranges starting on a selected date.
+// Only booleans and prices leave the server: no customer or physical-item details.
+async function publicCalendar(request, env, url, productId) {
+  const limits = await context(request, env);
+  const {today, buffer, maxRentalDays, maxDaysAhead, hold} = limits;
+  const month = url.searchParams.get('month') || today.slice(0, 7);
+  if (!/^\d{4}-\d{2}$/.test(month) || !isIsoDate(month + '-01')) throw badRequest('Invalid calendar month.');
+  const minMonth = today.slice(0, 7), maxMonth = shiftDate(today, maxDaysAhead + maxRentalDays).slice(0, 7);
+  if (month < minMonth || month > maxMonth) throw badRequest('Month outside booking window.');
+  const anchor = url.searchParams.get('start') || '';
+  if (anchor && (!isIsoDate(anchor) || anchor < today || anchor > shiftDate(today, maxDaysAhead))) throw badRequest('Invalid start date.');
+  const first = month + '-01';
+  const next = shiftDate(first, 32).slice(0, 7) + '-01';
+  const last = shiftDate(next, -1);
+  const product = (await loadCatalog(env, request)).byId.get(productId);
+  if (!product) throw notFound('Unknown product.');
+  if (product.inventory?.managed !== true) throw badRequest('Product is not bookable.');
+  const size = optionalText(url.searchParams.get('size'), 'size', 20);
+  const from = anchor && anchor < first ? anchor : first;
+  const to = anchor && anchor > last ? anchor : last;
+  const items = (await db.itemsForProduct(env.DB, productId, {from, to, buffer, today, hold})).filter(i => !size || i.size === size);
+  const days = [];
+  for (let date = first; date <= last; date = shiftDate(date, 1)) {
+    const start = anchor || date;
+    const invalid = requestDatesError({start_date: start, end_date: date}, limits);
+    const available = !invalid && items.some(i => !db.BLOCKED_ITEM.includes(i.status)
+      && !(start <= today && today <= date && ['reserved', 'rented'].includes(i.status))
+      && !i.conflicts.some(r => r.start_date <= shiftDate(date, buffer) && (r.status === 'rented' && r.end_date < today ? today : r.end_date) >= shiftDate(start, -buffer)));
+    days.push({date, available: Boolean(available)});
+  }
+  return json({month, today, minMonth, maxMonth, maxRentalDays, maxDaysAhead, days}, 200, {'cache-control': 'no-store'});
+}
 // --- Public ---------------------------------------------------------------------------------------
 async function publicAvailability(request, env, url, productId) {
-  const {today, buffer} = await context(request, env);
+  const {today, buffer, hold} = await context(request, env);
   const period = periodFrom(url, today);
   const catalog = await loadCatalog(env, request);
-  const summaries = await db.availabilityByProduct(env.DB, period.from, period.to, {buffer, today});
+  const summaries = await db.availabilityByProduct(env.DB, period.from, period.to, {buffer, today, hold});
   const managed = product => product.inventory?.managed === true;
   if (productId) {
     const product = catalog.byId.get(productId);
@@ -47,11 +97,11 @@ async function publicAvailability(request, env, url, productId) {
     // ?size=L narrows the answer to items of that size (the booking form asks per size).
     const size = optionalText(url.searchParams.get('size'), 'size', 20);
     if (size && managed(product)) {
-      const items = (await db.itemsForProduct(env.DB, productId, {from: period.from, to: period.to, buffer, today})).filter(i => i.size === size && i.status !== 'inactive');
+      const items = (await db.itemsForProduct(env.DB, productId, {from: period.from, to: period.to, buffer, today, hold})).filter(i => i.size === size && i.status !== 'inactive');
       const available = items.filter(i => i.available).length;
       summary = {total: items.length, available, status: available > 0 ? (available < items.length && available <= 1 ? 'low' : 'available') : items.length ? 'rented' : 'unavailable'};
     }
-    return json({...availabilityResponse(productId, period, summary), ...(size ? {size} : {}), managed: managed(product)}, 200, {'cache-control': 'no-cache'});
+    return json({...availabilityResponse(productId, period, summary), ...(size ? {size} : {}), managed: managed(product), ...(rentalQuote(product, period.from, period.to) ? {quote: rentalQuote(product, period.from, period.to)} : {})}, 200, {'cache-control': 'no-cache'});
   }
   const products = {};
   for (const product of catalog.products) products[product.id] = {...availabilityResponse(product.id, {explicit: false}, summaries.get(product.id)), managed: managed(product)};
@@ -61,17 +111,22 @@ async function publicAvailability(request, env, url, productId) {
 
 // --- Admin: inventory -----------------------------------------------------------------------------
 async function productInventory(request, env, url, productId) {
-  const {today, buffer} = await context(request, env);
+  const {today, buffer, hold} = await context(request, env);
   const from = url.searchParams.get('from'), to = url.searchParams.get('to');
   const period = from || to ? requireDateRange(from ?? to, to ?? from) : {};
   const exclude = url.searchParams.get('exclude') || '';
-  const items = await db.itemsForProduct(env.DB, productId, {...period, buffer, exclude, today});
+  const items = await db.itemsForProduct(env.DB, productId, {...period, buffer, exclude, today, hold});
   return json({productId, ...period, items});
 }
 async function inventoryList(request, env, url) {
   const status = url.searchParams.get('status') || '';
   if (status && !db.ITEM_STATUSES.includes(status)) throw badRequest('Unknown status filter.', {status: 'invalid'});
-  return json({items: await db.listInventory(env.DB, {product_id: url.searchParams.get('product_id') || '', status})});
+  const filters = {product_id: url.searchParams.get('product_id') || '', status};
+  if (url.searchParams.get('overview') === '1') {
+    const {today, now, buffer} = await context(request, env);
+    return json(await db.inventoryOverview(env.DB, filters, today, buffer, at(today, now)));
+  }
+  return json({items: await db.listInventory(env.DB, filters)});
 }
 async function inventoryCreate(request, env) {
   const body = await readJson(request);
@@ -182,10 +237,147 @@ async function reservationNotification(request, env, id) {
   return reservationDetail(env, request, await db.setNotification(env.DB, id, {status, channel, note}));
 }
 
+// The day a customer is looking at, hour by hour. Three separate things decide each row: whether a
+// garment is free, whether it has come back and been cared for, and whether somebody is at the shop
+// to hand it over. Only states and counts leave the Worker -- never a customer name or an item id.
+async function publicTimeline(request, env, url, productId) {
+  const limits = await context(request, env);
+  const {today, now, buffer, maxRentalDays, maxDaysAhead, slotMinutes, handoff, turnaround, fitting} = limits;
+  const date = url.searchParams.get('date') || today;
+  if (!isIsoDate(date)) throw badRequest('date must be a date in YYYY-MM-DD format.', {date: 'invalid'});
+  if (date < today || date > shiftDate(today, maxDaysAhead)) throw badRequest('Date outside the booking window.', {date: 'out_of_range'});
+  const purpose = url.searchParams.get('purpose') || 'rental';
+  if (!PURPOSES.includes(purpose)) throw badRequest('Unknown purpose.', {purpose: 'invalid'});
+  if (isFitting(purpose) && !fitting.enabled) throw badRequest('This store does not take fitting visits.', {purpose: 'not_offered'});
+  const days = isFitting(purpose) ? 1 : Number.parseInt(url.searchParams.get('days') || '1', 10);
+  const lengthProblem = rentalDaysError(days, {maxRentalDays});
+  if (lengthProblem) throw badRequest(`A rental runs for 1 to ${maxRentalDays} whole days.`, {[lengthProblem.field]: lengthProblem.code});
+  const product = (await loadCatalog(env, request)).byId.get(productId);
+  if (!product) throw notFound('Unknown product.');
+  if (product.inventory?.managed !== true) throw badRequest('Product is not bookable.');
+  const size = optionalText(url.searchParams.get('size'), 'size', 20);
+  // Far enough ahead to catch a rental that starts on this day and the care window after it.
+  const until = shiftDate(dateOf(readyAt(dueAt(at(date, '23:59'), days), turnaround)), buffer + 1);
+  const [{items, intervals}, exceptions] = await Promise.all([
+    db.productSchedule(env.DB, productId, {from: shiftDate(date, -buffer), until, size, turnaround, fitting, hold: limits.hold}),
+    db.handoffExceptions(env.DB, {from: date, to: date})
+  ]);
+  const line = dayTimeline({date, days, items, intervals}, {
+    slotMinutes, handoff, exceptions, turnaround, bufferDays: buffer, purpose, fitting,
+    displayStart: limits.displayStart, displayEnd: limits.displayEnd, openingHours: limits.openingHours,
+    now, today, blocked: db.BLOCKED_ITEM, outNow: db.OUT_NOW
+  });
+  const quote = rentalQuote(product, date, shiftDate(date, days), purpose);
+  return json({...line, maxRentalDays, quote, fittingMinutes: isFitting(purpose) ? fitting.minutes : 0, closed: line.windows !== null && !line.windows.length}, 200, {'cache-control': 'no-store'});
+}
+
+// --- Admin: the handoff diary --------------------------------------------------------------------
+// Single dates the owner works differently. Staff set them here; the customer timeline reads them.
+async function handoffExceptionSave(request, env, date) {
+  if (!isIsoDate(date)) throw badRequest('date must be a date in YYYY-MM-DD format.', {date: 'invalid'});
+  const body = await readJson(request);
+  const closed = body.closed === true;
+  const windows = [];
+  if (!closed) {
+    if (!Array.isArray(body.windows) || !body.windows.length) throw badRequest('Give at least one window, or close the day.', {windows: 'required'});
+    for (const window of body.windows) {
+      const start = String(window?.start ?? ''), end = String(window?.end ?? '');
+      if (!isTimeOfDay(start) || !(isTimeOfDay(end) || end === '24:00') || start >= end) throw badRequest('Each window needs start and end as HH:MM, with start before end.', {windows: 'invalid'});
+      windows.push({start, end});
+    }
+    windows.sort((a, b) => a.start.localeCompare(b.start));
+  }
+  const note = optionalText(body.note, 'note', 200);
+  return json({exception: await db.setHandoffException(env.DB, date, {closed, windows, note})});
+}
+
+// --- Admin: what the inventory is doing ------------------------------------------------------------
+// The availability view that sits beside the booking ledger: per product and size, how many items
+// exist, what each is doing, and when the next one comes free.
+async function inventorySchedule(request, env, url) {
+  const {today, now, buffer, turnaround, fitting} = await context(request, env);
+  const productFilter = optionalText(url.searchParams.get('product_id'), 'product_id', 64);
+  const items = await db.listInventory(env.DB, productFilter ? {product_id: productFilter} : {});
+  const groups = new Map();
+
+  for (const item of items) {
+    const key = `${item.product_id}|${item.size || ''}`;
+    if (!groups.has(key)) groups.set(key, {product_id: item.product_id, size: item.size || '', total: 0, available: 0, reserved: 0, rented: 0, cleaning: 0, maintenance: 0, inactive: 0, next_free: '', items: []});
+    const group = groups.get(key);
+    group.total++;
+    group.items.push(item);
+  }
+  // One query for every item on screen, then the stretches are worked out in one place.
+  const byProduct = new Map();
+  for (const productId of new Set(items.map(item => item.product_id))) {
+    byProduct.set(productId, await db.productSchedule(env.DB, productId, {from: today, until: shiftDate(today, 400), turnaround, fitting}));
+  }
+  const moment = at(today, now);
+  const schedule = [...groups.values()].map(group => {
+    const intervals = byProduct.get(group.product_id)?.intervals || new Map();
+    let soonest = null;
+    const detail = group.items.map(item => {
+      const held = (intervals.get(item.id) || []).slice().sort((a, b) => a.start.localeCompare(b.start));
+      const current = held.find(span => span.start <= moment && span.ready > moment) || null;
+      // An item under maintenance has no date it comes back; anything else is free now, or once its
+      // current rental has been returned and cared for.
+      const free = db.BLOCKED_ITEM.includes(item.status) ? null : (current ? current.ready : moment);
+      if (free && (!soonest || free < soonest)) soonest = free;
+      // What staff need to see is what the garment is doing, which is not quite its stored status:
+      // confirming a booking does not touch the item until it is handed over, so a piece held for
+      // right now reads as reserved even though its row still says available.
+      const state = db.BLOCKED_ITEM.includes(item.status) || ['rented', 'cleaning'].includes(item.status)
+        ? item.status
+        : (current ? 'reserved' : 'available');
+      group[state] = (group[state] || 0) + 1;
+      return {id: item.id, size: item.size, status: item.status, state, occupied: held, free_at: free || ''};
+    });
+    return {...group, items: detail, next_free: soonest || ''};
+  });
+  return json({today, buffer, schedule}, 200, {'cache-control': 'no-store'});
+}
+
+// The staff timeline: every garment as consecutive segments -- with a customer, held, being cared
+// for, free -- over [from, from + days), each day summarised for the compact strip in the inventory
+// list, and per product and size how many pieces are free each day. Customer names are in here, so
+// it is admin only; the public timeline sends counts and nothing else.
+const TIMELINE_MAX_DAYS = 31;
+async function inventoryTimeline(request, env, url) {
+  const {today, now, turnaround, fitting} = await context(request, env);
+  const from = url.searchParams.get('from') || today;
+  if (!isIsoDate(from)) throw badRequest('from must be a date in YYYY-MM-DD format.', {from: 'invalid'});
+  const days = Number(url.searchParams.get('days') || 7);
+  if (!Number.isInteger(days) || days < 1 || days > TIMELINE_MAX_DAYS) throw badRequest(`days must be a whole number from 1 to ${TIMELINE_MAX_DAYS}.`, {days: 'invalid'});
+  const product_id = optionalText(url.searchParams.get('product_id'), 'product_id', 64);
+  const item_id = optionalText(url.searchParams.get('item_id'), 'item_id', 64);
+  const start = at(from, '00:00'), until = at(shiftDate(from, days), '00:00'), moment = at(today, now);
+  const {items, bookings} = await db.inventoryTimeline(env.DB, {product_id, item_id, from: start, until});
+  const detail = items.map(item => {
+    const segments = itemSegments(item, bookings.get(item.id) || [], {from: start, until, now: moment, turnaround, fitting});
+    return {
+      id: item.id, product_id: item.product_id, size: item.size || '', status: item.status, note: item.note || '',
+      now: currentSegment(segments, moment)?.kind || '', next_available: nextAvailable(segments, moment),
+      segments, days: daySummaries(segments, {from, days})
+    };
+  });
+  const groups = new Map();
+  for (const item of detail) {
+    const key = `${item.product_id}|${item.size}`;
+    if (!groups.has(key)) groups.set(key, {product_id: item.product_id, size: item.size, items: []});
+    groups.get(key).items.push(item);
+  }
+  const products = [...groups.values()].map(group => ({
+    product_id: group.product_id, size: group.size, items: group.items.map(item => item.id),
+    total: group.items.filter(item => item.status !== 'inactive').length, days: productDays(group.items)
+  }));
+  return json({today, now: moment, from, days, items: detail, products}, 200, {'cache-control': 'no-store'});
+}
+
 // --- Public: reservation requests ------------------------------------------------------------------
 async function reservationRequestCreate(request, env, url, params, admin, ctx) {
   const body = await readJson(request);
-  const {today, buffer, maxRentalDays, maxDaysAhead} = await context(request, env);
+  const context_ = await context(request, env);
+  const {today, now, buffer, maxRentalDays, maxDaysAhead, timeSlots, slotMinutes, handoff, turnaround, fitting} = context_;
   const product_id = requireId(body.product_id, 'product_id');
   const catalog = await loadCatalog(env, request);
   const product = catalog.byId.get(product_id);
@@ -212,7 +404,40 @@ async function reservationRequestCreate(request, env, url, params, admin, ctx) {
   if (body.privacy_consent !== true) throw badRequest('privacy_consent must be true: the customer has to accept the privacy policy.', {privacy_consent: 'required'});
   data.privacy_consent = 1;
   data.privacy_consent_at = new Date().toISOString();
-  data.start_date = body.start_date; data.end_date = body.end_date;
+  data.start_date = body.start_date;
+  // Coming in to try something on is an appointment, not a rental: it holds the garment for the
+  // length of the visit, ends the same day and is not charged for.
+  data.purpose = optionalText(body.purpose, 'purpose', 20) || 'rental';
+  if (!PURPOSES.includes(data.purpose)) throw badRequest(`purpose must be one of: ${PURPOSES.join(', ')}.`, {purpose: 'invalid'});
+  if (isFitting(data.purpose) && !fitting.enabled) throw badRequest('This store does not take fitting visits.', {purpose: 'not_offered'});
+  // A rental is a number of whole 24-hour days from the moment it is collected. A client that
+  // still sends an end date instead is read the way it always was.
+  const days = body.rental_days == null
+    ? (isIsoDate(body.start_date) && isIsoDate(body.end_date) ? Math.max(1, Math.round((Date.parse(body.end_date + 'T00:00:00Z') - Date.parse(body.start_date + 'T00:00:00Z')) / 86400000)) : 1)
+    : Number(body.rental_days);
+  const lengthProblem = rentalDaysError(days, {maxRentalDays});
+  if (lengthProblem) throw badRequest(`A rental runs for 1 to ${maxRentalDays} whole days.`, {[lengthProblem.field]: lengthProblem.code});
+  data.start_time = optionalText(body.start_time, 'start_time', 5);
+  // The times on offer are the owner's handoff windows at the store's own granularity. A store
+  // still on the old fixed windows keeps them; one with neither takes no time of day at all.
+  const exceptions = isIsoDate(data.start_date) ? await db.handoffExceptions(env.DB, {from: data.start_date, to: data.start_date}) : {};
+  const windows = isIsoDate(data.start_date) ? handoffWindows(data.start_date, handoff, exceptions) : null;
+  const opening = handoffWindows(data.start_date, {weekly: context_.openingHours}, exceptions);
+  const offered = (windows === null ? timeSlots.map(slot => slot.start) : slotTimes(windows, {slotMinutes})).filter(time => withinHandoff(time, opening));
+  if (offered.length) {
+    if (!data.start_time) throw badRequest('start_time is required.', {start_time: 'required'});
+    if (!offered.includes(data.start_time)) throw badRequest('That pick-up time is not on offer for this date.', {start_time: 'invalid'});
+  } else if (data.start_time) throw badRequest('This store does not offer pick-up times on that date.', {start_time: 'not_allowed'});
+  // Only a booking that names a time runs on the clock; without one it keeps the calendar-day rule.
+  // A fitting is over the same day, so it counts no days at all.
+  data.rental_days = isFitting(data.purpose) ? 0 : (data.start_time ? days : 0);
+  data.end_date = isFitting(data.purpose) ? data.start_date
+    : (data.start_time ? dateOf(dueAt(at(data.start_date, data.start_time), days)) : (body.end_date || shiftDate(data.start_date, Math.max(0, days - 1))));
+  if (isFitting(data.purpose) && !data.start_time) throw badRequest('A fitting needs a time of day.', {start_time: 'required'});
+  if (data.start_time) {
+    const pickupProblem = pickupError(at(data.start_date, data.start_time), {today, now, maxDaysAhead});
+    if (pickupProblem) throw badRequest('That pick-up time has passed or is outside the booking window.', {[pickupProblem.field]: pickupProblem.code});
+  }
   const dateProblem = requestDatesError(data, {today, maxRentalDays, maxDaysAhead});
   if (dateProblem) {
     const messages = {invalid: `${dateProblem.field} must be a date in YYYY-MM-DD format.`, before_start: 'start_date must not be after end_date.', past: 'start_date must not be in the past.', too_far: `start_date must be within ${maxDaysAhead} days.`, too_long: `A rental can last at most ${maxRentalDays} days.`};
@@ -221,11 +446,13 @@ async function reservationRequestCreate(request, env, url, params, admin, ctx) {
   // Spam checks (Turnstile when configured, then the per-IP throttle) run before anything is written.
   const guard = await publicRequestGuard(request, env, body);
   // The customer already saw "available", but the stock is checked again at the moment of writing.
-  if (!await db.productFree(env.DB, product_id, {from: data.start_date, to: data.end_date, size, buffer, today})) {
+  // Everything is checked again here, against the database, however the form looked a moment ago.
+  const interval = db.requestedInterval(data, {buffer, turnaround, fitting});
+  if (!await db.productFree(env.DB, product_id, {interval, from: data.start_date, to: data.end_date, size, buffer, today, hold: context_.hold})) {
     throw new HttpError(409, 'unavailable', 'This item is not available for the selected dates.', {product_id, size, from: data.start_date, to: data.end_date});
   }
   const existing = await db.findOpenRequest(env.DB, data);
-  const reservation = existing || await db.createReservation(env.DB, data, {buffer});
+  const reservation = existing || await db.createReservation(env.DB, data, {buffer, turnaround, fitting, today, now});
   if (!existing) {
     await guard.record();
     // Tell the store's phones. Delivery runs after the response; a push failure never fails the request.
@@ -235,8 +462,12 @@ async function reservationRequestCreate(request, env, url, params, admin, ctx) {
       if (ctx?.waitUntil) ctx.waitUntil(delivery); else await delivery;
     }
   }
-  const {id, status, customer_name, start_date, end_date, request_product_id, request_size, created_at, privacy_consent_at} = reservation;
-  return json({request: {id, status, customer_name, start_date, end_date, product_id: request_product_id, size: request_size, created_at, privacy_consent: true, privacy_consent_at}, duplicate: Boolean(existing)}, existing ? 200 : 201);
+  const {id, status, customer_name, start_date, end_date, start_time, rental_days, start_at, purpose, request_product_id, request_size, created_at, privacy_consent_at} = reservation;
+  // When the garment is expected back: the end of the appointment, or the rental deadline.
+  const due_at = !start_at ? ''
+    : isFitting(purpose) ? visitSpan(start_at, {purpose, fitting}).ready
+      : (rental_days > 0 ? dueAt(start_at, rental_days) : '');
+  return json({request: {id, status, customer_name, start_date, end_date, start_time, rental_days, purpose, start_at, due_at, product_id: request_product_id, size: request_size, created_at, privacy_consent: true, privacy_consent_at, quote: rentalQuote(product, start_date, end_date, purpose)}, duplicate: Boolean(existing)}, existing ? 200 : 201);
 }
 
 // --- Admin: session -------------------------------------------------------------------------------
@@ -274,6 +505,8 @@ const route = (method, pattern, handler, {auth = false, csrf = auth} = {}) => ({
 const routes = [
   route('GET', /^\/api\/availability$/, (req, env, url) => publicAvailability(req, env, url, '')),
   route('GET', /^\/api\/products\/([^/]+)\/availability$/, (req, env, url, [id]) => publicAvailability(req, env, url, id)),
+  route('GET', /^\/api\/products\/([^/]+)\/calendar$/, (req, env, url, [id]) => publicCalendar(req, env, url, id)),
+  route('GET', /^\/api\/products\/([^/]+)\/timeline$/, (req, env, url, [id]) => publicTimeline(req, env, url, id)),
   route('GET', /^\/api\/products\/([^/]+)\/inventory$/, (req, env, url, [id]) => productInventory(req, env, url, id), {auth: true}),
   // Public reservation requests: always pending and never holding a item until staff confirm.
   // The site key for the widget, plus whether the pair is complete so the form can warn the shop owner.
@@ -303,6 +536,14 @@ const routes = [
     return json({...rental, ...orders});
   }, {auth: true}),
   ...orderRoutes(route),
+  route('GET', /^\/api\/admin\/inventory\/schedule$/, inventorySchedule, {auth: true}),
+  route('GET', /^\/api\/admin\/inventory\/timeline$/, inventoryTimeline, {auth: true}),
+  route('GET', /^\/api\/admin\/handoff-exceptions$/, async (req, env, url) => json({exceptions: Object.values(await db.handoffExceptions(env.DB, {from: url.searchParams.get('from') || '', to: url.searchParams.get('to') || ''}))}), {auth: true}),
+  route('PUT', /^\/api\/admin\/handoff-exceptions\/(\d{4}-\d{2}-\d{2})$/, (req, env, url, [date]) => handoffExceptionSave(req, env, date), {auth: true}),
+  route('DELETE', /^\/api\/admin\/handoff-exceptions\/(\d{4}-\d{2}-\d{2})$/, async (req, env, url, [date]) => {
+    if (!await db.deleteHandoffException(env.DB, date)) throw notFound(`No handoff exception on ${date}.`);
+    return json({deleted: date});
+  }, {auth: true}),
   route('GET', /^\/api\/admin\/inventory$/, inventoryList, {auth: true}),
   route('POST', /^\/api\/admin\/inventory$/, inventoryCreate, {auth: true}),
   route('GET', /^\/api\/admin\/inventory\/([^/]+)$/, async (req, env, url, [id]) => {

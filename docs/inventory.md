@@ -22,6 +22,8 @@ Handing a booking over sets its items to `rented`; returning or cancelling sets 
 ## Admin
 
 - **Inventory** (`#/inventory`): list with product thumbnail, item id, size, status and note; change status and note inline; delete an item that was never booked (otherwise set it to `inactive`).
+- **Next 7 days** (in the inventory list): each item has one cell per day. The cell shows the day's pieces to scale, plus a symbol for what held it longest (■ rented, ▣ booked, ◆ fitting, ▒ in care, ▓ maintenance, × out of service, ○ free, with a small ○ when part of the day is still free). Its accessible name spells out every piece with its times. Tapping a cell opens who holds the item, when it is due back and when it is ready again, or offers **Book this item** on a free day. Above the list, each product and size shows how many pieces are free all day (+ part of the day). On screens up to 1100px each item is a card, and the booking details, note, booking list and delete are behind **More**.
+- **Availability** (`#/inventory/schedule?product_id&item_id&days=7|14|30`): the detailed schedule. 7 and 14 days are ECharts charts (one per product and size, created only when scrolled into view and disposed on navigation) that scroll sideways inside the card. 30 days are shown a day at a time. **Show as a list** holds the same schedule as text. A rental and its care window are separate segments, so an item that is back but not yet ready reads as *in care* until its turnaround ends.
 - **Add item** (`#/inventory/new`): choose a product, get the next id suggested, pick the size (from the product's sizes) and a note (shelf, condition).
 - Booking forms only offer items that are free for the chosen dates; **Pick a free item** chooses the first one.
 
@@ -32,6 +34,7 @@ Handing a booking over sets its items to `rented`; returning or cancelling sets 
 | GET | `/api/admin/inventory?product_id=&status=` | list |
 | POST | `/api/admin/inventory` | `{id, product_id, size?, note?, status?}` — `id` must start with `product_id-` and the product must exist in the catalog |
 | GET / PATCH / DELETE | `/api/admin/inventory/:id` | `{status?, size?, note?}`; DELETE refuses items that appear in a booking |
+| GET | `/api/admin/inventory/timeline?from&days&product_id&item_id` | segments per item over `days` (1–31, default 7) from `from` (default today), day summaries and per-product free counts; includes customer names, admin only |
 | GET | `/api/products/:id/inventory?from&to&exclude=` | items of one product with `available` and the clashing bookings for the period (admin only) |
 
 ## Seeding

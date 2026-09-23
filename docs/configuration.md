@@ -64,6 +64,13 @@ Six-digit hex colours: `primary`, `accent`, `paper` (background), `ink` (text), 
 | `maxRentalDays` | 60 | longest public request |
 | `maxDaysAhead` | 365 | how far ahead a public request may start |
 | `bufferDays` | 0 | free days kept between one return and the next start (`RESERVATION_BUFFER_DAYS` overrides) |
+| `handoff.holidayCountry` | null | two-letter country code; the build lists its public holidays (see [booking.md](booking.md#public-holidays)) |
+| `handoff.holidayDates` | [] | extra holiday dates written by hand (`YYYY-MM-DD`) |
+| `handoff.holidayWindows` | all day | the handoff hours on a holiday; `[]` closes |
+| `policy` | null | the store's rental terms (deposit, late return, damage): text or a language mapping, one term per line. Shown in a box above the consent checkbox on the booking form, and added to the confirmation message staff send |
+
+Timed rentals, turnaround, handover hours and fittings are described in [booking.md](booking.md).
+
 
 ### `ordering`
 
@@ -91,7 +98,12 @@ Limits are counted from active orders; nothing is shown as scarce unless a limit
 
 ### `admin.defaultLanguage`
 
-`vi`, `en` or `ja` — the language the admin opens in before staff choose their own.
+`vi`, `en` or `ja` — the language the admin opens in before staff choose their own. The staff digest is written in it too.
+
+### `admin.digest`
+
+`today` / `tomorrow`: store-local times (`HH:MM`) at which every admin device subscribed to Web Push gets one notification. `today` lists that day's confirmed pick-ups and fittings, the rentals due back, requests not yet confirmed, and rentals already overdue. `tomorrow` lists the next day's. A day with nothing on it sends nothing. Both default to null (off). Needs the VAPID keys and the Cron Trigger in `wrangler.jsonc` (`*/30 * * * *`). Each run sends whichever digest falls due in its half hour.
+
 
 ## Where things are *not* configured here
 

@@ -46,7 +46,7 @@ test('availability summary: available / low / rented / unavailable across the in
   const items = [
     {id: 'a', status: 'available'}, {id: 'b', status: 'available'}, {id: 'c', status: 'maintenance'}, {id: 'd', status: 'inactive'}, {id: 'e', status: 'rented'}
   ];
-  assert.deepEqual(ITEM_STATUSES, ['available', 'reserved', 'rented', 'maintenance', 'inactive']);
+  assert.deepEqual(ITEM_STATUSES, ['available', 'reserved', 'rented', 'cleaning', 'maintenance', 'inactive']);
   assert.deepEqual(BLOCKED_ITEM, ['maintenance', 'inactive']);
   // Future period: the rented item counts as free again (its booking is checked via conflictIds).
   assert.deepEqual(summarize(items, new Set(), {includesToday: false}), {total: 4, available: 3, status: 'available'});
@@ -57,6 +57,10 @@ test('availability summary: available / low / rented / unavailable across the in
   assert.deepEqual(summarize([{id: 'c', status: 'maintenance'}], new Set()), {total: 1, available: 0, status: 'unavailable'});
   assert.deepEqual(summarize([{id: 'd', status: 'inactive'}], new Set()), {total: 0, available: 0, status: 'unavailable'});
   assert.deepEqual(summarize([{id: 'a', status: 'available'}], new Set()), {total: 1, available: 1, status: 'available'}, 'a single free item is "available", not "low"');
+  // A garment back but not yet washed is out today, and free again for a later period.
+  const washing = [{id: 'a', status: 'available'}, {id: 'f', status: 'cleaning'}];
+  assert.deepEqual(summarize(washing, new Set(), {includesToday: true}), {total: 2, available: 1, status: 'low'});
+  assert.deepEqual(summarize(washing, new Set(), {includesToday: false}), {total: 2, available: 2, status: 'available'});
 });
 
 test('public request dates: valid, invalid, past, too far ahead, too long', () => {

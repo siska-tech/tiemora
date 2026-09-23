@@ -9,6 +9,7 @@ import worker from '../../worker/index.mjs';
 import {resetCatalogCache} from '../../worker/catalog.mjs';
 import {resetStoreCache} from '../../worker/store.mjs';
 import {migratedDatabase} from '../d1-shim.mjs';
+import {shiftDate} from '../../core/booking/dates.mjs';
 
 const ORIGIN = 'https://store.example';
 const catalog = [
@@ -59,7 +60,7 @@ async function setup(t, {hash = '#/', storeConfig = store, extraEnv = {}, produc
     return {status: response.status, data: await response.json()};
   };
   const go = async hash => { window.location.hash = hash; await wait(5); };
-  return {window, document: window.document, api, go, redirects};
+  return {window, document: window.document, api, go, redirects, env};
 }
 const text = el => el.textContent.replace(/\s+/g, ' ').trim();
 
@@ -96,7 +97,8 @@ test('adding an item suggests the next id, lists it and lets its status be chang
   await until(() => !status.disabled, 'patch done');
   assert.equal((await api('GET', '/api/admin/inventory/ad-0005-02')).data.item.status, 'maintenance');
   // Deleting an unused item removes its row; the filter navigates through the hash.
-  rows[1].querySelector('[data-delete]').click();
+  await until(() => d.querySelector('[data-item="ad-0005-02"] [data-field=status]')?.value === 'maintenance', 'refreshed status');
+  d.querySelector('[data-item="ad-0005-02"] [data-delete]').click();
   await until(() => d.querySelectorAll('tr[data-item]').length === 1, 'row removed');
   assert.equal((await api('GET', '/api/admin/inventory/ad-0005-02')).status, 404);
   await go('#/inventory?status=inactive');
@@ -360,4 +362,206 @@ test('with VAPID keys the settings page shows the subscribed devices; jsdom cann
   devices.querySelector('[data-remove]').click();
   await until(() => !d.querySelector('.card table'), 'device removed');
   assert.equal((await api('GET', '/api/admin/push/subscriptions')).data.subscriptions.length, 0);
+});
+
+
+test('inventory overview separates today, future bookings, overdue rentals and unassigned requests', async t => {
+ const {api,env,go,document:d,window}=await setup(t);
+ const {data:{today}}=await api('GET','/api/admin/inventory?overview=1');
+ const day=n=>shiftDate(today,n);
+ for(let n=1;n<=5;n++) await api('POST','/api/admin/inventory',{id:'ad-0005-0'+n,product_id:'ad-0005',size:'L'});
+ await api('PATCH','/api/admin/inventory/ad-0005-04',{status:'maintenance'});
+ const reserve=async(id,start,end,status)=>{
+   const result=await api('POST','/api/admin/reservations',{customer_name:'Guest '+id,start_date:start,end_date:end,status,items:[id]});
+   assert.equal(result.status,201,JSON.stringify(result.data));return result.data.reservation;
+ };
+ const current=await reserve('ad-0005-01',today,day(1),'confirmed');
+ const next=await reserve('ad-0005-02',day(3),day(4),'confirmed');
+ const overdue=await reserve('ad-0005-03',day(-3),day(-1),'rented');
+ await reserve('ad-0005-05',today,day(1),'cancelled');
+ await env.DB.prepare("INSERT INTO reservations (id,customer_name,start_date,end_date,status,source,request_product_id,request_size) VALUES ('unassigned-test','Awaiting assignment',?,?,'pending','public','ad-0005','L')").bind(today,day(1)).run();
+ const result=await api('GET','/api/admin/inventory?overview=1');
+ assert.deepEqual(result.data.summary,{total:5,available:2,booked:2,rented:1,maintenance:1});
+ assert.equal(result.data.items[0].current_reservations[0].id,current.id);
+ assert.equal(result.data.items[1].next_reservation.id,next.id);
+ assert.equal(result.data.items[1].available_today,true);
+ assert.equal(result.data.items[2].current_reservations[0].id,overdue.id);
+ assert.equal(result.data.items[4].current_reservations.length,0);
+ assert.equal(result.data.requests.length,1);
+ assert.equal((await api('GET','/api/admin/inventory?overview=1&status=maintenance')).data.summary.total,1);
+ assert.equal((await api('GET','/api/admin/inventory?overview=1&product_id=ad-0002')).data.requests.length,0);
+ const anonymous=await worker.fetch(new Request(ORIGIN+'/api/admin/inventory?overview=1'),env);
+ assert.equal(anonymous.status,401);
+ await go('#/inventory');
+ await until(()=>d.querySelectorAll('tr[data-item]').length===5,'inventory overview rows');
+ assert.equal(d.querySelector('[data-stock=availableToday] b').textContent,'2');
+ assert.equal(d.querySelector('[data-item="ad-0005-01"] .inventory-current a').hash,'#/reservations/'+current.id);
+ assert.equal(d.querySelector('[data-item="ad-0005-02"] .inventory-next a').hash,'#/reservations/'+next.id);
+ assert.match(d.querySelector('[data-item="ad-0005-03"] .inventory-current').textContent,/Quá hạn trả/);
+ assert.match(d.getElementById('inventory-requests').textContent,/Awaiting assignment/);
+ const language=d.getElementById('admin-lang');language.value='ja';language.dispatchEvent(new window.Event('change'));
+ await until(()=>d.getElementById('inventory-overview')?.textContent.includes('今日の在庫状況'),'Japanese overview');
+ await until(()=>d.querySelector('[data-item="ad-0005-03"] .inventory-current'),'translated rows');
+ assert.match(d.querySelector('[data-item="ad-0005-03"] .inventory-current').textContent,/返却期限超過/);
+ await api('PATCH','/api/admin/reservations/'+current.id,{status:'cancelled'});
+ d.getElementById('refresh-stock').click();
+ await until(()=>d.querySelector('[data-stock=availableToday] b')?.textContent==='3','refreshed cancellation');
+});
+
+test('inventory overview respects reservation buffer days without claiming a future booking is available today', async t => {
+ const {api}=await setup(t,{extraEnv:{RESERVATION_BUFFER_DAYS:'2'}});
+ const {data:{today}}=await api('GET','/api/admin/inventory?overview=1');
+ await api('POST','/api/admin/inventory',{id:'ad-0005-01',product_id:'ad-0005',size:'L'});
+ const booking=await api('POST','/api/admin/reservations',{customer_name:'Buffer booking',start_date:shiftDate(today,2),end_date:shiftDate(today,3),status:'confirmed',items:['ad-0005-01']});
+ assert.equal(booking.status,201);
+ const {data}=await api('GET','/api/admin/inventory?overview=1');
+ assert.equal(data.buffer,2);assert.equal(data.summary.available,0);assert.equal(data.summary.booked,1);
+ assert.equal(data.items[0].current_reservations[0].id,booking.data.reservation.id);
+});
+
+// The availability view answers a different question from the booking list: not who booked what,
+// but what each garment is doing and when the next one comes free.
+// A rental collected on day 1 at 19:00 for one day, due back on day 2 at 19:00 and washed overnight.
+async function timedRental(env, {id = 'rsv-timed', item = 'ad-0005-01', customer = 'Lan', start, status = 'confirmed'}) {
+  await env.DB.prepare(`INSERT INTO reservations (id, customer_name, start_date, end_date, status, start_time, rental_days, start_at, ready_at, note)
+    VALUES (?, ?, ?, ?, ?, '19:00', 1, ?, ?, 'Hem sửa')`).bind(id, customer, start, shiftDate(start, 1), status, `${start}T19:00`, `${shiftDate(start, 2)}T07:00`).run();
+  await env.DB.prepare('INSERT INTO reservation_items (reservation_id, inventory_item_id, product_id) VALUES (?, ?, ?)').bind(id, item, 'ad-0005').run();
+}
+
+test('each garment in the list shows its week; a day tells who holds it, and a free day books the item', async t => {
+  const {document: d, api, go, env} = await setup(t);
+  await api('POST', '/api/admin/inventory', {id: 'ad-0005-01', product_id: 'ad-0005', size: 'L'});
+  await api('POST', '/api/admin/inventory', {id: 'ad-0005-02', product_id: 'ad-0005', size: 'L'});
+  const {data: {today}} = await api('GET', '/api/admin/inventory/timeline?days=1');
+  await timedRental(env, {start: shiftDate(today, 1)});
+  await go('#/inventory');
+  await until(() => d.querySelectorAll('tr[data-item="ad-0005-01"] .tl-day').length === 7, 'week strip');
+  const row = d.querySelector('tr[data-item="ad-0005-01"]');
+  // The day it comes back: booked until 19:00, then in care -- said in words, not only in colour.
+  const back = row.querySelector(`[data-tl-day="${shiftDate(today, 2)}"]`);
+  assert.match(back.getAttribute('aria-label'), /Đã đặt từ 00:00 đến 19:00; Đang giặt ủi từ 19:00 đến 24:00/);
+  assert.ok(back.classList.contains('s-reserved'));
+  assert.equal(back.querySelectorAll('.tl-bar i').length, 2, 'both pieces are drawn');
+  assert.equal(back.querySelector('.tl-bar i.k-cleaning').style.left, '79.17%', 'placed through the CSSOM at 19:00');
+  // The next morning it is ready at 07:00 and free for the rest of the day.
+  const ready = row.querySelector(`[data-tl-day="${shiftDate(today, 3)}"]`);
+  assert.ok(ready.classList.contains('part-free'));
+  assert.match(ready.getAttribute('aria-label'), /Trống từ 07:00 đến 24:00/);
+  // The product line counts what is free each day.
+  const counts = [...d.querySelectorAll('.tl-products .tl-count')];
+  assert.equal(counts.length, 7);
+  assert.equal(counts[2].querySelector('b').textContent, '1', 'one of two is free all day');
+  assert.match(counts[3].textContent, /\+1/, 'the other is free from the morning');
+  // Tapping the day opens who holds it and when it is ready again.
+  back.click();
+  const sheet = await until(() => { const el = d.getElementById('tl-sheet'); return el && !el.hidden && el; }, 'sheet');
+  assert.match(text(sheet), /Lan/);
+  assert.match(text(sheet), /Hạn trả/);
+  assert.match(text(sheet), /Hem sửa/);
+  assert.ok(sheet.querySelector('a[href="#/reservations/rsv-timed"]'));
+  assert.equal(d.activeElement, sheet.querySelector('h2'), 'focus moves into the sheet');
+  d.dispatchEvent(new d.defaultView.KeyboardEvent('keydown', {key: 'Escape'}));
+  assert.equal(sheet.hidden, true);
+  assert.equal(d.activeElement, back, 'and back to the day on Escape');
+  // A free day offers to book this very item on that day.
+  row.querySelector(`[data-tl-day="${shiftDate(today, 5)}"]`).click();
+  const book = await until(() => d.querySelector('#tl-sheet:not([hidden]) a.primary'), 'book link');
+  assert.match(book.getAttribute('href'), new RegExp(`item=ad-0005-01&start=${shiftDate(today, 5)}`));
+  // On a phone the card keeps the extras folded away until asked for.
+  const toggle = row.querySelector('[data-toggle-row]');
+  toggle.click();
+  assert.ok(row.classList.contains('open'));
+  assert.equal(toggle.getAttribute('aria-expanded'), 'true');
+  // Following the link opens the booking form with that item and date already chosen.
+  await go(book.getAttribute('href'));
+  await until(() => d.querySelector('#reservation-form input[value="ad-0005-01"]'), 'candidate list');
+  assert.equal(d.querySelector('#reservation-form [name=start_date]').value, shiftDate(today, 5));
+  assert.equal(d.querySelector('#reservation-form input[value="ad-0005-01"]').checked, true);
+  assert.equal(d.getElementById('tl-sheet').hidden, true, 'navigating closes the sheet');
+});
+
+test('the schedule draws each product group once, in 7, 14 or 30 days, with the same schedule as a list', async t => {
+  const {document: d, api, go, window, env} = await setup(t);
+  await api('POST', '/api/admin/inventory', {id: 'ad-0005-01', product_id: 'ad-0005', size: 'L'});
+  await api('POST', '/api/admin/inventory', {id: 'ad-0005-02', product_id: 'ad-0005', size: 'L'});
+  await api('PATCH', '/api/admin/inventory/ad-0005-02', {status: 'cleaning'});
+  const {data: {today}} = await api('GET', '/api/admin/inventory/timeline?days=1');
+  await timedRental(env, {start: shiftDate(today, 2), customer: 'Mai'});
+  // A stand-in for ECharts: jsdom cannot draw on a canvas, but the page's use of it can be checked.
+  const charts = [];
+  window.echarts = {
+    graphic: {clipRectByRect: rect => rect},
+    init: element => { const chart = {element, options: null, handlers: {}, disposed: false, setOption(options) { this.options = options; }, resize() {}, on(name, fn) { this.handlers[name] = fn; }, off() {}, dispose() { this.disposed = true; }}; charts.push(chart); return chart; }
+  };
+  await go('#/inventory/schedule');
+  const group = await until(() => d.querySelector('.availability-group'), 'availability');
+  assert.match(text(group.querySelector('h2')), /Sản phẩm năm/);
+  const counts = [...group.querySelectorAll('.state-counts li')].map(li => text(li));
+  assert.ok(counts.some(entry => /Trống.*1/.test(entry)), 'one garment is free');
+  assert.ok(counts.some(entry => /Đang giặt ủi.*1/.test(entry)), 'one is in care');
+  assert.match(text(group.querySelector('.next-free')), /Sắp trống/);
+  assert.ok(d.querySelector('.tl-range [aria-current]').textContent.includes('7'));
+  // One chart for the product group, not one per garment; a tap on a bar opens the same details.
+  await until(() => charts[0]?.options, 'chart drawn');
+  assert.equal(charts.length, 1);
+  const series = charts[0].options.series[0];
+  const bar = series.data.find(datum => datum.kind === 'reserved');
+  assert.equal(bar.label, 'Mai');
+  charts[0].handlers.click({value: bar.value});
+  const sheet = await until(() => { const el = d.getElementById('tl-sheet'); return el && !el.hidden && el; }, 'sheet');
+  assert.match(text(sheet), /Mai/);
+  assert.match(text(sheet), /Sẵn sàng lại/);
+  // The same schedule, in words, for anyone who cannot use the chart.
+  const rows = [...group.querySelectorAll('.tl-list .tl-row')].map(row => text(row));
+  assert.ok(rows.some(row => /Đã đặt từ .* đến .*Mai/.test(row)), rows.join(' | '));
+  assert.ok(rows.some(row => /Đang giặt ủi từ/.test(row)));
+  // 30 days are summarised a day at a time, without a chart.
+  await go('#/inventory/schedule?days=30');
+  await until(() => d.querySelectorAll('.tl-month .tl-day').length === 60, '30 days × 2 garments');
+  assert.equal(d.querySelector('.gantt-chart'), null);
+  assert.ok(charts[0].disposed, 'the chart is let go when the view changes');
+  // Choosing one garment narrows the view to it, and the choice stays offered.
+  await go('#/inventory/schedule?product_id=ad-0005&item_id=ad-0005-02&days=14');
+  await until(() => d.querySelectorAll('.availability-group .tl-list-item').length === 1, 'one garment');
+  assert.deepEqual([...d.querySelectorAll('[name=item_id] option')].map(o => o.value), ['', 'ad-0005-01', 'ad-0005-02']);
+  assert.equal(d.querySelector('[name=item_id]').value, 'ad-0005-02');
+});
+
+
+// A day off has to reach customers without a rebuild, so it is set here and read by the timeline.
+test('the handover diary saves a day with its own hours, closes another, and removes one again', async t => {
+  const {window, document: d, api, go} = await setup(t);
+  await go('#/inventory/handoff');
+  await until(() => d.getElementById('handoff-form'), 'handover form');
+  assert.equal(d.querySelectorAll('.weekly-hours li').length, 7, 'the ordinary week, Monday first');
+  const form = d.getElementById('handoff-form');
+  const dayOff = shiftDate(new Date().toISOString().slice(0, 10), 3);
+  form.elements.date.value = dayOff;
+  form.elements.note.value = 'Nghỉ phép';
+  d.querySelector('.win-start').value = '09:00';
+  d.querySelector('.win-end').value = '21:00';
+  form.dispatchEvent(new window.Event('submit', {bubbles: true, cancelable: true}));
+  await until(() => d.querySelector('[data-drop-date]'), 'the saved day');
+  assert.match(text(d.getElementById('handoff-list')), /09:00–21:00/);
+  assert.match(text(d.getElementById('handoff-list')), /Nghỉ phép/);
+  // The Worker has it, which is what the customer timeline reads.
+  const saved = await api('GET', '/api/admin/handoff-exceptions');
+  assert.equal(saved.data.exceptions.length, 1);
+  assert.deepEqual(saved.data.exceptions[0].windows, [{start: '09:00', end: '21:00'}]);
+
+  // Away all day: the window rows go away and nothing is sent for them.
+  const closedDay = shiftDate(dayOff, 1);
+  const live = d.getElementById('handoff-form');
+  live.elements.date.value = closedDay;
+  live.elements.closed.checked = true;
+  live.elements.closed.dispatchEvent(new window.Event('change'));
+  await until(() => d.getElementById('window-rows').hidden, 'the window rows step aside');
+  live.dispatchEvent(new window.Event('submit', {bubbles: true, cancelable: true}));
+  await until(() => d.querySelectorAll('[data-drop-date]').length === 2, 'both days');
+  assert.match(text(d.getElementById('handoff-list')), /Nghỉ cả ngày/);
+  assert.equal((await api('GET', '/api/admin/handoff-exceptions')).data.exceptions.find(e => e.date === closedDay).closed, true);
+
+  d.querySelector(`[data-drop-date="${closedDay}"]`).click();
+  await until(() => d.querySelectorAll('[data-drop-date]').length === 1, 'one day left');
+  assert.equal((await api('GET', '/api/admin/handoff-exceptions')).data.exceptions.length, 1);
 });

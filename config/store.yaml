@@ -107,6 +107,36 @@ booking:
   maxDaysAhead: 365
   # Free days kept between one rental's return date and the next rental's start date.
   bufferDays: 0
+  # Rentals on the clock (optional; see docs/booking.md). Without these, bookings stay on whole
+  # calendar days as before. With handoff hours, a customer picks a day, a time and a length, and
+  # rent is charged per 24 hours from collection.
+  # displayStart: "06:00"   # the time axis the customer sees
+  # displayEnd: "22:00"     # exclusive; "24:00" is allowed
+  # slotMinutes: 30
+  # openingHours:           # when the shop is open (omit = unrestricted)
+  #   mon: [{start: "09:00", end: "20:00"}]
+  # handoff:                # when somebody can hand an item over; single dates that differ are set in the admin
+  #   weekly:
+  #     mon: [{start: "09:00", end: "12:00"}, {start: "17:00", end: "20:00"}]
+  #   holidayCountry: VN    # public holidays, listed at build time (date-holidays)
+  #   holidayDates: []      # extra holiday dates by hand, YYYY-MM-DD
+  #   holidayWindows: [{start: "00:00", end: "24:00"}]   # hours on a holiday (default all day; [] closes)
+  # turnaround:             # how long a returned item needs before it can go out again
+  #   strategy: none        # none | hours | overnight
+  #   hours: 0              # for strategy: hours
+  #   returnCutoff: "20:00" # for strategy: overnight -- back by then, ready the next morning at...
+  #   readyNextDayAt: "07:00"
+  # fitting:                # try-on appointments: hold one item for a short visit, free of charge
+  #   enabled: false
+  #   minutes: 30
+  #   bufferMinutes: 0
+  # Rental terms (deposit, late return, damage), one per line: shown above the consent box on the
+  # booking form and added to the confirmation message.
+  # policy:
+  #   en: |
+  #     A deposit or an identity document is held while you rent.
+  #     If a return is late, the extra time is charged.
+  #     If an item is damaged, you pay for its repair or its value.
 
 # Sale / pre-order products (type: sale in product.yaml, see examples/sale/ and docs/orders.md).
 # Capacity is counted, not itemised: a time slot holds N orders, a day holds N orders, a product
@@ -145,3 +175,7 @@ ordering:
 admin:
   # Language the admin page opens in (vi, en or ja) until staff pick another.
   defaultLanguage: en
+  # Push the day's pick-ups and returns to subscribed admin devices (store time; needs VAPID keys).
+  # digest:
+  #   today: "06:30"      # that day's plan, in the morning
+  #   tomorrow: "21:00"   # the next day's, the evening before

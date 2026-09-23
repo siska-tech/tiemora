@@ -9,7 +9,7 @@ import {migratedDatabase} from '../d1-shim.mjs';
 import {todayIn, shiftDate} from '../../core/booking/dates.mjs';
 
 const catalog = [
-  {id: 'ad-0005', name: {vi: 'Sản phẩm năm'}, category: 'rental', sizes: ['M', 'L'], inventory: {managed: true}, images: [], videos: []},
+  {id: 'ad-0005', price: {rental: 119000}, currency: 'VND', name: {vi: 'Sản phẩm năm'}, category: 'rental', sizes: ['M', 'L'], inventory: {managed: true}, images: [], videos: []},
   {id: 'ad-0001', name: {vi: 'Sản phẩm một'}, category: 'rental', inventory: {managed: true}, images: [], videos: []},
   {id: 'km-0001', name: {vi: 'Phụ kiện'}, category: 'accessories', available: true, images: [], videos: []}
 ];
@@ -213,4 +213,83 @@ test('contact details are saved with a booking and the notification record is ke
   assert.equal(reset.data.reservation.notification_channel, '');
   assert.equal(reset.data.reservation.notification_sent_at, '');
   assert.equal((await admin('GET', '/api/admin/reservations?notification=maybe')).status, 400);
+});
+
+
+test('calendar blocks occupied dates, filters sizes, and keeps the same garment across the selected range', async () => {
+ const {admin,call}=await harness();
+ for(const [id,size] of [['ad-0005-01','L'],['ad-0005-02','L'],['ad-0005-03','M']]) await admin('POST','/api/admin/inventory',{body:{id,product_id:'ad-0005',size}});
+ for(const [id,n] of [['ad-0005-01',4],['ad-0005-02',3]]){
+  const r=await admin('POST','/api/admin/reservations',{body:{customer_name:'Private customer',start_date:day(n),end_date:day(n),status:'confirmed',items:[id]}});
+  assert.equal(r.status,201);
+ }
+ const calendar=async(date,extra='')=>call('GET','/api/products/ad-0005/calendar?month='+date.slice(0,7)+'&size=L'+extra);
+ const unanchored=await calendar(day(4));
+ assert.equal(unanchored.status,200);
+ assert.equal(unanchored.data.days.find(d=>d.date===day(4)).available,true);
+ const anchored=await calendar(day(4),'&start='+day(3));
+ assert.equal(anchored.data.days.find(d=>d.date===day(4)).available,false,'separate free garments on separate days cannot cover the entire rental');
+ assert(!JSON.stringify(anchored.data).includes('Private customer'));
+ assert(!JSON.stringify(anchored.data).includes('ad-0005-01'));
+ const otherSize=await call('GET','/api/products/ad-0005/calendar?month='+day(4).slice(0,7)+'&size=M&start='+day(3));
+ assert.equal(otherSize.data.days.find(d=>d.date===day(4)).available,true);
+ assert.equal((await call('GET','/api/products/ad-0005/calendar?month=2026-13')).status,400);
+ assert.equal((await calendar(day(4),'&start=bad')).status,400);
+ assert.equal((await call('GET','/api/products/missing/calendar')).status,404);
+});
+
+test('calendar honors holds and returned bookings; rental quotes bill whole 24-hour days and ignore client totals', async () => {
+ const {admin,call,publicPost}=await harness({RESERVATION_BUFFER_DAYS:'1'});
+ await admin('POST','/api/admin/inventory',{body:{id:'ad-0005-01',product_id:'ad-0005',size:'L'}});
+ const booked=await admin('POST','/api/admin/reservations',{body:{customer_name:'Customer',start_date:day(5),end_date:day(6),status:'confirmed',items:['ad-0005-01']}});
+ const calendar=await call('GET','/api/products/ad-0005/calendar?month='+day(4).slice(0,7));
+ assert.equal(calendar.data.days.find(d=>d.date===day(4)).available,false);
+ await admin('PATCH','/api/admin/reservations/'+booked.data.reservation.id,{body:{status:'cancelled'}});
+ const free=await call('GET','/api/products/ad-0005/calendar?month='+day(4).slice(0,7));
+ assert.equal(free.data.days.find(d=>d.date===day(4)).available,true);
+ const quote=await call('GET','/api/products/ad-0005/availability?from='+day(3)+'&to='+day(5));
+ // Pick-up and return fall in the same window, so three calendar days apart is two 24-hour days.
+ assert.deepEqual(quote.data.quote,{daily:119000,additionalDay:119000,additionalDays:1,days:2,total:238000,discounted:false,currency:'VND'});
+ const single=await call('GET','/api/products/ad-0005/availability?from='+day(3)+'&to='+day(3));
+ // A same-day return is shorter than 24 hours and still bills one day.
+ assert.equal(single.data.quote.days,1);
+ assert.equal(single.data.quote.total,119000);
+ const requestResult=await publicPost(request({total:1,quote:{total:1}}));
+ assert.equal(requestResult.status,201);
+ assert.equal(requestResult.data.request.quote.total,238000);
+});
+
+// Rent is charged per 24 hours, so a store that offers pick-up windows has to be told which one was
+// chosen: it is also the window the garment comes back in, and that is what makes the period whole.
+test('a pick-up window is required when the store offers them, checked against the list and stored', async () => {
+ const store={booking:{timeSlots:[{start:'09:00',end:'12:00'},{start:'13:00',end:'18:00'}]}};
+ const {env,admin,publicPost}=await harness({ASSETS:{fetch:async req=>{
+  const path=new URL(req.url).pathname;
+  if(path==='/catalog.json')return Response.json(catalog);
+  if(path==='/store.json')return Response.json(store);
+  return new Response('',{status:404});
+ }}});
+ await admin('POST','/api/admin/inventory',{body:{id:'ad-0005-01',product_id:'ad-0005',size:'L'}});
+ const missing=await publicPost(request());
+ assert.equal(missing.status,400);
+ assert.equal(missing.data.fields.start_time,'required');
+ const unknown=await publicPost(request({start_time:'10:30'}));
+ assert.equal(unknown.status,400);
+ assert.equal(unknown.data.fields.start_time,'invalid');
+ const created=await publicPost(request({start_time:'13:00'}));
+ assert.equal(created.status,201);
+ assert.equal(created.data.request.start_time,'13:00');
+ // day(3) to day(5) is three calendar days but two 24-hour days, because both ends share the window.
+ assert.equal(created.data.request.quote.days,2);
+ assert.equal(await env.DB.prepare('SELECT start_time FROM reservations WHERE id = ?').bind(created.data.request.id).first('start_time'),'13:00');
+});
+
+// A store that names no windows must not be handed one: it has nothing to check it against.
+test('a store without pick-up windows refuses one', async () => {
+ const {admin,publicPost}=await harness();
+ await admin('POST','/api/admin/inventory',{body:{id:'ad-0005-01',product_id:'ad-0005',size:'L'}});
+ const sent=await publicPost(request({start_time:'13:00'}));
+ assert.equal(sent.status,400);
+ assert.equal(sent.data.fields.start_time,'not_allowed');
+ assert.equal((await publicPost(request())).status,201);
 });

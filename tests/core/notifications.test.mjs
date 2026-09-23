@@ -59,6 +59,18 @@ test('the confirmation message uses the store name from the configuration', () =
   assert.match(buildReservationConfirmationMessage(reservation, catalog, 'en'), /booking at the store is confirmed/);
 });
 
+test('the store\'s rental terms are written into the confirmation, as a list in the customer language', () => {
+  const withTerms = {...store, booking: {policy: {vi: 'Đặt cọc hoặc giấy tờ.\nTrả trễ trừ vào cọc.', ja: '保証金または身分証明書をお預かりします。\n\n破損時は賠償いただきます。'}}};
+  const ja = buildReservationConfirmationMessage(reservation, catalog, 'ja', {store: withTerms}).split('\n');
+  const at = ja.indexOf('レンタル規約:');
+  assert.ok(at > 0);
+  assert.deepEqual(ja.slice(at, at + 3), ['レンタル規約:', '- 保証金または身分証明書をお預かりします。', '- 破損時は賠償いただきます。']);
+  assert.ok(ja.indexOf('予約番号: rsv-20261001-ab12') < at, 'after the booking details, before the closing');
+  // A language with no terms of its own falls back like every other localized store text.
+  assert.match(buildReservationConfirmationMessage(reservation, catalog, 'en', {store: withTerms}), /Rental terms:\n- /);
+  assert.doesNotMatch(buildReservationConfirmationMessage(reservation, catalog, 'vi', {store}), /Điều khoản thuê/);
+});
+
 test('several items become a list; other languages translate labels and names', () => {
   const multi = {...reservation, items: [...reservation.items, {inventory_item_id: 'sample-rental-002-01', product_id: 'sample-rental-002', size: 'M'}]};
   const vi = buildReservationConfirmationMessage(multi, catalog, 'vi', {store});

@@ -5,15 +5,41 @@ import {readFile} from 'node:fs/promises';
 import {parse} from 'yaml';
 import {normalizeStoreConfig, themeCss, renderTemplate, DEFAULT_STORE, DEFAULT_THEME} from '../../core/config/store.mjs';
 
+test('timeline display bounds are validated and opening hours remain separate from handoff', () => {
+  const {config, warnings} = normalizeStoreConfig({booking: {
+    displayStart: '07:00', displayEnd: '24:00', slotMinutes: 15,
+    openingHours: {mon: [{start: '07:00', end: '21:00'}]},
+    handoff: {weekly: {mon: [{start: '18:30', end: '21:00'}]}}
+  }}, {warn: () => {}});
+  assert.equal(config.booking.displayEnd, '24:00');
+  assert.equal(config.booking.slotMinutes, 15);
+  assert.equal(config.booking.openingHours[1][0].start, '07:00');
+  assert.equal(config.booking.handoff.weekly[1][0].start, '18:30');
+  assert.deepEqual(warnings, []);
+  const invalid = normalizeStoreConfig({booking: {displayStart: '22:00', displayEnd: '06:00'}}, {warn: () => {}});
+  assert.equal(invalid.config.booking.displayStart, '06:00');
+  assert.ok(invalid.warnings.length);
+});
+
 test('an empty file yields a complete configuration with defaults', () => {
   const {config, warnings} = normalizeStoreConfig({}, {warn: () => {}});
   assert.equal(config.store.name, DEFAULT_STORE.store.name);
   assert.deepEqual(config.languages, ['vi', 'en']);
   assert.equal(config.defaultLanguage, 'vi');
   assert.deepEqual(config.theme, DEFAULT_THEME);
-  assert.deepEqual(config.booking, {maxRentalDays: 60, maxDaysAhead: 365, bufferDays: 0});
+  assert.deepEqual(config.booking, {maxRentalDays: 60, maxDaysAhead: 365, bufferDays: 0, timeSlots: [], slotMinutes: 30, displayStart: '06:00', displayEnd: '22:00', openingHours: {}, handoff: {weekly: {}}, turnaround: {strategy: 'none', hours: 0, returnCutoff: '20:00', readyNextDayAt: '07:00'}, fitting: {enabled: false, minutes: 30, bufferMinutes: 0}, policy: null});
   assert.deepEqual(Object.keys(config.contact).sort(), Object.keys(DEFAULT_STORE.contact).sort());
   assert.deepEqual(warnings, []);
+});
+
+test('weekly rental hours accept 24:00 only as an exclusive end', () => {
+  const {config,warnings}=normalizeStoreConfig({booking:{openingHours:{mon:[{start:'00:00',end:'24:00'}]},handoff:{weekly:{mon:[{start:'00:00',end:'24:00'}]}}}},{warn:()=>{}});
+  assert.deepEqual(warnings,[]);
+  assert.equal(config.booking.handoff.weekly[1][0].end,'24:00');
+  assert.equal(config.booking.openingHours[1][0].end,'24:00');
+  const invalid=normalizeStoreConfig({booking:{handoff:{weekly:{mon:[{start:'24:00',end:'24:00'}]}}}},{warn:()=>{}});
+  assert.ok(invalid.warnings.length);
+  assert.deepEqual(invalid.config.booking.handoff.weekly[1],[]);
 });
 
 test('bad values fall back with a warning instead of breaking the build', () => {
@@ -43,7 +69,7 @@ test('bad values fall back with a warning instead of breaking the build', () => 
   assert.deepEqual(config.categories, {rental: {en: 'Rental'}});
   assert.equal(config.theme.primary, DEFAULT_THEME.primary);
   assert.equal(config.theme.accent, '#abcdef');
-  assert.deepEqual(config.booking, {maxRentalDays: 60, maxDaysAhead: 30, bufferDays: 0});
+  assert.deepEqual(config.booking, {maxRentalDays: 60, maxDaysAhead: 30, bufferDays: 0, timeSlots: [], slotMinutes: 30, displayStart: '06:00', displayEnd: '22:00', openingHours: {}, handoff: {weekly: {}}, turnaround: {strategy: 'none', hours: 0, returnCutoff: '20:00', readyNextDayAt: '07:00'}, fitting: {enabled: false, minutes: 30, bufferMinutes: 0}, policy: null});
   assert.equal(config.admin.defaultLanguage, 'en');
   for (const text of ['Unknown top-level key "extra"', '"fr" is not supported', 'defaultLanguage', 'currency', 'timezone', 'contact.facebook', 'contact.pager', 'categories.bad', 'theme.primary', 'theme.shadow', 'booking.maxRentalDays', 'booking.bufferDays', 'admin.defaultLanguage']) {
     assert(warnings.some(w => w.includes(text)), `expected a warning about ${text}: ${JSON.stringify(warnings)}`);
