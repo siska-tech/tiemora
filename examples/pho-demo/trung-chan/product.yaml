@@ -1,0 +1,46 @@
+﻿id: trung-chan
+type: sale
+
+name:
+  vi: Trứng chần
+  en: Soft-boiled egg
+
+category: mon-them
+
+description:
+  vi: Trứng chần mềm, ăn cùng phở rất hợp.
+  en: A soft-boiled egg that pairs perfectly with a warm bowl.
+
+price:
+  sale: 10000
+currency: VND
+
+options:
+  doneness:
+    - soft
+    - well-done
+
+fulfillment:
+  pickup: true
+  delivery: false
+  dine_in: true
+
+ordering:
+  preorder: true
+  # What the kitchen makes in a morning. stockPeriod: daily counts per service day, so
+  # tomorrow starts full again -- unlike the default "total", which never refills.
+  stock: 40
+  stockPeriod: daily
+
+placeholder: false
+color: "#b65b3d"
+bg: "#f7efe7"
+
+available: true
+featured: false
+order: 31
+
+tags:
+  - pho
+  - vietnam
+  - local-food

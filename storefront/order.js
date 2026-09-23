@@ -10,7 +10,7 @@ const orderCopy={
   fulfillmentTitle:'Cách nhận hàng',pickup:'Nhận tại cửa hàng',pickupHint:'Đến lấy tại cửa hàng',delivery:'Giao tận nơi',deliveryHint:'Phí giao {fee}',deliveryFree:'Miễn phí giao',recipientName:'Tên người nhận',recipientPhone:'SĐT người nhận',address:'Địa chỉ giao',deliveryNote:'Ghi chú giao hàng',
   whenTitle:'Ngày & khung giờ',windowCampaign:'Nhận đặt trước cho {from} – {to}',windowRolling:'Chọn ngày nhận hàng',closedWindow:'Hiện chưa nhận đặt trước.',slotLeft:'còn {n}',slotFull:'hết chỗ',dayFull:'Hết chỗ',pickSlot:'Chọn khung giờ',
   customerTitle:'Thông tin liên hệ',name:'Họ tên',phone:'Số điện thoại',preferred:'Liên hệ qua',zaloNumber:'Số Zalo',whatsappNumber:'Số WhatsApp',messengerUrl:'Link Facebook / Messenger',note:'Ghi chú cho tiệm',submit:'Gửi đơn',sending:'Đang gửi…',
-  terms:'Đây là yêu cầu đặt hàng, chưa phải đơn đã xác nhận. Cửa hàng sẽ liên hệ với bạn để xác nhận và hướng dẫn thanh toán.',
+  terms:'Đây là yêu cầu đặt hàng, chưa phải đơn đã xác nhận. Cửa hàng sẽ liên hệ với bạn để xác nhận và hướng dẫn thanh toán.',payment:'Thanh toán tại quầy: tiền mặt hoặc quét QR tại quán. Website không nhận thanh toán online.',
   channels:{zalo:'Zalo',whatsapp:'WhatsApp',messenger:'Messenger',phone:'Gọi điện'},channelHints:{zalo:'Nhắn qua Zalo',whatsapp:'Nhắn qua WhatsApp',messenger:'Facebook / Messenger',phone:'Tiệm sẽ gọi cho bạn'},sameAsPhone:'Giống số điện thoại',optional:'Không bắt buộc',
   consent:'Tôi đồng ý với {policy} và việc xử lý thông tin (họ tên, số điện thoại, địa chỉ giao, lời nhắn) để phục vụ đơn hàng.',policy:'Chính sách bảo mật',
   doneTitle:'Cảm ơn bạn',doneSent:'Đơn đặt hàng đã được gửi.',doneId:'Mã đơn',doneContact:'Cửa hàng sẽ liên hệ để xác nhận trong thời gian sớm nhất.',doneNote:'Đơn chỉ được xác nhận sau khi cửa hàng liên hệ với bạn.',doneDuplicate:'Đơn này đã được gửi trước đó, cửa hàng sẽ sớm liên hệ với bạn.',doneMessenger:'Nhắn tin cho cửa hàng',close:'Đóng',
@@ -21,9 +21,9 @@ const orderCopy={
   fulfillmentTitle:'How to receive it',pickup:'Pick up at the shop',pickupHint:'Collect in store',delivery:'Delivery',deliveryHint:'Delivery fee {fee}',deliveryFree:'Free delivery',recipientName:'Recipient name',recipientPhone:'Recipient phone',address:'Delivery address',deliveryNote:'Delivery note',
   whenTitle:'Date & time slot',windowCampaign:'Pre-orders for {from} – {to}',windowRolling:'Choose a day',closedWindow:'Pre-orders are not open right now.',slotLeft:'{n} left',slotFull:'full',dayFull:'Full',pickSlot:'Choose a time slot',
   customerTitle:'Your contact',name:'Full name',phone:'Phone number',preferred:'Contact me via',zaloNumber:'Zalo number',whatsappNumber:'WhatsApp number',messengerUrl:'Facebook / Messenger link',note:'Note for the shop',submit:'Send order',sending:'Sending…',
-  terms:'This is an order request, not a confirmed order. The shop will contact you to confirm and explain payment.',
+  terms:'This is an order request, not a confirmed order. The shop will contact you to confirm and explain payment.',payment:'Pay at the counter: cash or QR payment at the shop. This site takes no online payment.',
   channels:{zalo:'Zalo',whatsapp:'WhatsApp',messenger:'Messenger',phone:'Phone call'},channelHints:{zalo:'Message on Zalo',whatsapp:'Message on WhatsApp',messenger:'Facebook / Messenger',phone:'The shop will call you'},sameAsPhone:'Same as my phone number',optional:'Optional',
-  consent:'I agree to the {policy} and to my details (name, phone, delivery address, card message) being used to handle this order.',policy:'Privacy policy',
+  consent:'I agree to the {policy} and to my details (name, phone, delivery address, message) being used to handle this order.',policy:'Privacy policy',
   doneTitle:'Thank you 🌷',doneSent:'Your order has been sent.',doneId:'Order ID',doneContact:'The shop will contact you shortly to confirm.',doneNote:'An order is confirmed only once the shop has contacted you.',doneDuplicate:'This order was already sent; the shop will be in touch soon.',doneMessenger:'Message the shop',close:'Close',
   adminTurnstile:'For the store admin: Cloudflare Turnstile is not configured ({missing}). The form still works but has no spam protection.',
   errors:{required:'Please enter your name and phone number.',channel:'Please choose how we should contact you.',zaloNumber:'Please enter your Zalo number or tick "Same as my phone number".',whatsappNumber:'Please enter your WhatsApp number or tick "Same as my phone number".',consent:'Please accept the privacy policy to send the order.',phone:'That phone number does not look right.',recipient:'Please enter the recipient\'s name, phone and address.',date:'Please choose a day.',slot:'Please choose a time slot.',capacity_full:'That time slot just filled up. Please pick another one.',sold_out:'Sorry, this design just sold out.',deadline_passed:'Pre-orders are closed.',too_many_requests:'Too many requests. Please try again later or message the shop.',turnstile_required:'Please complete the verification.',turnstile_failed:'Verification failed, please try again.',turnstile_unavailable:'Verification is unavailable right now, please try again later.',validation_error:'Please check the details.',network:'Could not send. Check your connection and try again.'}},
@@ -32,7 +32,7 @@ const orderCopy={
   fulfillmentTitle:'受け取り方法',pickup:'店頭受取',pickupHint:'お店で受け取り',delivery:'配送',deliveryHint:'配送料 {fee}',deliveryFree:'配送無料',recipientName:'受取人のお名前',recipientPhone:'受取人の電話番号',address:'配送先住所',deliveryNote:'配送メモ',
   whenTitle:'日付と時間帯',windowCampaign:'{from} – {to} の予約受付中',windowRolling:'受取日を選択',closedWindow:'現在は予約を受け付けていません。',slotLeft:'残り {n}',slotFull:'満枠',dayFull:'満枠',pickSlot:'時間帯を選択',
   customerTitle:'ご連絡先',name:'お名前',phone:'電話番号',preferred:'ご希望の連絡方法',zaloNumber:'Zalo番号',whatsappNumber:'WhatsApp番号',messengerUrl:'Facebook / Messenger のリンク',note:'お店へのメモ',submit:'注文を送る',sending:'送信中…',
-  terms:'これは注文申請であり、確定した注文ではありません。お店から確認とお支払い方法のご連絡をします。',
+  terms:'これは注文申請であり、確定した注文ではありません。お店から確認とお支払い方法のご連絡をします。',payment:'お支払いは店頭で。現金または店内QR決済です。オンライン決済は扱いません。',
   channels:{zalo:'Zalo',whatsapp:'WhatsApp',messenger:'Messenger',phone:'電話'},channelHints:{zalo:'Zaloで連絡',whatsapp:'WhatsAppで連絡',messenger:'Facebook / Messenger',phone:'お店から電話します'},sameAsPhone:'電話番号と同じ',optional:'任意',
   consent:'{policy}と、注文対応のために個人情報（氏名・電話番号・配送先・メッセージ）を利用することに同意します。',policy:'プライバシーポリシー',
   doneTitle:'ありがとうございます 🌷',doneSent:'注文を送信しました。',doneId:'注文番号',doneContact:'お店からまもなく確認のご連絡をします。',doneNote:'注文はお店からの確認連絡をもって確定します。',doneDuplicate:'この注文はすでに送信されています。お店からまもなくご連絡します。',doneMessenger:'お店にメッセージ',close:'閉じる',
@@ -43,7 +43,7 @@ const orderCopy={
   fulfillmentTitle:'收花方式',pickup:'到店自取',pickupHint:'到店领取',delivery:'配送到家',deliveryHint:'配送费 {fee}',deliveryFree:'免费配送',recipientName:'收件人姓名',recipientPhone:'收件人电话',address:'配送地址',deliveryNote:'配送备注',
   whenTitle:'日期与时段',windowCampaign:'接受 {from} – {to} 的预订',windowRolling:'选择日期',closedWindow:'目前未开放预订。',slotLeft:'剩余 {n}',slotFull:'已满',dayFull:'已满',pickSlot:'选择时段',
   customerTitle:'联系方式',name:'姓名',phone:'电话号码',preferred:'联系方式',zaloNumber:'Zalo 号码',whatsappNumber:'WhatsApp 号码',messengerUrl:'Facebook / Messenger 链接',note:'给店铺的备注',submit:'发送订单',sending:'发送中…',
-  terms:'这是订单申请，并非已确认的订单。店铺将与您联系确认并说明付款方式。',
+  terms:'这是订单申请，并非已确认的订单。店铺将与您联系确认并说明付款方式。',payment:'到店付款：现金或店内扫码支付。本网站不支持在线支付。',
   channels:{zalo:'Zalo',whatsapp:'WhatsApp',messenger:'Messenger',phone:'电话'},channelHints:{zalo:'通过 Zalo 联系',whatsapp:'通过 WhatsApp 联系',messenger:'Facebook / Messenger',phone:'店铺将致电您'},sameAsPhone:'与电话号码相同',optional:'选填',
   consent:'我同意{policy}，并同意为处理本订单使用我的信息（姓名、电话、配送地址、留言）。',policy:'隐私政策',
   doneTitle:'感谢您 🌷',doneSent:'订单已发送。',doneId:'订单编号',doneContact:'店铺将尽快与您联系确认。',doneNote:'订单仅在店铺联系确认后生效。',doneDuplicate:'该订单此前已发送，店铺会尽快联系您。',doneMessenger:'联系店铺',close:'关闭',
@@ -51,14 +51,30 @@ const orderCopy={
   errors:{required:'请填写姓名和电话号码。',channel:'请选择联系方式。',zaloNumber:'请填写 Zalo 号码或勾选“与电话号码相同”。',whatsappNumber:'请填写 WhatsApp 号码或勾选“与电话号码相同”。',consent:'请先同意隐私政策再发送订单。',phone:'电话号码格式不正确。',recipient:'请填写收件人姓名、电话和地址。',date:'请选择日期。',slot:'请选择时段。',capacity_full:'该时段刚刚约满，请选择其他时段。',sold_out:'很抱歉，该款式刚刚售罄。',deadline_passed:'预订已截止。',too_many_requests:'申请过于频繁，请稍后再试或联系店铺。',turnstile_required:'请完成验证。',turnstile_failed:'验证失败，请重试。',turnstile_unavailable:'暂时无法验证，请稍后再试。',validation_error:'请检查填写的信息。',network:'发送失败，请检查网络后重试。'}}
 };
 const ORDER_CHANNELS=['zalo','whatsapp','messenger','phone'];
+const ASAP_COPY={vi:{asap:'Ngay bây giờ',asapHint:'Bếp làm ngay, khoảng {n} phút',asapHintNoLead:'Bếp làm ngay',asapClosed:'Ngoài giờ bán, vui lòng chọn khung giờ',later:'Chọn giờ nhận'},en:{asap:'As soon as possible',asapHint:'Cooked now, about {n} min',asapHintNoLead:'Cooked now',asapClosed:'Closed right now; please choose a time slot',later:'Choose a pickup time'},ja:{asap:'できあがり次第',asapHint:'今から調理、約{n}分',asapHintNoLead:'今から調理',asapClosed:'営業時間外です。時間帯を選んでください',later:'受取時間を選ぶ'},zh:{asap:'尽快',asapHint:'现做，约 {n} 分钟',asapHintNoLead:'现做',asapClosed:'当前非营业时间，请选择时段',later:'选择取餐时间'}};
+const DINE_IN_COPY={vi:{dine_in:'Ăn tại quán',dineInHint:'Gọi món tại bàn',tableNumber:'Số bàn',tableNumberError:'Vui lòng nhập số bàn từ {min} đến {max}.'},en:{dine_in:'Dine in',dineInHint:'Order from your table',tableNumber:'Table number',tableNumberError:'Please enter a table number between {min} and {max}.'},ja:{dine_in:'店内注文',dineInHint:'テーブルから注文',tableNumber:'テーブル番号',tableNumberError:'{min}〜{max} のテーブル番号を入力してください。'},zh:{dine_in:'堂食',dineInHint:'从餐桌点餐',tableNumber:'桌号',tableNumberError:'请输入 {min} 到 {max} 之间的桌号。'}};
+const CART_COPY={vi:{add:'Thêm vào giỏ',view:'Xem giỏ hàng',items:'Giỏ hàng · {n} món',remove:'Xóa',subtotal:'Tạm tính',total:'Tổng cộng',continue:'Tiếp tục chọn món',empty:'Giỏ hàng đang trống'},en:{add:'Add to cart',view:'View cart',items:'Cart · {n} items',remove:'Remove',subtotal:'Subtotal',total:'Total',continue:'Continue shopping',empty:'Your cart is empty'},ja:{add:'カートに追加',view:'カートを見る',items:'カート · {n}点',remove:'削除',subtotal:'小計',total:'合計',continue:'買い物を続ける',empty:'カートは空です'},zh:{add:'加入购物车',view:'查看购物车',items:'购物车 · {n}件',remove:'删除',subtotal:'小计',total:'合计',continue:'继续购物',empty:'购物车为空'}};
 const ot=key=>orderCopy[language]?.[key]??orderCopy.en[key]??orderCopy.vi[key];
+const orderText=key=>DINE_IN_COPY[language]?.[key]??DINE_IN_COPY.en[key];
+const cartText=key=>CART_COPY[language]?.[key]??CART_COPY.en[key];
+const asapText=key=>ASAP_COPY[language]?.[key]??ASAP_COPY.en[key];
+// ASAP is offered only when the store turned it on, the shop is open now, and the customer is
+// ordering for today. The Worker checks all three again before it writes the order.
+const asapOffered=()=>Boolean(orderConfig?.asap?.enabled&&orderConfig?.asap?.openNow&&order.date&&order.date===orderConfig?.dates?.from);
 const fill=(text,values)=>String(text).replace(/\{(\w+)\}/g,(m,k)=>k in values?values[k]:m);
 const orderBlock=document.getElementById('dialog-order'),orderOpen=document.getElementById('order-open'),orderQty=document.getElementById('order-qty');
 const orderDialog=document.getElementById('order-dialog'),orderForm=document.getElementById('order-form'),orderDone=document.getElementById('order-done'),orderError=document.getElementById('order-error');
+// A QR code on the table opens the store with ?mode=dine_in&table=12. Both parts are a hint from a
+// URL the guest can edit, never a fact: the mode only preselects a card the shop actually offers,
+// and the table is measured against the configured range here and again in the Worker.
+const queryParams=new URLSearchParams(location.search),qrDineIn=queryParams.get('mode')==='dine_in',qrTable=qrDineIn?String(queryParams.get('table')||'').trim():'';
+const tableRange=()=>({min:orderConfig?.tables?.min??1,max:orderConfig?.tables?.max??99});
+const tableNumberOk=value=>{const text=String(value??'').trim();if(!/^\d{1,4}$/.test(text))return false;const number=Number(text),range=tableRange();return number>=range.min&&number<=range.max;};
+const cart=window.TiemoraCart;
 // What the form offers, from /api/orders/config. null until loaded; refreshed when the form opens.
 let orderConfig=null,orderConfigLoading=null;
 // The customer's current choice for the open product.
-let order={productId:'',options:{},addons:[],quantity:1,fulfillment:'',date:'',slot:''};
+let order={productId:'',options:{},addons:[],quantity:1,fulfillment:'',date:'',slot:'',asap:false,tableNumber:qrTable};
 const isSaleProduct=p=>Boolean(p&&p.type==='sale');
 
 async function loadOrderConfig({force=false}={}){
@@ -104,6 +120,27 @@ const deliveryFee=()=>orderConfig?.fulfillment?.deliveryFee||0;
 const orderTotal=p=>unitPrice(p)*order.quantity+(order.fulfillment==='delivery'?deliveryFee():0);
 const money=amount=>formatPrice(amount,selected?.currency||orderConfig?.currency);
 const signed=amount=>amount>0?`+${money(amount)}`:amount<0?`−${money(-amount)}`:'';
+const cartProduct=id=>typeof products!=='undefined'?(products||[]).find(product=>product.id===id):null;
+const cartItemName=item=>item.name||productName(item.productId);
+function renderCartBar(){
+ const bar=document.getElementById('cart-bar'),items=cart.snapshot(),count=items.reduce((sum,item)=>sum+item.quantity,0);
+ bar.hidden=!items.length;
+ if(items.length){document.getElementById('cart-bar-label').textContent=fill(cartText('items'),{n:count});document.getElementById('cart-bar-total').textContent=money(cart.totals().total);}
+}
+function addSelectedToCart(){
+ const p=selected;if(!p||!orderConfig)return;
+ cart.add({productId:p.id,name:productName(p),quantity:order.quantity,options:{...order.options},addons:[...order.addons],unitPrice:unitPrice(p),lineTotal:unitPrice(p)*order.quantity});
+ renderCartBar();
+ document.getElementById('product-dialog').close();
+}
+function renderCartSummary(){
+ const box=document.getElementById('order-summary'),items=cart.snapshot();
+ if(!items.length){box.innerHTML=`<p class="muted">${escapeMarkup(cartText('empty'))}</p>`;return;}
+ const lines=items.map((item,index)=>{const optionLabels=Object.entries(item.options||{}).map(([group,id])=>choiceLabel(group,id));const addonLabels=(item.addons||[]).map(addonLabel);return `<li class="cart-item" data-cart-index="${index}"><div class="cart-item-main"><span class="cart-item-name">${escapeMarkup(cartItemName(item))}</span><small class="cart-item-meta">${escapeMarkup([...optionLabels,...addonLabels].join(' · ')||'—')}</small><b class="cart-item-price">${escapeMarkup(money(item.unitPrice))} × ${item.quantity} = ${escapeMarkup(money(item.unitPrice*item.quantity))}</b></div><div class="cart-item-actions"><button type="button" data-cart-dec aria-label="${escapeMarkup(ot('quantity'))} -">−</button><span>${item.quantity}</span><button type="button" data-cart-inc aria-label="${escapeMarkup(ot('quantity'))} +">+</button><button type="button" class="cart-remove" data-cart-remove aria-label="${escapeMarkup(cartText('remove'))}">×</button></div></li>`;}).join('');
+ const totals=cart.totals(order.fulfillment==='delivery'?deliveryFee():0);
+ box.innerHTML=`<ul class="cart-items">${lines}</ul><div class="cart-summary-total"><span>${escapeMarkup(cartText('subtotal'))}</span><b>${escapeMarkup(money(totals.subtotal))}</b></div>`;
+ document.getElementById('order-submit-total').textContent=money(totals.total);
+}
 // --- Availability shown on cards and in the dialog (catalog.js calls these for sale products) --------
 // Only real limits are shown: a product without `ordering.stock` never says "N left".
 function saleStatus(p){
@@ -124,8 +161,25 @@ function saleLabel(p){
  return catalogCopy[language].unknown;
 }
 const saleClass=p=>({closed:' unavailable',soldOut:' unavailable',low:' status-low'}[saleStatus(p).code]||'');
+// store.text overrides the order form's wording the same way app.js applies it to the page copy, so
+// a shop is not stuck with the defaults: a kitchen says "Chọn món" where the default says
+// "Pre-order". Only keys the order copy actually has are taken, so page keys do not leak in, and it
+// runs once -- on the first call after /store.json landed.
+let orderTextApplied=false;
+function applyOrderTextOverrides(){
+ if(orderTextApplied)return;
+ const overrides=typeof store==='undefined'?null:store?.store?.text;
+ if(!overrides||!Object.keys(overrides).length)return;
+ orderTextApplied=true;
+ for(const [key,value] of Object.entries(overrides))for(const lang of Object.keys(orderCopy)){
+  if(!(key in orderCopy[lang]))continue;
+  const text=typeof value==='string'?value:value?.[lang];
+  if(typeof text==='string'&&text.trim())orderCopy[lang][key]=text;
+ }
+}
 // --- The block inside the product dialog --------------------------------------------------------------
 function refreshOrderText(){
+ applyOrderTextOverrides();
  document.querySelectorAll('[data-order-i18n]').forEach(el=>{el.textContent=ot(el.dataset.orderI18n);});
  document.getElementById('close-order').setAttribute('aria-label',ot('close'));
  const [before,after]=ot('consent').split('{policy}');
@@ -141,7 +195,7 @@ function updateOrderBlock(){
  orderBlock.hidden=!sale;
  if(!sale)return;
  if(order.productId!==p.id){
-  order={productId:p.id,options:{},addons:[],quantity:1,fulfillment:'',date:'',slot:''};
+  order={productId:p.id,options:{},addons:[],quantity:1,fulfillment:'',date:'',slot:'',asap:false,tableNumber:qrTable};
   for(const [group,choices] of Object.entries(p.options||{}))order.options[group]=choices[0]?.id||'';
  }
  loadOrderConfig();
@@ -159,7 +213,7 @@ function renderOrderBlock(){
  statusEl.className='order-status'+(status.code==='closed'||status.code==='soldOut'?' is-unavailable':status.code==='low'?' is-low':'');
  const can=orderConfig&&['preorder','low'].includes(status.code)&&!(status.code==='low'&&status.remaining<order.quantity);
  orderOpen.disabled=!can;
- orderOpen.firstElementChild.textContent=status.code==='closed'?ot('ctaClosed'):status.code==='soldOut'?ot('ctaSoldOut'):ot('cta');
+ orderOpen.firstElementChild.textContent=status.code==='closed'?ot('ctaClosed'):status.code==='soldOut'?ot('ctaSoldOut'):cartText('add');
 }
 document.getElementById('order-options').addEventListener('change',e=>{const group=e.target.closest('[data-group]')?.dataset.group;if(group){order.options[group]=e.target.value;renderOrderBlock();}});
 document.getElementById('order-addons').addEventListener('change',e=>{if(e.target.name==='addon'){order.addons=e.target.checked?[...new Set([...order.addons,e.target.value])]:order.addons.filter(id=>id!==e.target.value);renderOrderBlock();}});
@@ -203,9 +257,31 @@ function syncFulfillment(){
  const fields=document.getElementById('delivery-fields');
  fields.hidden=type!=='delivery';
  fields.querySelectorAll('input').forEach(input=>{input.disabled=type!=='delivery';});
+ const dineInFields=document.getElementById('dine-in-fields'),tableInput=orderForm.elements.table_number;
+ const dineIn=type==='dine_in';
+ dineInFields.hidden=!dineIn;
+ tableInput.disabled=!dineIn;
+ // The QR sticker on the table already says which table this is, so the number is shown rather than
+ // asked for. A sticker that names a table the shop does not have is ignored and the field opens up:
+ // the URL is a hint, and the Worker checks the number again before it writes the order.
+ const fromSticker=dineIn&&qrTable!==''&&tableNumberOk(qrTable);
+ if(fromSticker&&!tableInput.value)tableInput.value=qrTable;
+ tableInput.readOnly=fromSticker;
+ dineInFields.classList.toggle('is-from-qr',fromSticker);
+ // A dine-in guest is served where they sit, so the shop needs no name, no phone and no channel to
+ // reach them. Takeaway still does: someone has to be called when the bag is ready.
+ for(const [name,key] of [['customer_name','name'],['customer_phone','phone']]){
+  const input=orderForm.elements[name];
+  input.required=!dineIn;
+  input.closest('label')?.querySelector(`[data-order-i18n="${key}"]`)?.classList.toggle('req',!dineIn);
+ }
+ orderForm.querySelector('.channel-group').hidden=dineIn;
+ if(dineIn)orderForm.querySelectorAll('[data-channel-field]').forEach(el=>{el.hidden=true;});
+ else syncOrderChannelFields();
  renderOrderSummary();
 }
 function renderOrderSummary(){
+ if(cart.snapshot().length){renderCartSummary();return;}
  const p=selected;if(!p)return;
  const parts=[...Object.entries(order.options).map(([g,id])=>choiceLabel(g,id)),...order.addons.map(addonLabel)].filter(Boolean);
  document.getElementById('order-summary').innerHTML=`<b>${escapeMarkup(productName(p))}</b><span>${escapeMarkup(parts.join(' · '))}${parts.length?' · ':''}×${order.quantity}</span><span>${escapeMarkup(ot('total'))}: ${escapeMarkup(money(orderTotal(p)))}${order.fulfillment==='delivery'&&deliveryFee()?` <small>(${escapeMarkup(ot('delivery'))} ${escapeMarkup(money(deliveryFee()))})</small>`:''}</span>`;
@@ -215,8 +291,9 @@ function renderDateChips(){
  const c=orderConfig,box=document.getElementById('date-chips'),windowEl=document.getElementById('order-window');
  const dates=c?.dates?.list||[];
  windowEl.textContent=!c||!dates.length?ot('closedWindow'):c.dates.campaign?fill(ot('windowCampaign'),{from:formatDate(c.dates.from),to:formatDate(c.dates.to)}):ot('windowRolling');
- if(!dates.includes(order.date))order.date=dates.find(d=>c.capacity?.[d]?.open!==false)||'';
- box.innerHTML=dates.map(d=>{const open=c.capacity?.[d]?.open!==false;return `<label class="chip date-chip${order.date===d?' is-selected':''}${open?'':' is-full'}"><input type="radio" name="fulfillment_date" value="${d}" class="sr-only"${order.date===d?' checked':''}${open?'':' disabled'}><span>${escapeMarkup(formatDate(d))}</span>${open?'':`<small>${escapeMarkup(ot('dayFull'))}</small>`}</label>`;}).join('');
+ const dayOpen=d=>c.capacity?.[d]?.open!==false&&cart.snapshot().every(item=>{const info=c.products?.[item.productId];const day=info?.byDate?.[d];return !day||day.remaining===null||day.remaining>=item.quantity;});
+ if(!dates.includes(order.date)||!dayOpen(order.date))order.date=dates.find(dayOpen)||'';
+ box.innerHTML=dates.map(d=>{const open=dayOpen(d);return `<label class="chip date-chip${order.date===d?' is-selected':''}${open?'':' is-full'}"><input type="radio" name="fulfillment_date" value="${d}" class="sr-only"${order.date===d?' checked':''}${open?'':' disabled'}><span>${escapeMarkup(formatDate(d))}</span>${open?'':`<small>${escapeMarkup(ot('dayFull'))}</small>`}</label>`;}).join('');
  renderSlotChips();
 }
 function renderSlotChips(){
@@ -224,24 +301,34 @@ function renderSlotChips(){
  const slots=c?.timeSlots||[],day=c?.capacity?.[order.date];
  if(!slots.length||!order.date){box.innerHTML='';order.slot='';return;}
  const state=id=>day?.slots?.[id]||{open:true,capacity:null,remaining:null};
+ // Dine-in is always "now": a guest at a table is not collecting later.
+ if(!asapOffered())order.asap=false; else if(order.fulfillment==='dine_in'&&!order.slot)order.asap=true;
  if(!slots.some(s=>s.id===order.slot&&state(s.id).open))order.slot='';
- box.innerHTML=`<span class="option-label">${escapeMarkup(ot('pickSlot'))}</span><div class="chips">`+slots.map(s=>{const st=state(s.id);const label=localizedText(s.label)||`${s.start}–${s.end}`;return `<label class="chip slot-chip${order.slot===s.id?' is-selected':''}${st.open?'':' is-full'}"><input type="radio" name="time_slot" value="${escapeMarkup(s.id)}" class="sr-only"${order.slot===s.id?' checked':''}${st.open?'':' disabled'}><span>${escapeMarkup(label)}</span>${!st.open?`<small>${escapeMarkup(ot('slotFull'))}</small>`:st.capacity!==null?`<small>${escapeMarkup(fill(ot('slotLeft'),{n:st.remaining}))}</small>`:''}</label>`;}).join('')+'</div>';
+ if(order.asap)order.slot='';
+ const lead=orderConfig?.asap?.leadMinutes;
+ const asapChip=asapOffered()?`<label class="chip slot-chip asap-chip${order.asap?' is-selected':''}"><input type="radio" name="time_slot" value="" data-asap class="sr-only"${order.asap?' checked':''}><span>${escapeMarkup(asapText('asap'))}</span><small>${escapeMarkup(lead?fill(asapText('asapHint'),{n:lead}):asapText('asapHintNoLead'))}</small></label>`:'';
+ box.innerHTML=`<span class="option-label">${escapeMarkup(ot('pickSlot'))}</span><div class="chips">`+asapChip+slots.map(s=>{const st=state(s.id);const label=localizedText(s.label)||`${s.start}–${s.end}`;return `<label class="chip slot-chip${order.slot===s.id?' is-selected':''}${st.open?'':' is-full'}"><input type="radio" name="time_slot" value="${escapeMarkup(s.id)}" class="sr-only"${order.slot===s.id?' checked':''}${st.open?'':' disabled'}><span>${escapeMarkup(label)}</span>${!st.open?`<small>${escapeMarkup(ot('slotFull'))}</small>`:st.capacity!==null?`<small>${escapeMarkup(fill(ot('slotLeft'),{n:st.remaining}))}</small>`:''}</label>`;}).join('')+'</div>';
 }
 function renderOrderForm(){
- const p=selected,c=orderConfig;if(!p)return;
+ const c=orderConfig;if(!c||!cart.snapshot().length)return;
  // 1. Card message: templates as chips, free text underneath.
  const card=c?.messageCard||{enabled:true,maxLength:200,templates:[]};
  document.getElementById('order-card-section').hidden=card.enabled===false;
+ document.querySelector('#order-card-section [data-order-i18n="cardTitle"]').textContent=localizedText(card.title)||ot('cardTitle');
  const textarea=orderForm.elements.message_card;
  textarea.maxLength=card.maxLength||200;textarea.placeholder=localizedText(card.placeholder)||ot('cardPlaceholder');
  document.getElementById('card-templates').innerHTML=(card.templates||[]).map(t=>`<button type="button" class="chip" data-template="${escapeMarkup(t.id)}"><span>${escapeMarkup(localizedText(t.label))}</span></button>`).join('');
  document.getElementById('card-counter').textContent=`${textarea.value.length} / ${textarea.maxLength} · ${fill(ot('cardHint'),{n:textarea.maxLength})}`;
  // 2. Fulfillment cards, only the ways both the store and the product offer.
- const offered=['pickup','delivery'].filter(type=>c?.fulfillment?.[type]!==false&&p.fulfillment?.[type]!==false);
- if(!offered.includes(order.fulfillment))order.fulfillment=offered[0]||'';
+ const cartProducts=cart.snapshot().map(item=>cartProduct(item.productId)).filter(Boolean);
+ const offered=['pickup','delivery','dine_in'].filter(type=>c?.fulfillment?.[type]===true&&cartProducts.every(product=>product.fulfillment?.[type]!==false));
+ // Someone who scanned the sticker at their table is already dining in; the QR picks the card.
+ const preferred=qrDineIn&&offered.includes('dine_in')?'dine_in':offered[0]||'';
+ if(!offered.includes(order.fulfillment))order.fulfillment=preferred;
  const fee=deliveryFee();
- const hints={pickup:ot('pickupHint'),delivery:fee?fill(ot('deliveryHint'),{fee:money(fee)}):ot('deliveryFree')};
- document.getElementById('fulfillment-cards').innerHTML=offered.map(type=>`<label class="channel-card${order.fulfillment===type?' is-selected':''}" for="fulfillment-${type}"><input type="radio" id="fulfillment-${type}" name="fulfillment_type" value="${type}" class="sr-only"${order.fulfillment===type?' checked':''}><span class="channel-mark" aria-hidden="true"></span><span class="channel-name">${escapeMarkup(ot(type))}</span><span class="channel-hint">${escapeMarkup(hints[type])}</span></label>`).join('');
+ const hints={pickup:ot('pickupHint'),delivery:fee?fill(ot('deliveryHint'),{fee:money(fee)}):ot('deliveryFree'),dine_in:orderText('dineInHint')};
+ document.getElementById('fulfillment-cards').innerHTML=offered.map(type=>`<label class="channel-card${order.fulfillment===type?' is-selected':''}" for="fulfillment-${type}"><input type="radio" id="fulfillment-${type}" name="fulfillment_type" value="${type}" class="sr-only"${order.fulfillment===type?' checked':''}><span class="channel-mark" aria-hidden="true"></span><span class="channel-name">${escapeMarkup(type==='dine_in'?orderText('dine_in'):ot(type))}</span><span class="channel-hint">${escapeMarkup(hints[type])}</span></label>`).join('');
+ document.querySelector('[data-order-i18n="tableNumber"]').textContent=orderText('tableNumber');
  const note=localizedText(c?.fulfillment?.deliveryNote);document.getElementById('delivery-note-text').textContent=note;document.getElementById('delivery-note-text').hidden=!note;
  syncFulfillment();
  // 3. Dates and slots. 4. Contact channels (same cards as the booking form).
@@ -252,22 +339,35 @@ function renderOrderForm(){
  renderOrderSummary();
 }
 async function openOrderForm(){
- const p=selected;if(!p||orderOpen.disabled)return;
+ if(!cart.snapshot().length)return;
  orderError.textContent='';document.getElementById('order-consent-row').classList.remove('is-invalid');
  orderForm.hidden=false;orderDone.hidden=true;orderDone.dataset.id='';
  refreshOrderText();renderOrderForm();
  if(!orderDialog.open)orderDialog.showModal();
  // Fresh capacity every time the form opens, then the chips are redrawn with it.
- loadOrderConfig({force:true}).then(()=>{if(orderDialog.open){renderDateChips();renderOrderBlock();}loadOrderTurnstile();});
- setTimeout(()=>orderForm.elements.message_card?.focus(),50);
+ loadOrderConfig({force:true}).then(()=>{if(orderDialog.open){renderDateChips();renderOrderForm();}loadOrderTurnstile();});
+ // Focus lands on the heading, not the first textarea: the message is optional and a keyboard popping up on phones says otherwise.
+ setTimeout(()=>document.getElementById('order-title')?.focus({preventScroll:true}),50);
 }
-orderOpen.addEventListener('click',openOrderForm);
+orderOpen.addEventListener('click',addSelectedToCart);
+document.getElementById('cart-bar').addEventListener('click',openOrderForm);
+cart.subscribe(renderCartBar);
+document.getElementById('order-summary').addEventListener('click',event=>{
+ const item=event.target.closest('[data-cart-index]');if(!item)return;
+ const index=Number(item.dataset.cartIndex),current=cart.snapshot()[index];
+ if(!current)return;
+ if(event.target.closest('[data-cart-inc]'))cart.update(index,current.quantity+1);
+ if(event.target.closest('[data-cart-dec]'))cart.update(index,current.quantity-1);
+ if(event.target.closest('[data-cart-remove]'))cart.remove(index);
+ renderCartSummary();renderCartBar();
+});
 orderForm.addEventListener('change',e=>{
  const name=e.target.name;
  if(name==='fulfillment_type')syncFulfillment();
  if(['preferred_contact_channel','zalo_same','whatsapp_same'].includes(name))syncOrderChannelFields();
  if(name==='fulfillment_date'){order.date=e.target.value;renderDateChips();}
- if(name==='time_slot'){order.slot=e.target.value;renderSlotChips();}
+ // The ASAP chip shares the time_slot radio group, so picking it clears the slot and vice versa.
+ if(name==='time_slot'){order.asap=e.target.hasAttribute('data-asap');order.slot=order.asap?'':e.target.value;renderSlotChips();}
  if(name==='privacy_consent'&&e.target.checked)document.getElementById('order-consent-row').classList.remove('is-invalid');
 });
 orderForm.addEventListener('input',e=>{if(e.target.name==='message_card'){const ta=e.target;document.getElementById('card-counter').textContent=`${ta.value.length} / ${ta.maxLength} · ${fill(ot('cardHint'),{n:ta.maxLength})}`;}});
@@ -299,25 +399,30 @@ function renderOrderDone(result){
 }
 orderForm.addEventListener('submit',async e=>{
  e.preventDefault();
- const p=selected;if(!p)return;
+ const cartItems=cart.snapshot();if(!cartItems.length)return;
  const errors=ot('errors'),f=orderForm.elements;
  const fail=(message,focus)=>{orderError.textContent=message;focus?.focus?.();focus?.scrollIntoView?.({block:'center'});};
  const phonePattern=/^\+?[\d\s().-]{6,40}$/;
  const value=name=>(f[name]?.value||'').trim();
  const channel=chosenOrderChannel();
- const body={product_id:p.id,quantity:order.quantity,options:{...order.options},addons:[...order.addons],fulfillment_type:order.fulfillment,fulfillment_date:order.date,time_slot:order.slot,
-  message_card:value('message_card'),note:value('note'),customer_name:value('customer_name'),customer_phone:value('customer_phone'),preferred_contact_channel:channel,customer_zalo_phone:'',customer_whatsapp:'',customer_messenger_url:''};
+ const body={items:cartItems.map(item=>({product_id:item.productId,quantity:item.quantity,options:item.options,addons:item.addons})),fulfillment_type:order.fulfillment,fulfillment_date:order.date,time_slot:order.slot,
+  asap:order.asap,table_number:value('table_number'),message_card:value('message_card'),note:value('note'),customer_name:value('customer_name'),customer_phone:value('customer_phone'),preferred_contact_channel:channel,customer_zalo_phone:'',customer_whatsapp:'',customer_messenger_url:''};
+ const dineIn=order.fulfillment==='dine_in';
+ if(dineIn&&!tableNumberOk(body.table_number))return fail(fill(orderText('tableNumberError'),tableRange()),f.table_number);
  if(order.fulfillment==='delivery'){
   Object.assign(body,{recipient_name:value('recipient_name'),recipient_phone:value('recipient_phone'),delivery_address:value('delivery_address'),delivery_note:value('delivery_note')});
   if(!body.recipient_name||!body.recipient_phone||!body.delivery_address)return fail(errors.recipient,!body.recipient_name?f.recipient_name:!body.recipient_phone?f.recipient_phone:f.delivery_address);
   if(!phonePattern.test(body.recipient_phone))return fail(errors.phone,f.recipient_phone);
  }
  if(!order.date)return fail(errors.date,document.getElementById('date-chips'));
- if((orderConfig?.timeSlots||[]).length&&!order.slot)return fail(errors.slot,document.getElementById('slot-chips'));
- if(!body.customer_name||!body.customer_phone)return fail(errors.required,body.customer_name?f.customer_phone:f.customer_name);
- if(!phonePattern.test(body.customer_phone))return fail(errors.phone,f.customer_phone);
- if(!ORDER_CHANNELS.includes(channel))return fail(errors.channel,f.preferred_contact_channel?.[0]);
- if(channel==='zalo'){body.customer_zalo_phone=f.zalo_same.checked?body.customer_phone:value('customer_zalo_phone');if(!body.customer_zalo_phone)return fail(errors.zaloNumber,f.customer_zalo_phone);if(!phonePattern.test(body.customer_zalo_phone))return fail(errors.phone,f.customer_zalo_phone);}
+ if(!order.asap&&(orderConfig?.timeSlots||[]).length&&!order.slot)return fail(errors.slot,document.getElementById('slot-chips'));
+ // Dine-in asks for none of this: the guest is at the table and the bowl goes there. A phone number
+ // typed anyway still has to look like one, because staff may call about the order.
+ if(!dineIn&&(!body.customer_name||!body.customer_phone))return fail(errors.required,body.customer_name?f.customer_phone:f.customer_name);
+ if(body.customer_phone&&!phonePattern.test(body.customer_phone))return fail(errors.phone,f.customer_phone);
+ if(dineIn)body.preferred_contact_channel='';
+ else if(!ORDER_CHANNELS.includes(channel))return fail(errors.channel,f.preferred_contact_channel?.[0]);
+ if(!dineIn&&channel==='zalo'){body.customer_zalo_phone=f.zalo_same.checked?body.customer_phone:value('customer_zalo_phone');if(!body.customer_zalo_phone)return fail(errors.zaloNumber,f.customer_zalo_phone);if(!phonePattern.test(body.customer_zalo_phone))return fail(errors.phone,f.customer_zalo_phone);}
  if(channel==='whatsapp'){body.customer_whatsapp=f.whatsapp_same.checked?body.customer_phone:value('customer_whatsapp');if(!body.customer_whatsapp)return fail(errors.whatsappNumber,f.customer_whatsapp);if(!phonePattern.test(body.customer_whatsapp))return fail(errors.phone,f.customer_whatsapp);}
  if(channel==='messenger')body.customer_messenger_url=value('customer_messenger_url');
  if(!f.privacy_consent.checked){document.getElementById('order-consent-row').classList.add('is-invalid');return fail(errors.consent,f.privacy_consent);}
@@ -337,6 +442,7 @@ orderForm.addEventListener('submit',async e=>{
   }
   orderForm.hidden=true;orderDone.hidden=false;
   renderOrderDone({...data.order,duplicate:Boolean(data.duplicate)});
+  cart.clear();
   orderForm.reset();
   loadOrderConfig({force:true});
  }catch(error){console.warn('Order failed:',error);orderError.textContent=errors.network;}

@@ -22,7 +22,7 @@ export const DEFAULT_STORE = {
     logo: null,
     // mark: a square symbol shown next to the store name; wordmark: the logo already contains the name.
     logoStyle: 'mark',
-    hero: {eyebrow: null, title: null, subtitle: null, image: null, fit: 'pan', focus: null},
+    hero: {layout: 'split', eyebrow: null, title: null, subtitle: null, image: null, fit: 'pan', focus: null, subject: null},
     announcement: null,
     values: [],
     // Overrides for the storefront's built-in UI copy (keys of `copy` in storefront/app.js), so a
@@ -43,15 +43,23 @@ export const DEFAULT_STORE = {
   // Capacity is counted, not itemised: a time slot holds N orders, a day holds N orders, a product
   // sells N units. Nothing here is a fake limit: leave a value null and no limit is shown or enforced.
   ordering: {
-    fulfillment: {pickup: true, delivery: true, deliveryFee: 0, deliveryNote: null},
+    fulfillment: {pickup: true, delivery: true, dine_in: false, deliveryFee: 0, deliveryNote: null},
+    // The table numbers a dine-in order may name: the range the shop actually painted on its tables.
+    // Only consulted when `fulfillment.dine_in` is on.
+    tables: {min: 1, max: 99},
     // Either an explicit window (from / to, for a campaign) or a rolling one (minLeadDays / maxDaysAhead).
     dates: {from: null, to: null, minLeadDays: 1, maxDaysAhead: 14},
     deadline: null,
     dailyCapacity: null,
     timeSlots: [],
+    // "As soon as you can": an order with no time slot, accepted only while the shop is open and
+    // only for today. `leadMinutes` is what the customer is told to expect, not a promise the
+    // server enforces. Off unless a store turns it on, so a shop that batches its work is unmoved.
+    asap: {enabled: false, leadMinutes: null},
+    openingHours: {},
     options: {},
     addons: {},
-    messageCard: {enabled: true, maxLength: 200, placeholder: null, templates: []}
+    messageCard: {enabled: true, maxLength: 200, title: null, placeholder: null, templates: []}
   },
   admin: {defaultLanguage: 'en'}
 };
@@ -95,6 +103,7 @@ export function normalizeStoreConfig(raw = {}, {warn = console.warn} = {}) {
       logo: text(store.logo),
       logoStyle: store.logoStyle == null || store.logoStyle === 'mark' ? 'mark' : store.logoStyle === 'wordmark' ? 'wordmark' : (note('store.logoStyle: must be mark or wordmark; using mark.'), 'mark'),
       hero: {
+        layout: hero.layout === 'environmental' ? 'environmental' : 'split',
         eyebrow: optionalLocalized(hero.eyebrow, 'store.hero.eyebrow', note),
         title: optionalLocalized(hero.title, 'store.hero.title', note),
         subtitle: optionalLocalized(hero.subtitle, 'store.hero.subtitle', note),
@@ -102,7 +111,10 @@ export function normalizeStoreConfig(raw = {}, {warn = console.warn} = {}) {
         // pan: a tall crop that slides sideways on scroll (the default); cover: fills the frame.
         fit: hero.fit == null || hero.fit === 'pan' ? 'pan' : hero.fit === 'cover' ? 'cover' : (note('store.hero.fit: must be pan or cover; using pan.'), 'pan'),
         // CSS object-position for the cover fit, e.g. "70% 50%".
-        focus: hero.focus == null ? null : /^\d{1,3}% \d{1,3}%$/.test(String(hero.focus)) ? String(hero.focus) : (note('store.hero.focus: must be "X% Y%"; ignored.'), null)
+        focus: hero.focus == null ? null : /^\d{1,3}% \d{1,3}%$/.test(String(hero.focus)) ? String(hero.focus) : (note('store.hero.focus: must be "X% Y%"; ignored.'), null),
+        // The point of the image the environmental layout's scroll zoom closes in on, e.g. "68% 70%"
+        // for a bowl in the lower right; null zooms on the focus point.
+        subject: hero.subject == null ? null : /^\d{1,3}% \d{1,3}%$/.test(String(hero.subject)) ? String(hero.subject) : (note('store.hero.subject: must be "X% Y%"; ignored.'), null)
       },
       announcement: optionalLocalized(store.announcement, 'store.announcement', note),
       values: Array.isArray(store.values) ? store.values.map((v, i) => optionalLocalized(v, `store.values[${i}]`, note)).filter(Boolean).slice(0, 3) : [],
@@ -230,9 +242,21 @@ function normalizeOrdering(raw, config, note) {
   if (raw.fulfillment != null && !isMap(raw.fulfillment)) note('ordering.fulfillment: must be a mapping; using defaults.');
   config.fulfillment.pickup = f.pickup !== false;
   config.fulfillment.delivery = f.delivery !== false;
-  if (!config.fulfillment.pickup && !config.fulfillment.delivery) { note('ordering.fulfillment: pickup and delivery cannot both be off; enabling pickup.'); config.fulfillment.pickup = true; }
+  config.fulfillment.dine_in = f.dine_in === true;
+  if (!config.fulfillment.pickup && !config.fulfillment.delivery && !config.fulfillment.dine_in) { note('ordering.fulfillment: at least one fulfillment type must stay on; enabling pickup.'); config.fulfillment.pickup = true; }
   config.fulfillment.deliveryFee = positiveInt(f.deliveryFee, 'ordering.fulfillment.deliveryFee', 0, note);
   config.fulfillment.deliveryNote = optionalLocalized(f.deliveryNote, 'ordering.fulfillment.deliveryNote', note);
+
+  // Table range for dine-in. A QR code can put any number in the URL, so this is what the server
+  // measures it against; an inverted range is a typo, not a shop with no tables.
+  const tables = isMap(raw.tables) ? raw.tables : {};
+  if (raw.tables != null && !isMap(raw.tables)) note('ordering.tables: must be a mapping; using defaults.');
+  config.tables.min = positiveInt(tables.min, 'ordering.tables.min', DEFAULT_STORE.ordering.tables.min, note, {min: 1});
+  config.tables.max = positiveInt(tables.max, 'ordering.tables.max', DEFAULT_STORE.ordering.tables.max, note, {min: 1});
+  if (config.tables.max < config.tables.min) {
+    note(`ordering.tables: max (${config.tables.max}) is below min (${config.tables.min}); using the defaults.`);
+    config.tables = {...DEFAULT_STORE.ordering.tables};
+  }
 
   const d = isMap(raw.dates) ? raw.dates : {};
   if (raw.dates != null && !isMap(raw.dates)) note('ordering.dates: must be a mapping; using defaults.');
@@ -268,6 +292,30 @@ function normalizeOrdering(raw, config, note) {
       });
     }
   }
+  if (raw.asap != null) {
+    if (!isMap(raw.asap)) note('ordering.asap: must be a mapping; ignored.');
+    else {
+      config.asap.enabled = raw.asap.enabled === true;
+      config.asap.leadMinutes = nullableInt(raw.asap.leadMinutes, 'ordering.asap.leadMinutes', note, {min: 1});
+    }
+  }
+  if (raw.openingHours != null) {
+    if (!isMap(raw.openingHours)) note('ordering.openingHours: must be a mapping of weekday -> intervals; ignored.');
+    else {
+      const days = {sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6};
+      for (const [day, intervals] of Object.entries(raw.openingHours)) {
+        const dayId = days[day.toLowerCase()] ?? (/^[0-6]$/.test(day) ? Number(day) : null);
+        if (dayId === null || !Array.isArray(intervals)) { note(`ordering.openingHours.${day}: must use a weekday and a list of intervals; ignored.`); continue; }
+        const valid = [];
+        for (const [i, interval] of intervals.entries()) {
+          const where = `ordering.openingHours.${day}[${i}]`;
+          if (!isMap(interval) || !TIME.test(String(interval.start ?? '')) || !TIME.test(String(interval.end ?? '')) || String(interval.start) >= String(interval.end)) { note(`${where}: start / end must be HH:MM with start before end; ignored.`); continue; }
+          valid.push({start: String(interval.start), end: String(interval.end)});
+        }
+        config.openingHours[dayId] = valid;
+      }
+    }
+  }
   if (raw.options != null) {
     if (!isMap(raw.options)) note('ordering.options: must be a mapping of group -> {label, choices}; ignored.');
     else for (const [group, value] of Object.entries(raw.options)) {
@@ -283,6 +331,8 @@ function normalizeOrdering(raw, config, note) {
   if (raw.messageCard != null && !isMap(raw.messageCard)) note('ordering.messageCard: must be a mapping; using defaults.');
   config.messageCard.enabled = m.enabled !== false;
   config.messageCard.maxLength = positiveInt(m.maxLength, 'ordering.messageCard.maxLength', DEFAULT_STORE.ordering.messageCard.maxLength, note, {min: 20});
+  // title relabels the section: a florist keeps "Card message", a restaurant says "Note for the kitchen".
+  config.messageCard.title = optionalLocalized(m.title, 'ordering.messageCard.title', note);
   config.messageCard.placeholder = optionalLocalized(m.placeholder, 'ordering.messageCard.placeholder', note);
   if (m.templates != null) {
     if (!Array.isArray(m.templates)) note('ordering.messageCard.templates: must be a list; ignored.');

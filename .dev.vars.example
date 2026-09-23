@@ -1,5 +1,7 @@
 # Copy to .dev.vars for `npm run dev` (wrangler dev). Never commit .dev.vars: it is git-ignored.
 # Production values go to Cloudflare Secrets: `npx wrangler secret put NAME`.
+# The Turnstile and Web Push keys below are filled in for you by `npm run setup:turnstile` /
+# `npm run setup:vapid`, which also set the vars and the Cloudflare secrets.
 
 # Required (unless Cloudflare Access protects /admin): the password for /admin/login.
 ADMIN_PASSWORD=change-me

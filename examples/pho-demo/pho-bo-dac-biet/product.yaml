@@ -1,0 +1,63 @@
+﻿id: pho-bo-dac-biet
+type: sale
+
+name:
+  vi: Phở bò đặc biệt
+  en: Special beef pho
+
+category: pho-bo
+
+description:
+  vi: Món đặc biệt với nhiều nguyên liệu, thêm bò và quẩy thơm.
+  en: Special beef pho with extra toppings and a fuller, richer bowl.
+
+price:
+  sale: 65000
+currency: VND
+
+options:
+  size:
+    - regular
+    - large
+  noodles:
+    - normal
+    - less
+    - extra
+  herbs:
+    - normal
+    - no-herbs
+  spice:
+    - none
+    - normal
+    - extra
+
+addons:
+  - extra-beef
+  - egg
+  - quay
+  - extra-noodles
+
+fulfillment:
+  pickup: true
+  delivery: false
+  dine_in: true
+
+ordering:
+  preorder: true
+  # What the kitchen makes in a morning. stockPeriod: daily counts per service day, so
+  # tomorrow starts full again -- unlike the default "total", which never refills.
+  stock: 15
+  stockPeriod: daily
+
+placeholder: false
+color: "#b65b3d"
+bg: "#f7efe7"
+
+available: true
+featured: true
+order: 13
+
+tags:
+  - pho
+  - vietnam
+  - local-food

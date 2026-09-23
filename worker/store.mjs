@@ -3,7 +3,7 @@
 // links and booking limits exist in one place. Environment variables override the few values an
 // operator may want to change without a rebuild (RESERVATION_BUFFER_DAYS, STORE_TIMEZONE).
 import {normalizeStoreConfig} from '../core/config/store.mjs';
-import {todayIn} from '../core/booking/dates.mjs';
+import {todayIn, timeIn} from '../core/booking/dates.mjs';
 
 const TTL = 60000;
 let cache = {origin: '', config: null, fetchedAt: 0};
@@ -32,6 +32,7 @@ export function bookingContext(env, store) {
   const timezone = env.STORE_TIMEZONE || store.timezone;
   return {
     today: todayIn(timezone),
+    now: timeIn(timezone),
     timezone,
     buffer: envInt(env.RESERVATION_BUFFER_DAYS) ?? store.booking.bufferDays,
     maxRentalDays: store.booking.maxRentalDays,

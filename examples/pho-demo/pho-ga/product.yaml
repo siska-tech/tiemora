@@ -1,0 +1,63 @@
+﻿id: pho-ga
+type: sale
+
+name:
+  vi: Phở gà
+  en: Chicken pho
+
+category: pho-ga
+
+description:
+  vi: Phở gà nhẹ, nước dùng thanh, thịt gà mềm và thơm.
+  en: A lighter chicken pho with delicate broth and tender chicken.
+
+price:
+  sale: 45000
+currency: VND
+
+options:
+  size:
+    - regular
+    - large
+  noodles:
+    - normal
+    - less
+    - extra
+  herbs:
+    - normal
+    - no-herbs
+  spice:
+    - none
+    - normal
+    - extra
+
+addons:
+  - extra-chicken
+  - egg
+  - quay
+  - extra-noodles
+
+fulfillment:
+  pickup: true
+  delivery: false
+  dine_in: true
+
+ordering:
+  preorder: true
+  # What the kitchen makes in a morning. stockPeriod: daily counts per service day, so
+  # tomorrow starts full again -- unlike the default "total", which never refills.
+  stock: 30
+  stockPeriod: daily
+
+placeholder: false
+color: "#b65b3d"
+bg: "#f7efe7"
+
+available: true
+featured: true
+order: 20
+
+tags:
+  - pho
+  - vietnam
+  - local-food

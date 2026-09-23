@@ -4,6 +4,28 @@ All notable changes to Tiemora Core are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-23
+
+Local-store ordering, generalised from the Phở demo. See the [merge notes](docs/releases/v0.3-result.md) for scope and upgrade instructions.
+
+### Added
+- Dine-in fulfillment with canonical table numbers and a configurable table range; dine-in guests can order without contact details. QR URLs can preselect fulfillment and a valid table.
+- Opening hours by weekday, checked in the store timezone; opt-in ASAP orders for today without a time slot, with an optional displayed lead time.
+- Per-product `ordering.stockPeriod: daily`, enforced by service date in both validation and the SQL stock guard. The default remains `total`.
+- Admin Order Queue with status actions and a Menu screen for staff sold-out switches, backed by `product_availability` and protected by admin authentication and read-only mode.
+- Multi-item `items[]` orders with server-side pricing for every line; legacy single-item requests remain supported.
+- Storefront cart implementation with selection persistence. Its storage/state contract remains provisional pending the Café demo; mixed fulfillment is deferred.
+- Store copy overrides for catalog cards and order forms, a configurable message-card heading, and environmental hero layout.
+- Turnstile and VAPID setup commands with local, dry-run and status modes.
+
+### Fixed
+- Restored carts notify subscribers on load so the cart bar reflects saved selections immediately.
+
+### Compatibility
+- Apply migrations `0007_dine_in.sql`, `0008_product_availability.sql` and `0009_asap_orders.sql` before deploying the Worker. Released migration `0006_orders.sql` is unchanged.
+- Dine-in and ASAP default off, empty opening hours impose no restriction, and stock defaults to a lifetime total. Rental bookings remain a separate domain.
+- Demo branding, menu, artwork and capacities are isolated under `examples/pho-demo/`, selected by `npm run build:pho-demo`. Core retains generic defaults. QR sheet generation and a stable cart contract are deferred.
+
 ## [0.2.0] - 2026-09-22
 
 Sale / pre-order products and a generic Orders domain, generalised from a production flower-shop deployment of Tiemora Core. Rental support remains available and fully backward compatible; all v0.1.0 tests still pass.

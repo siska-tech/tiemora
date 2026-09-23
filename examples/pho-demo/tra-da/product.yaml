@@ -1,0 +1,47 @@
+﻿id: tra-da
+type: sale
+
+name:
+  vi: Trà đá
+  en: Iced tea
+
+category: do-uong
+
+description:
+  vi: Trà đá mát, dễ uống cho ngày nắng.
+  en: A light iced tea with a clean finish.
+
+price:
+  sale: 15000
+currency: VND
+
+options:
+  size:
+    - regular
+    - {id: large, price: 5000}
+  ice:
+    - normal
+    - less
+
+fulfillment:
+  pickup: true
+  delivery: false
+  dine_in: true
+
+ordering:
+  preorder: true
+  # Drinks do not run out. Staff can still take one off the menu from /admin/ (Menu).
+  stock: null
+
+placeholder: false
+color: "#b65b3d"
+bg: "#f7efe7"
+
+available: true
+featured: false
+order: 40
+
+tags:
+  - pho
+  - vietnam
+  - local-food

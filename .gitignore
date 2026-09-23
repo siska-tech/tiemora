@@ -34,3 +34,6 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+
+# Per-deployment Wrangler settings (keep out of Core commits).
+/wrangler.local.jsonc

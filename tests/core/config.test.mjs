@@ -64,6 +64,28 @@ test('the shipped config/store.yaml is valid and free of warnings', async () => 
   assert.deepEqual(warnings, []);
   assert.equal(config.store.name, 'Tiemora Demo Store');
   assert.equal(config.catalog.dir, 'examples/catalog');
-  // No real contact details ship with the demo configuration.
-  assert(Object.values(config.contact).every(v => v === null));
+  assert.equal(config.defaultLanguage, 'vi');
+  assert.equal(config.ordering.fulfillment.dine_in, false);
+  assert.equal(config.ordering.asap.enabled, false);
+});
+
+test('the isolated food demo config enables local-store ordering without warnings', async () => {
+  const raw = parse(await readFile(new URL('../../examples/pho-demo/store.yaml', import.meta.url), 'utf8'));
+  const {config, warnings} = normalizeStoreConfig(raw, {warn: () => {}});
+  assert.deepEqual(warnings, []);
+  assert.equal(config.catalog.dir, 'examples/pho-demo');
+  assert.equal(config.ordering.fulfillment.dine_in, true);
+  assert.equal(config.ordering.asap.enabled, true);
+  assert.deepEqual(config.ordering.tables, {min: 1, max: 24});
+  assert(config.store.text.heroDineIn.vi);
+});
+
+test('hero.focus and hero.subject accept "X% Y%" and warn about anything else', () => {
+  const warnings = [];
+  const {config} = normalizeStoreConfig({store: {hero: {layout: 'environmental', fit: 'cover', focus: '38% 50%', subject: '68% 70%'}}}, {warn: m => warnings.push(m)});
+  assert.deepEqual(config.store.hero, {layout: 'environmental', eyebrow: null, title: null, subtitle: null, image: null, fit: 'cover', focus: '38% 50%', subject: '68% 70%'});
+  assert.deepEqual(warnings, []);
+  const bad = normalizeStoreConfig({store: {hero: {subject: 'the bowl'}}}, {warn: m => warnings.push(m)});
+  assert.equal(bad.config.store.hero.subject, null);
+  assert(warnings.some(w => w.includes('store.hero.subject')));
 });

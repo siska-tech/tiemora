@@ -7,7 +7,7 @@ Tiemora runs as one Cloudflare Worker with Static Assets and one D1 database. Th
 | Resource | Purpose | Created by |
 |---|---|---|
 | Worker `tiemora` | API + admin gate; serves `dist/` as static assets | `npm run deploy` |
-| D1 database `tiemora` | inventory, bookings, push subscriptions | `npm run db:create` |
+| D1 database `tiemora` | inventory, bookings, orders, push subscriptions | `npm run db:create` |
 | Turnstile widget (optional) | spam protection on the booking form | `npm run turnstile:create` or the dashboard |
 | Secrets | admin password and the other keys below | `npx wrangler secret put …` |
 | Cloudflare Access application (optional) | SSO in front of `/admin` | Zero Trust dashboard |
@@ -57,18 +57,20 @@ Locally the same names go in `.dev.vars` (copy `.dev.vars.example`; the file is 
 ## 5. Turnstile (optional)
 
 ```sh
-npm run turnstile:create      # wrangler turnstile widget create … --domain localhost; add --domain yourshop.example
+npm run setup:turnstile -- --domain yourshop.example
 ```
 
-or create a *Managed* widget in the dashboard (Turnstile → Add widget) with your domain(s). Put the **site key** in `wrangler.jsonc` → `vars.TURNSTILE_SITE_KEY` and the **secret** in `npx wrangler secret put TURNSTILE_SECRET_KEY`. Until both exist the form works without the widget and shows a warning aimed at the store owner.
+The script creates a *Managed* widget (or reuses the one with that name and adds the domain), then writes the **site key** to `wrangler.jsonc` → `vars.TURNSTILE_SITE_KEY` and `.dev.vars`, and uploads the **secret** as `TURNSTILE_SECRET_KEY` — the secret is piped to `wrangler`, never printed. `--dry-run` previews, `--local` stops at `.dev.vars`, `--name` picks a different widget. Creating the widget in the dashboard by hand works too; the same two values are needed. Until both exist the form works without the widget and shows a warning aimed at the store owner.
 
 ## 6. Web Push (optional)
 
 ```sh
-npm run vapid:generate
+npm run setup:vapid -- --subject mailto:you@example.com
 ```
 
-Put `VAPID_PUBLIC_KEY` and `VAPID_SUBJECT` (`mailto:you@example.com`) in `wrangler.jsonc` `vars`, and `VAPID_PRIVATE_KEY` in a secret. After deploying, open `/admin/#/settings` on each phone and press **Enable on this device** (on iPhone, add the admin to the home screen first). Rotating the keys invalidates every subscription.
+The script generates the pair, writes `VAPID_PUBLIC_KEY` and `VAPID_SUBJECT` to `wrangler.jsonc` `vars` (and `.dev.vars`), and uploads `VAPID_PRIVATE_KEY` as a secret. `npm run vapid:generate` still prints a pair if you would rather place the values yourself. After deploying, open `/admin/#/settings` on each phone and press **Enable on this device** (on iPhone, add the admin to the home screen first). Rotating the keys invalidates every subscription, so the script asks for `--force` before replacing a key that is in use.
+
+`npm run setup:status` shows which of the two features has its var, its Cloudflare secret and its `.dev.vars` entry in place.
 
 ## 7. Cloudflare Access (optional)
 

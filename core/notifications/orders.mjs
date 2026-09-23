@@ -7,25 +7,25 @@ const TEMPLATES = {
   vi: {
     greeting: name => `Xin chào ${name}`,
     confirmed: store => `Đơn hoa của bạn tại ${store} đã được xác nhận.`,
-    items: 'Sản phẩm', pickup: 'Nhận tại cửa hàng', delivery: 'Giao tận nơi', recipient: 'Người nhận', address: 'Địa chỉ', card: 'Lời nhắn trên thiệp', total: 'Tổng', id: 'Mã đơn',
+    items: 'Sản phẩm', pickup: 'Nhận tại cửa hàng', delivery: 'Giao tận nơi', dine_in: 'Ăn tại quán', asap: 'Ngay bây giờ', recipient: 'Người nhận', address: 'Địa chỉ', card: 'Lời nhắn trên thiệp', total: 'Tổng', id: 'Mã đơn',
     closing: store => ['Nếu cần thay đổi, bạn nhắn lại cho chúng tôi nhé.', `Cảm ơn bạn đã chọn ${store}!`]
   },
   en: {
     greeting: name => `Hello ${name}`,
     confirmed: store => `Your order at ${store} is confirmed.`,
-    items: 'Items', pickup: 'Pick-up at the shop', delivery: 'Delivery', recipient: 'Recipient', address: 'Address', card: 'Card message', total: 'Total', id: 'Order ID',
+    items: 'Items', pickup: 'Pick-up at the shop', delivery: 'Delivery', dine_in: 'Dine-in', asap: 'As soon as possible', recipient: 'Recipient', address: 'Address', card: 'Card message', total: 'Total', id: 'Order ID',
     closing: store => ['If anything needs to change, just reply to this message.', `Thank you for choosing ${store}!`]
   },
   ja: {
     greeting: name => `${name} 様`,
     confirmed: store => `${store} でのご注文が確定しました。`,
-    items: '商品', pickup: '店頭受取', delivery: '配送', recipient: 'お届け先', address: '住所', card: 'カードメッセージ', total: '合計', id: '注文番号',
+    items: '商品', pickup: '店頭受取', delivery: '配送', dine_in: '店内注文', asap: 'できあがり次第', recipient: 'お届け先', address: '住所', card: 'カードメッセージ', total: '合計', id: '注文番号',
     closing: store => ['ご変更がある場合は、このメッセージにご返信ください。', `${store} をお選びいただきありがとうございます。`]
   },
   zh: {
     greeting: name => `${name} 您好`,
     confirmed: store => `您在 ${store} 的订单已确认。`,
-    items: '商品', pickup: '到店自取', delivery: '配送', recipient: '收件人', address: '地址', card: '卡片留言', total: '合计', id: '订单编号',
+    items: '商品', pickup: '到店自取', delivery: '配送', dine_in: '堂食', asap: '尽快', recipient: '收件人', address: '地址', card: '卡片留言', total: '合计', id: '订单编号',
     closing: store => ['如需更改，请直接回复此消息。', `感谢您选择 ${store}！`]
   }
 };
@@ -69,8 +69,9 @@ export function buildOrderConfirmationMessage(order, products, language = DEFAUL
   const lines = [t.greeting(name), '', t.confirmed(storeName), ''];
   if (items.length === 1) lines.push(`${t.items}: ${itemLine(items[0])}`);
   else if (items.length) lines.push(`${t.items}:`, ...items.map(i => `- ${itemLine(i)}`));
-  const when = [formatDate(order?.fulfillment_date, lang), slotLabel(store, order?.time_slot, lang)].filter(Boolean).join(', ');
-  lines.push(`${order?.fulfillment_type === 'delivery' ? t.delivery : t.pickup}: ${when}`);
+  const fulfilled = order?.fulfillment_type === 'delivery' ? t.delivery : order?.fulfillment_type === 'dine_in' ? t.dine_in : t.pickup;
+  const when = [formatDate(order?.fulfillment_date, lang), order?.asap ? t.asap : slotLabel(store, order?.time_slot, lang)].filter(Boolean).join(', ');
+  lines.push(`${fulfilled}: ${when}${order?.fulfillment_type === 'dine_in' && order?.table_number ? ` · Bàn ${order.table_number}` : ''}`);
   if (order?.fulfillment_type === 'delivery') {
     const recipient = [order.recipient_name, order.recipient_phone].filter(Boolean).join(' · ');
     if (recipient) lines.push(`${t.recipient}: ${recipient}`);
@@ -94,7 +95,8 @@ export function buildOrderSummary(order, products, store, language = DEFAULT_LAN
   const phone = String(order?.customer_phone ?? '').trim();
   if (phone) lines.push(phone);
   lines.push(...items.map(itemLine));
-  lines.push(`${order?.fulfillment_type === 'delivery' ? 'Delivery' : 'Pickup'} · ${formatDate(order?.fulfillment_date, language)}${order?.time_slot ? ' · ' + slotLabel(store, order.time_slot, language) : ''}`);
+  const summaryLabel = order?.fulfillment_type === 'delivery' ? 'Delivery' : order?.fulfillment_type === 'dine_in' ? 'Dine-in' : 'Pickup';
+  lines.push(`${summaryLabel} · ${formatDate(order?.fulfillment_date, language)}${order?.asap ? ' · ASAP' : order?.time_slot ? ' · ' + slotLabel(store, order.time_slot, language) : ''}${order?.fulfillment_type === 'dine_in' && order?.table_number ? ' · Table ' + order.table_number : ''}`);
   if (order?.fulfillment_type === 'delivery' && order.delivery_address) lines.push(order.delivery_address);
   if (order?.message_card) lines.push(`“${order.message_card}”`);
   return lines.filter(line => line !== '').join('\n');

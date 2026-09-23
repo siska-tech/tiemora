@@ -10,7 +10,7 @@ import {PHONE, contactFields, optionalPhone} from './customer.mjs';
 import {PUBLIC_CONTACT_CHANNELS, NOTIFICATION_CHANNELS, NOTIFICATION_STATUSES} from '../core/notifications/index.mjs';
 import {buildOrderNotification} from '../core/notifications/orders.mjs';
 import {localized} from '../core/i18n/localized.mjs';
-import {ORDER_STATUSES, FULFILLMENT_TYPES, priceOrderLine, orderTotals, orderDateWindow, orderDateError, deadlinePassed, findSlot, capacityByDate, stockSummary, nextOrderStatuses} from '../core/orders/rules.mjs';
+import {ORDER_STATUSES, FULFILLMENT_TYPES, priceOrderLine, orderTotals, orderDateWindow, orderDateError, openingHoursError, asapError, tableNumberError, normalizeTableNumber, deadlinePassed, findSlot, capacityByDate, stockSummary, stockPeriodOf, dailyStockSummary, nextOrderStatuses} from '../core/orders/rules.mjs';
 import {publicRequestGuard, turnstileStatus} from './public-requests.mjs';
 import {pushEnabled, notifyAdmins, newOrderPayload} from './push.mjs';
 import {shiftDate} from '../core/booking/dates.mjs';
@@ -25,17 +25,33 @@ function windowDates(window) {
   for (let d = window.from; d <= window.to && dates.length < 62; d = shiftDate(d, 1)) dates.push(d);
   return dates;
 }
+// A /store.json built before dine-in existed carries no table range; the defaults from the store
+// config stand in so an older deployment still validates instead of throwing.
+const tableRange = ordering => ({min: ordering.tables?.min ?? 1, max: ordering.tables?.max ?? 99});
+
 // Capacity for the order window and stock for every sale product, computed the same way for the
 // public config and for the create handler so the customer never sees a slot the server would refuse.
 async function orderState(env, request) {
   const [store, catalog] = await Promise.all([loadStore(env, request), loadCatalog(env, request)]);
-  const {today} = bookingContext(env, store);
+  const {today, now} = bookingContext(env, store);
   const window = orderDateWindow(store.ordering.dates, today);
   const dates = windowDates(window);
-  const [counts, sold] = await Promise.all([dates.length ? ordersDb.countCapacity(env.DB, dates[0], dates.at(-1)) : {}, ordersDb.soldByProduct(env.DB)]);
+  const [counts, sold, soldByDate, switchedOff] = await Promise.all([
+    dates.length ? ordersDb.countCapacity(env.DB, dates[0], dates.at(-1)) : {},
+    ordersDb.soldByProduct(env.DB),
+    dates.length ? ordersDb.soldByProductAndDate(env.DB, dates[0], dates.at(-1)) : {},
+    ordersDb.soldOutProducts(env.DB)
+  ]);
   const products = {};
-  for (const product of catalog.products) if (product.type === 'sale') products[product.id] = {...stockSummary(product, sold.get(product.id) || 0), preorder: product.ordering?.preorder !== false, deadlinePassed: deadlinePassed(product.ordering?.deadline)};
-  return {store, catalog, today, window, dates, capacity: capacityOf(store.ordering, dates, counts), products, deadlinePassed: deadlinePassed(store.ordering.deadline)};
+  // A staff toggle only ever takes a product off the menu; it never puts a counted-out one back on.
+  for (const product of catalog.products) if (product.type === 'sale') {
+    // A daily-stock product is measured per fulfillment date; `byDate` carries each day and the top
+    // level summarises the window, so the product card can speak before a date is picked.
+    const summary = stockPeriodOf(product) === 'daily' ? dailyStockSummary(product, dates, soldByDate) : stockSummary(product, sold.get(product.id) || 0);
+    const offByStaff = switchedOff.has(product.id);
+    products[product.id] = {...summary, soldOut: summary.soldOut || offByStaff, soldOutByStaff: offByStaff, preorder: product.ordering?.preorder !== false, deadlinePassed: deadlinePassed(product.ordering?.deadline)};
+  }
+  return {store, catalog, today, now, window, dates, capacity: capacityOf(store.ordering, dates, counts), products, deadlinePassed: deadlinePassed(store.ordering.deadline)};
 }
 
 // --- Public --------------------------------------------------------------------------------------------
@@ -44,49 +60,84 @@ async function orderConfig(request, env) {
   const {ordering} = state.store;
   const turnstile = turnstileStatus(env);
   return json({
-    fulfillment: ordering.fulfillment, dates: {...state.window, list: state.dates}, deadline: ordering.deadline, deadlinePassed: state.deadlinePassed,
-    dailyCapacity: ordering.dailyCapacity, timeSlots: ordering.timeSlots, capacity: state.capacity, products: state.products,
+    fulfillment: ordering.fulfillment, tables: tableRange(ordering), asap: {...ordering.asap, openNow: !asapError({date: state.today, today: state.today, now: state.now}, ordering.openingHours, ordering.asap)}, now: state.now, dates: {...state.window, list: state.dates}, deadline: ordering.deadline, deadlinePassed: state.deadlinePassed,
+    dailyCapacity: ordering.dailyCapacity, timeSlots: ordering.timeSlots, openingHours: ordering.openingHours, capacity: state.capacity, products: state.products,
     options: ordering.options, addons: ordering.addons, messageCard: ordering.messageCard, currency: state.store.currency,
     turnstileSiteKey: turnstile.enabled ? env.TURNSTILE_SITE_KEY : '', turnstile
   }, 200, {'cache-control': 'no-cache'});
 }
 
-// The fields a line and its fulfillment need, validated against catalog + config. Shared by the
-// public form and the staff form; `strict` adds the public-only rules (consent, channel, window).
+// The fields for all lines and their fulfillment need, validated against catalog + config. Shared by
+// the public form and the staff form; `strict` adds the public-only rules (consent, channel, window).
 function orderFields(body, state, {strict}) {
   const {store, catalog} = state;
   const {ordering} = store;
-  const product_id = requireId(body.product_id, 'product_id');
-  const product = catalog.byId.get(product_id);
-  if (!product) throw badRequest(`Unknown product ${product_id}.`, {product_id: 'unknown'});
-  if (!isSale(product)) throw badRequest('This product cannot be ordered online; please message the store.', {product_id: 'not_for_sale'});
-  const quantity = body.quantity == null ? 1 : body.quantity;
-  const line = priceOrderLine(product, ordering, {options: body.options ?? {}, addons: body.addons ?? [], quantity});
-  if (line.error) throw badRequest(`Invalid ${line.error.field}.`, {[line.error.field]: line.error.code});
+  const legacySingle = body.items === undefined;
+  const suppliedItems = legacySingle ? [{product_id: body.product_id, quantity: body.quantity, options: body.options, addons: body.addons}] : body.items;
+  if (!Array.isArray(suppliedItems) || !suppliedItems.length || suppliedItems.length > 50) throw badRequest('items must contain between 1 and 50 products.', {items: 'required'});
+  const products = [];
+  const items = suppliedItems.map((choice, index) => {
+    const product_id = requireId(choice?.product_id, `items.${index}.product_id`);
+    const product = catalog.byId.get(product_id);
+    const field = name => legacySingle ? name : `items.${index}.${name}`;
+    if (!product) throw badRequest(`Unknown product ${product_id}.`, {[field('product_id')]: 'unknown'});
+    if (!isSale(product)) throw badRequest('This product cannot be ordered online; please message the store.', {[field('product_id')]: 'not_for_sale'});
+    const quantity = choice.quantity == null ? 1 : choice.quantity;
+    const line = priceOrderLine(product, ordering, {options: choice.options ?? {}, addons: choice.addons ?? [], quantity});
+    if (line.error) throw badRequest(`Invalid ${line.error.field}.`, {[field(line.error.field)]: line.error.code});
+    products.push(product);
+    return line;
+  });
   const fulfillment_type = requireEnum(body.fulfillment_type, 'fulfillment_type', FULFILLMENT_TYPES);
-  if (!ordering.fulfillment[fulfillment_type] || product.fulfillment?.[fulfillment_type] === false) throw badRequest(`${fulfillment_type} is not offered for this product.`, {fulfillment_type: 'not_offered'});
+  if (!ordering.fulfillment[fulfillment_type] || products.some(product => product.fulfillment?.[fulfillment_type] === false)) throw badRequest(`${fulfillment_type} is not offered for this order.`, {fulfillment_type: 'not_offered'});
   const fulfillment_date = body.fulfillment_date;
   if (strict) {
     const problem = orderDateError(fulfillment_date, state.window);
     if (problem) throw badRequest({invalid: 'fulfillment_date must be a date in YYYY-MM-DD format.', too_early: 'fulfillment_date is too soon or ordering is closed.', too_late: 'fulfillment_date is beyond the ordering window.'}[problem.code], {fulfillment_date: problem.code});
   } else if (!isIsoDate(fulfillment_date)) throw badRequest('fulfillment_date must be a date in YYYY-MM-DD format.', {fulfillment_date: 'invalid'});
+  // "As soon as you can" replaces the slot rather than sitting next to it: the kitchen starts now,
+  // so there is no window to promise. It only holds while the shop is open, and only for today.
+  const asap = body.asap === true;
   let time_slot = optionalText(body.time_slot, 'time_slot', 40);
-  if (ordering.timeSlots.length) {
+  if (asap) {
+    if (time_slot) throw badRequest('An ASAP order has no time slot.', {time_slot: 'not_allowed'});
+    const problem = asapError({date: fulfillment_date, today: state.today, now: state.now}, ordering.openingHours, ordering.asap);
+    if (problem) throw badRequest({
+      not_offered: 'This shop does not take ASAP orders.',
+      not_today: 'An ASAP order can only be for today.',
+      closed_day: 'The shop is closed today.',
+      closed_now: 'The shop is closed right now; please choose a time slot.'
+    }[problem.code], {[problem.field]: problem.code});
+  } else if (ordering.timeSlots.length) {
     if (!time_slot) throw badRequest('time_slot is required.', {time_slot: 'required'});
     if (!findSlot(ordering.timeSlots, time_slot)) throw badRequest('Unknown time_slot.', {time_slot: 'invalid'});
   } else time_slot = '';
+  if (!asap) {
+    const openingProblem = openingHoursError(fulfillment_date, findSlot(ordering.timeSlots, time_slot), ordering.openingHours);
+    if (openingProblem) throw badRequest(openingProblem.code === 'closed_day' ? 'The shop is closed on this day.' : 'This time slot is outside opening hours.', {[openingProblem.field]: openingProblem.code});
+  }
+  // A dine-in guest is already sitting in the shop and the bowl goes to their table, so neither a
+  // name nor a phone number is needed to hand the order over. Pickup and delivery still need both.
+  const dineIn = fulfillment_type === 'dine_in';
   /** @type {any} */
   const data = {
-    customer_name: requireText(body.customer_name, 'customer_name', 100),
-    customer_phone: strict ? requireText(body.customer_phone, 'customer_phone', 40) : optionalPhone(body.customer_phone, 'customer_phone'),
-    fulfillment_type, fulfillment_date, time_slot,
+    customer_name: dineIn ? optionalText(body.customer_name, 'customer_name', 100) : requireText(body.customer_name, 'customer_name', 100),
+    customer_phone: strict && !dineIn ? requireText(body.customer_phone, 'customer_phone', 40) : optionalPhone(body.customer_phone, 'customer_phone'),
+    fulfillment_type, fulfillment_date, time_slot, asap: asap ? 1 : 0,
+    table_number: '',
     recipient_name: '', recipient_phone: '', delivery_address: '', delivery_note: '',
     message_card: ordering.messageCard.enabled ? optionalText(body.message_card, 'message_card', ordering.messageCard.maxLength) : '',
     note: optionalText(body.note, 'note', 500),
-    currency: product.currency || store.currency,
-    items: [line]
+    currency: store.currency,
+    items
   };
-  if (strict && !PHONE.test(data.customer_phone)) throw badRequest('customer_phone must be a phone number.', {customer_phone: 'invalid'});
+  if (dineIn) {
+    const tables = tableRange(ordering);
+    const problem = tableNumberError(body.table_number, tables);
+    if (problem) throw badRequest(`table_number must be a whole number between ${tables.min} and ${tables.max}.`, {table_number: problem.code});
+    data.table_number = normalizeTableNumber(body.table_number);
+  }
+  if (strict && !dineIn && !PHONE.test(data.customer_phone)) throw badRequest('customer_phone must be a phone number.', {customer_phone: 'invalid'});
   if (fulfillment_type === 'delivery') {
     data.recipient_name = requireText(body.recipient_name, 'recipient_name', 100);
     data.recipient_phone = requireText(body.recipient_phone, 'recipient_phone', 40);
@@ -96,23 +147,30 @@ function orderFields(body, state, {strict}) {
   }
   contactFields(body, data, () => true);
   Object.assign(data, orderTotals(data.items, {fulfillmentType: fulfillment_type, deliveryFee: ordering.fulfillment.deliveryFee}));
-  return {data, product};
+  return {data, products};
 }
 // What the repository must guard while inserting.
 function limitsFor(state, data) {
   const slot = findSlot(state.store.ordering.timeSlots, data.time_slot);
   /** @type {any} */
   const stock = {};
-  for (const line of data.items) stock[line.product_id] = state.products[line.product_id]?.stock ?? null;
+  for (const line of data.items) {
+    const info = state.products[line.product_id];
+    // A daily-stock product is guarded against the units already ordered for this same day.
+    stock[line.product_id] = info?.stock == null ? null : info.stockPeriod === 'daily' ? {limit: info.stock, daily: true} : info.stock;
+  }
   return {slotCapacity: slot?.capacity ?? null, dailyCapacity: state.store.ordering.dailyCapacity, stock};
 }
 async function orderCreate(request, env, url, params, admin, ctx) {
   const body = await readJson(request);
   const state = await orderState(env, request);
   if (state.deadlinePassed) throw new HttpError(409, 'deadline_passed', 'Pre-orders are closed.', {deadline: state.store.ordering.deadline});
-  const {data, product} = orderFields(body, state, {strict: true});
-  if (state.products[product.id]?.deadlinePassed) throw new HttpError(409, 'deadline_passed', 'Pre-orders for this product are closed.', {product_id: product.id});
-  if (!PUBLIC_CONTACT_CHANNELS.includes(data.preferred_contact_channel)) throw badRequest(`preferred_contact_channel must be one of: ${PUBLIC_CONTACT_CHANNELS.join(', ')}.`, {preferred_contact_channel: 'required'});
+  const {data, products} = orderFields(body, state, {strict: true});
+  const closed = products.find(product => state.products[product.id]?.deadlinePassed);
+  if (closed) throw new HttpError(409, 'deadline_passed', 'Pre-orders for this product are closed.', {product_id: closed.id});
+  // A dine-in guest is served at the table, so there is no message to send and no channel to pick.
+  // Every other order gets handed over later, which is why the shop insists on a way to reach them.
+  if (data.fulfillment_type !== 'dine_in' && !PUBLIC_CONTACT_CHANNELS.includes(data.preferred_contact_channel)) throw badRequest(`preferred_contact_channel must be one of: ${PUBLIC_CONTACT_CHANNELS.join(', ')}.`, {preferred_contact_channel: 'required'});
   if (data.preferred_contact_channel === 'zalo' && !data.customer_zalo_phone) data.customer_zalo_phone = data.customer_phone;
   if (data.preferred_contact_channel === 'whatsapp' && !data.customer_whatsapp) data.customer_whatsapp = data.customer_phone;
   if (body.privacy_consent !== true) throw badRequest('privacy_consent must be true: the customer has to accept the privacy policy.', {privacy_consent: 'required'});
@@ -121,19 +179,25 @@ async function orderCreate(request, env, url, params, admin, ctx) {
   const guard = await publicRequestGuard(request, env, body);
   const day = state.capacity[data.fulfillment_date];
   if (day && (!day.open || (data.time_slot && day.slots[data.time_slot] && !day.slots[data.time_slot].open))) throw new HttpError(409, 'capacity_full', 'This time slot is full. Please choose another one.', {fulfillment_date: data.fulfillment_date, time_slot: data.time_slot});
-  const stock = state.products[product.id];
-  if (stock?.stock !== null && stock.remaining < data.items[0].quantity) throw new HttpError(409, 'sold_out', stock.remaining ? `Only ${stock.remaining} left.` : 'This product is sold out.', {product_id: product.id, remaining: stock.remaining});
+  for (const line of data.items) {
+    const product = state.products[line.product_id];
+    if (product?.soldOutByStaff) throw new HttpError(409, 'sold_out', 'This product is sold out.', {product_id: line.product_id, remaining: 0});
+    // A daily-stock product is read for the day the customer chose, not for the whole window.
+    const stock = product?.byDate?.[data.fulfillment_date] ?? product;
+    if (stock?.stock !== null && stock.remaining < line.quantity) throw new HttpError(409, 'sold_out', stock.remaining ? `Only ${stock.remaining} left.` : 'This product is sold out.', {product_id: line.product_id, remaining: stock.remaining});
+  }
   const existing = await ordersDb.findOpenOrder(env.DB, data);
   const order = existing || await ordersDb.createOrder(env.DB, data, limitsFor(state, data));
   if (!existing) {
     await guard.record();
     if (pushEnabled(env)) {
-      const delivery = notifyAdmins(env, newOrderPayload(order, localized(product.name, state.store.defaultLanguage) || product.id)).catch(error => console.error('Push failed:', error));
+      const names = products.map(product => localized(product.name, state.store.defaultLanguage) || product.id).join(', ');
+      const delivery = notifyAdmins(env, newOrderPayload(order, names)).catch(error => console.error('Push failed:', error));
       if (ctx?.waitUntil) ctx.waitUntil(delivery); else await delivery;
     }
   }
-  const {id, status, customer_name, fulfillment_type, fulfillment_date, time_slot, total, currency, created_at, privacy_consent_at} = order;
-  return json({order: {id, status, customer_name, fulfillment_type, fulfillment_date, time_slot, total, currency, items: order.items, created_at, privacy_consent: true, privacy_consent_at}, duplicate: Boolean(existing)}, existing ? 200 : 201);
+  const {id, status, customer_name, fulfillment_type, fulfillment_date, time_slot, asap, table_number, total, currency, created_at, privacy_consent_at} = order;
+  return json({order: {id, status, customer_name, fulfillment_type, fulfillment_date, time_slot, asap, table_number, total, currency, items: order.items, created_at, privacy_consent: true, privacy_consent_at}, duplicate: Boolean(existing)}, existing ? 200 : 201);
 }
 
 // --- Admin ---------------------------------------------------------------------------------------------
@@ -185,6 +249,22 @@ async function orderUpdate(request, env, id) {
   if (has('fulfillment_type')) patch.fulfillment_type = requireEnum(body.fulfillment_type, 'fulfillment_type', FULFILLMENT_TYPES);
   if (has('fulfillment_date')) { if (!isIsoDate(body.fulfillment_date)) throw badRequest('fulfillment_date must be a date in YYYY-MM-DD format.', {fulfillment_date: 'invalid'}); patch.fulfillment_date = body.fulfillment_date; }
   if (has('time_slot')) patch.time_slot = optionalText(body.time_slot, 'time_slot', 40);
+  // Staff correcting an order: an ASAP order that gets a slot stops being ASAP, and vice versa.
+  if (has('asap')) patch.asap = body.asap === true ? 1 : 0;
+  if (patch.asap === 1) patch.time_slot = '';
+  else if (patch.time_slot) patch.asap = 0;
+  // Staff may clear the table (an order that moved to takeaway) or move a guest to another one.
+  if (has('table_number')) {
+    const value = String(body.table_number ?? '').trim();
+    if (!value) patch.table_number = '';
+    else {
+      const {ordering} = await loadStore(env, request);
+      const tables = tableRange(ordering);
+      const problem = tableNumberError(value, tables);
+      if (problem) throw badRequest(`table_number must be a whole number between ${tables.min} and ${tables.max}.`, {table_number: problem.code});
+      patch.table_number = normalizeTableNumber(value);
+    }
+  }
   /** @type {[string, number][]} */
   const texts = [['recipient_name', 100], ['delivery_address', 300], ['delivery_note', 300], ['message_card', 500], ['note', 1000]];
   for (const [key, max] of texts) if (has(key)) patch[key] = optionalText(body[key], key, max);
@@ -214,8 +294,30 @@ async function orderNotification(request, env, id) {
   return orderDetail(env, request, await ordersDb.setOrderNotification(env.DB, id, {status, channel, note}));
 }
 
+// The sale products staff can switch off, with whatever the catalog already says about each one, so
+// the menu screen needs no second request.
+async function productAvailability(request, env) {
+  const state = await orderState(env, request);
+  const products = state.catalog.products.filter(p => p.type === 'sale').map(p => ({
+    product_id: p.id, name: p.name, category: p.category ?? '', ...state.products[p.id]
+  }));
+  return json({products});
+}
+async function productAvailabilitySet(request, env, id) {
+  const body = await readJson(request);
+  if (typeof body.sold_out !== 'boolean') throw badRequest('sold_out must be true or false.', {sold_out: 'invalid'});
+  const catalog = await loadCatalog(env, request);
+  const product = catalog.byId.get(id);
+  if (!product) throw notFound(`Unknown product ${id}.`);
+  if (product.type !== 'sale') throw badRequest('Only sale products have a sold-out switch.', {product_id: 'not_for_sale'});
+  await ordersDb.setProductSoldOut(env.DB, id, body.sold_out);
+  return productAvailability(request, env);
+}
+
 export const orderRoutes = route => [
   route('GET', /^\/api\/orders\/config$/, orderConfig),
+  route('GET', /^\/api\/admin\/products$/, productAvailability, {auth: true}),
+  route('PATCH', /^\/api\/admin\/products\/([^/]+)$/, (req, env, url, [id]) => productAvailabilitySet(req, env, decodeURIComponent(id)), {auth: true}),
   route('POST', /^\/api\/orders$/, orderCreate, {csrf: true}),
   route('GET', /^\/api\/admin\/orders$/, orderList, {auth: true}),
   route('GET', /^\/api\/admin\/orders\/schedule$/, orderSchedule, {auth: true}),
