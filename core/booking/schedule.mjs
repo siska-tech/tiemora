@@ -169,7 +169,9 @@ export function dayTimeline({date, days = 1, items = [], intervals = new Map()},
   const times = slotTimes(null, {slotMinutes, dayStart: displayStart, dayEnd: displayEnd});
   const opening = handoffWindows(date, {weekly: options.openingHours || {}}, exceptions);
   const offered = new Set(slotTimes(windows, {slotMinutes, dayStart: displayStart, dayEnd: displayEnd}));
-  const slots = times.map(time => {
+  // Include the actual handoff grid when a window starts between display ticks.
+  const visibleTimes = [...new Set([...times, ...[...offered].filter(time => time >= displayStart && time < displayEnd)])].sort();
+  const slots = visibleTimes.map(time => {
     const start = at(date, time);
     // A fitting asks for the length of the appointment; a rental asks for whole days and its care
     // window. The buffer of free days is a rental idea and is left out of an appointment.

@@ -283,6 +283,12 @@ export async function updateReservation(db, id, patch, {buffer = 0, turnaround =
   const current = await getReservation(db, id);
   if (!current) return null;
   let next = {...current, ...patch, id};
+  // The admin edits calendar dates; keep the timed stock interval in step with them.
+  if (!isFitting(next.purpose) && next.rental_days > 0 && ('start_date' in patch || 'end_date' in patch)) {
+    const days = (Date.parse(next.end_date + 'T00:00:00Z') - Date.parse(next.start_date + 'T00:00:00Z')) / 86400000;
+    if (!Number.isInteger(days) || days < 1) throw new HttpError(400, 'validation_error', 'A timed rental must end at least one day after pickup.', {fields: {end_date: 'before_due'}});
+    next.rental_days = days;
+  }
   // The moment a rental comes back is written down, so its care window runs from the real return
   // rather than from when it was due; a booking taken back out of "returned" forgets it again.
   if (next.status === 'returned' && current.status !== 'returned' && !next.returned_at && today && now) next.returned_at = at(today, now);
@@ -429,9 +435,9 @@ export async function productFree(db, productId, {from, to, interval, size = '',
 }
 // The same customer sending the same request twice (double tap, page reload) gets the first one back.
 /** @param {any} db @param {any} data */
-export async function findOpenRequest(db, {customer_phone, request_product_id, start_date, end_date}) {
-  const row = await db.prepare("SELECT * FROM reservations WHERE source = 'public' AND status = 'pending' AND customer_phone = ? AND request_product_id = ? AND start_date = ? AND end_date = ? ORDER BY created_at DESC")
-    .bind(customer_phone, request_product_id, start_date, end_date).first();
+export async function findOpenRequest(db, {customer_phone, request_product_id, start_date, end_date, start_time = '', purpose = 'rental', request_size = ''}) {
+  const row = await db.prepare("SELECT * FROM reservations WHERE source = 'public' AND status = 'pending' AND customer_phone = ? AND request_product_id = ? AND start_date = ? AND end_date = ? AND start_time = ? AND purpose = ? AND request_size = ? ORDER BY created_at DESC")
+    .bind(customer_phone, request_product_id, start_date, end_date, start_time, purpose, request_size).first();
   return row ? (await attachItems(db, [row]))[0] : null;
 }
 // Per-IP throttle for the public form: how many requests this client made since `since` (ISO time).

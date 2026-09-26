@@ -424,6 +424,11 @@ async function reservationRequestCreate(request, env, url, params, admin, ctx) {
   const windows = isIsoDate(data.start_date) ? handoffWindows(data.start_date, handoff, exceptions) : null;
   const opening = handoffWindows(data.start_date, {weekly: context_.openingHours}, exceptions);
   const offered = (windows === null ? timeSlots.map(slot => slot.start) : slotTimes(windows, {slotMinutes})).filter(time => withinHandoff(time, opening));
+  // No configured schedule is the legacy whole-day mode; a configured day with no
+  // slots is closed, even when a client omits its pickup time.
+  if (!offered.length && (windows !== null || timeSlots.length || (opening !== null && !opening.length))) {
+    throw badRequest('This store does not offer pick-up times on that date.', {start_time: 'not_allowed'});
+  }
   if (offered.length) {
     if (!data.start_time) throw badRequest('start_time is required.', {start_time: 'required'});
     if (!offered.includes(data.start_time)) throw badRequest('That pick-up time is not on offer for this date.', {start_time: 'invalid'});
