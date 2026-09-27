@@ -1,6 +1,6 @@
 # Booking (rental)
 
-Tiemora v0.x supports **rental** bookings: an inclusive range of calendar days during which one or more inventory items are with a customer.
+Tiemora supports **rental** bookings: a stretch of time during which one or more inventory items are out of circulation for a customer. A booking made with a pick-up time occupies the interval `[start_at, ready_at)` described under [The rental interval](#the-rental-interval); a booking that names no time of day runs whole calendar days, inclusive, which is the same rule with the moments left out. A store that configures no handover hours keeps whole-day bookings throughout.
 
 ## Statuses
 
@@ -78,8 +78,9 @@ The same phone + product + dates sent twice returns the first request (`duplicat
 
 - `GET /api/availability[?from&to]` – every product: `{total, available, status, managed}`.
 - `GET /api/products/:id/availability[?from&to][&size]` – one product, optionally per size.
+- `GET /api/products/:id/calendar[?month&start][&size]` – one product, a month at a time: `{month, today, minMonth, maxMonth, maxRentalDays, maxDaysAhead, days: [{date, available}]}`. With `start` set, each day answers whether a rental beginning on that day could end on it; without it, whether a rental could begin there. This is what the storefront's date picker reads.
 
-`status` is `available`, `low` (several items, one left), `rented` (all taken for the period) or `unavailable` (no bookable items). Without dates the answer is for today in the store's time zone, and items physically out (`reserved`, `rented`) count as taken.
+`status` is `available`, `low` (several items, one left), `rented` (all taken for the period) or `unavailable` (no bookable items). Without dates the answer is for today in the store's time zone, and items physically out (`reserved`, `rented`, `cleaning`) count as taken.
 
 ## Customer notification
 

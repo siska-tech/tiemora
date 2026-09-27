@@ -1,5 +1,9 @@
 # Tiemora
 
+<p align="center">
+  <img src="docs/logo.png" alt="Tiemora logo" width="560">
+</p>
+
 **Tiemora is an open-source catalog-first storefront, booking, ordering and inventory platform for small businesses.**
 
 Vietnam-first workflows. Cloudflare-native infrastructure.
@@ -23,37 +27,53 @@ Nothing talks to WhatsApp, Zalo or Messenger APIs. Staff open a click-to-chat li
 | Area | What you get |
 |---|---|
 | Catalog | YAML product definitions, multilingual names and descriptions (vi / en / ja / zh), price and discount, category (or category list), tags, sizes, colours, images and videos, recursive folder scan, duplicate-id detection, `catalog.json` generation, automatic image optimisation |
-| Storefront | Product grid and detail dialog, responsive, four languages, live stock status, date search, booking request form, sale order form with options / add-ons / quantity, privacy consent, Cloudflare Turnstile |
-| Rental / booking | Whole-day or timed rentals, fitting visits, per-size availability, turnaround and buffer days, handoff hours, inventory timelines, pending requests that hold no stock until staff confirm |
-| Sale / local-store (v0.3) | Product options and add-ons, quantity, card message, pickup / delivery / dine-in, table metadata, opening hours, time slots or ASAP, daily capacity, total or daily stock, staff sold-out switches and deadlines, statuses `pending / confirmed / preparing / ready / out_for_delivery / completed / cancelled` |
-| Inventory | Products (catalog) and inventory items (physical copies, `product-id-01`, `-02`, …) are separate; item statuses `available / reserved / rented / maintenance / inactive` |
-| Admin | Dashboard, inventory management, booking management, orders (list, detail, schedule, queue, staff-entered orders), Menu sold-out controls, confirm / hand over / return / cancel, maintenance, notification centre, read-only demo mode, settings; Vietnamese, English and Japanese UI |
+| Storefront | Product grid and detail dialog, responsive, four languages, live stock status, date and pick-up time search, booking request form, sale order form with options / add-ons / quantity, privacy consent, Cloudflare Turnstile |
+| Rental / booking | Whole-day or timed rentals (pick-up time + number of days, cheaper extra days), fitting (try-on) visits, per-size availability, turnaround between rentals, buffer days, handoff hours, opening hours, public holidays, rental terms shown on the booking form |
+| Sale / local-store | Product options and add-ons, quantity, card message, pickup / delivery / dine-in, table metadata, opening hours, time slots or ASAP, daily capacity, total or daily stock, staff sold-out switches and deadlines, statuses `pending / confirmed / preparing / ready / out_for_delivery / completed / cancelled` |
+| Inventory | Products (catalog) and inventory items (physical copies, `product-id-01`, `-02`, …) are separate; item statuses `available / reserved / rented / maintenance / inactive / cleaning`; per-item 7/14/30-day availability timeline for staff |
+| Admin | Dashboard, inventory management with availability timeline and handoff exceptions, booking management, orders (list, detail, schedule, queue, staff-entered orders), Menu sold-out controls, confirm / hand over / return / cancel, maintenance, notification centre, read-only demo mode, settings; Vietnamese, English and Japanese UI |
 | Customer contact helpers | WhatsApp click-to-chat with prefilled text, Messenger links, Zalo number + message copy, confirmation messages in four languages, preferred channel, "customer notified" record, shared by bookings and orders |
-| Web Push | Admin devices subscribe from the settings page; a new booking request or order pushes to every device; VAPID and RFC 8291 encryption implemented on Web Crypto with no dependency |
+| Web Push | Admin devices subscribe from the settings page; a new booking request or order pushes to every device; a scheduled staff digest pushes today's / tomorrow's pick-ups, fittings, returns and pending requests; VAPID and RFC 8291 encryption implemented on Web Crypto with no dependency |
 | Privacy & security | Privacy policy page, mandatory consent, Turnstile, server-side validation, password or Cloudflare Access admin login, CSRF protection, per-IP throttle, session cookies, `ADMIN_READ_ONLY` demo mode |
 | Cloudflare | One Worker, Static Assets, D1, migrations, Turnstile, Web Push, Wrangler, local development, free-plan friendly |
 
 ## Screenshots
 
+<p align="center">
+  <img src="docs/screenshot-flower.png" alt="Hana Hiên storefront demo (sale / pre-order)" width="480">
+  <img src="docs/screenshot-pho.png" alt="Phở Góc Phố storefront demo (sale / pre-order)" width="480">
+</p>
+<p align="center">
+  <img src="docs/screenshot-flower-product.png" alt="Sale ordering dialog: size, tone, wrapping, add-ons" width="480">
+  <img src="docs/screenshot-pho-product.png" alt="Sale ordering dialog: options and add-ons" width="480">
+</p>
+<p align="center">
+  <img src="docs/screenshot-pho-admin-dashboard.png" alt="Admin dashboard: new orders, pickups, deliveries" width="480">
+  <img src="docs/screenshot-pho-admin-orders.png" alt="Admin orders list with filters and status" width="480">
+</p>
+
 Run `npm run dev` and open `http://localhost:8787/` (storefront) and `http://localhost:8787/admin/` (admin, password from `.dev.vars`). The repository ships with three fictional rental sample products (`examples/catalog/`) and three fictional sale sample products (`examples/sale/`), with matching demo data (`seed/demo.sql`, `seed/sale-demo.sql`). The default is the rental sample. Build the 12-product Phở reference demo with `npm run build:pho-demo`; its separate configuration and artwork live in `examples/pho-demo/`. Use the matching catalog before loading rental or generic sale seeds.
 
 ## Architecture
 
-```
-config/store.yaml     store name, languages, contact links, theme, booking limits, ordering  ─┐
-examples/catalog/     rental product.yaml + media (your own go in catalog/)                  ─┤ npm run build
-examples/sale/        sale / pre-order product.yaml + media                                  ─┤
-                                                                                              ▼
-dist/                 storefront + store.json + theme.css + catalog.json + media + admin/
-                                                                                              │
-Cloudflare Workers Static Assets ◄─────────────────────────────────────────────────────────────┘
-        │  /api/*  /admin*
-        ▼
-worker/               routing, auth, Turnstile, Web Push, repository (SQL over D1), orders
-        │
-core/                 pure domain logic: catalog, booking rules, orders rules, inventory, notifications, i18n, config
-        │
-Cloudflare D1         inventory_items · reservations · reservation_items · orders · order_items · public_request_log · push_subscriptions
+```mermaid
+flowchart TD
+    STORE["config/store.yaml<br/>store name, languages, contact links, theme, booking limits, ordering"]
+    CATALOG["examples/catalog/<br/>rental product.yaml + media (your own go in catalog/)"]
+    SALE["examples/sale/<br/>sale / pre-order product.yaml + media"]
+    DIST["dist/<br/>storefront + store.json + theme.css + catalog.json + media + admin/"]
+    ASSETS["Cloudflare Workers Static Assets"]
+    WORKER["worker/<br/>routing, auth, Turnstile, Web Push, staff digest (Cron Trigger), repository (SQL over D1), orders"]
+    CORE["core/<br/>pure domain logic: catalog, booking rules, orders rules, inventory, notifications, i18n, config"]
+    D1[("Cloudflare D1<br/>inventory_items · reservations · reservation_items · handoff_exceptions · orders · order_items · product_availability · public_request_log · push_subscriptions")]
+
+    STORE -- "npm run build" --> DIST
+    CATALOG -- "npm run build" --> DIST
+    SALE -- "npm run build" --> DIST
+    DIST --> ASSETS
+    ASSETS -- "/api/* /admin*" --> WORKER
+    WORKER --> CORE
+    WORKER --> D1
 ```
 
 - `core/` has no Cloudflare or browser dependency and is unit-tested directly.
@@ -150,6 +170,9 @@ Point `catalog.dir` in `config/store.yaml` at your folder (the default uses `exa
 - A **product** is the catalog entry. An **inventory item** is one physical copy: `dress-0001-01`, `dress-0001-02`, … registered in the admin.
 - A public **request** is a `pending` booking that names a product (and size) but holds no item. Staff press **Confirm**: stock is re-checked and a free item is assigned. Then **Hand over** (`rented`) and **Returned** (item back to `available`).
 - Timed rentals hold an item from pickup until it is ready after return and turnaround; fittings hold it for the appointment and buffer. Existing untimed bookings keep inclusive calendar-day ranges. Clashes are rejected at the API and again inside the database transaction, with `booking.bufferDays` applied to rentals.
+- Handoff and opening hours (`booking.handoff`, `booking.openingHours`) set when items can be picked up and when the shop is open; staff add single-date exceptions in the admin, and `booking.handoff.holidayCountry` fills in public holidays at build time.
+- Turnaround (`booking.turnaround`) puts a returned item into a `cleaning` status until it is ready again; the admin's per-item availability timeline (7 / 14 / 30 days) shows every booking, fitting, return and free day.
+- An optional staff digest push (`admin.digest`) summarises today's or tomorrow's pick-ups, fittings, returns and unconfirmed requests on a schedule.
 
 Details: [docs/booking.md](docs/booking.md), [docs/inventory.md](docs/inventory.md). Upgrade and scope: [v0.4.0 release notes](docs/releases/v0.4-result.md).
 
@@ -166,7 +189,7 @@ Details: [docs/orders.md](docs/orders.md). Upgrade and scope: [v0.3.0 release no
 
 ## Admin
 
-`/admin/` is a small hash-routed app behind a password login (or Cloudflare Access). Dashboard, inventory, bookings, notification centre (bell), settings (push notifications, store configuration summary). Vietnamese, English and Japanese; the starting language comes from `admin.defaultLanguage`.
+`/admin/` is a small hash-routed app behind a password login (or Cloudflare Access). Dashboard, inventory (with the per-item availability timeline and handoff exceptions), bookings, orders (list, detail, schedule, queue, staff-entered orders, Menu sold-out switches), notification centre (bell), settings (push notifications, store configuration summary). Vietnamese, English and Japanese; the starting language comes from `admin.defaultLanguage`. The staff digest is scheduled in `config/store.yaml` (`admin.digest`), not in the admin.
 
 ## Cloudflare Deployment
 
@@ -174,7 +197,7 @@ Everything runs on one Worker with Static Assets and one D1 database. `wrangler.
 
 ## Configuration
 
-All store-specific values live in [config/store.yaml](config/store.yaml): name, tagline, description, hero, announcement, languages, currency, time zone, phone country code, contact channels, category labels, theme colours, booking limits, ordering (sale / pre-order fulfillment, dates, capacity, options, add-ons, card message), admin language. The build validates the file and publishes it as `/store.json`. Secrets never go there. Reference: [docs/configuration.md](docs/configuration.md).
+All store-specific values live in [config/store.yaml](config/store.yaml): name, tagline, description, hero, announcement, languages, currency, time zone, phone country code, contact channels, category labels, theme colours, booking rules (limits, timed rentals, handoff/opening hours, turnaround, fittings, holidays, rental terms), ordering (sale / pre-order fulfillment, dates, capacity, options, add-ons, card message), admin language and digest schedule. The build validates the file and publishes it as `/store.json`. Secrets never go there. Reference: [docs/configuration.md](docs/configuration.md).
 
 ## Security
 
@@ -186,9 +209,9 @@ All store-specific values live in [config/store.yaml](config/store.yaml): name, 
 
 ## Roadmap
 
-**Supported now** — Catalog · Rental / booking · Sale / pre-order · Orders · Inventory · Admin · Customer contact helpers · Web Push · Read-only demo mode · Cloudflare deployment
+**Supported now** — Catalog · Rental / booking (whole-day and timed, fittings, turnaround, handoff/opening hours, holidays) · Sale / pre-order (pickup, delivery, dine-in) · Orders · Inventory · Admin · Staff digest · Customer contact helpers · Web Push · Read-only demo mode · Cloudflare deployment
 
-**Future** — Dine-in · Workshop / class bookings · Appointments · Unified fulfillment vocabulary · Theme system · Setup wizard (Tiemora Studio) · Other database adapters
+**Future** — Workshop / class bookings · Appointments beyond fittings · Unified fulfillment vocabulary · Theme system · Setup wizard (Tiemora Studio) · Other database adapters
 
 Only the items under "Supported now" are implemented today.
 

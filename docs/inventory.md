@@ -14,16 +14,18 @@ Only products with `inventory: {managed: true}` have items; for the rest the sto
 | `available` | On the shelf | yes | yes |
 | `reserved` | Set aside (manual) | for other dates, yes; today it counts as out | yes |
 | `rented` | With a customer (set automatically when a booking is handed over) | for other dates, yes; today it counts as out | yes |
+| `cleaning` | Back in the store but not ready yet (set by staff) | for other dates, yes; today it counts as out | yes |
 | `maintenance` | Being cleaned or repaired | no | yes (shown as unavailable) |
 | `inactive` | Retired, lost, sold | no | no (not even in the total) |
 
-Handing a booking over sets its items to `rented`; returning or cancelling sets them back to `available` unless they are in `maintenance` or `inactive`, which staff manage by hand.
+Handing a booking over sets its items to `rented`; returning or cancelling sets them back to `available` unless they are in `cleaning`, `maintenance` or `inactive`, which staff manage by hand. `cleaning` is the shelf-side counterpart of a timed rental's care window: the window itself comes from `booking.turnaround` and the booking's `ready_at` (see [booking.md](booking.md)), while the status marks a piece that is in care without a booking saying so.
 
 ## Admin
 
 - **Inventory** (`#/inventory`): list with product thumbnail, item id, size, status and note; change status and note inline; delete an item that was never booked (otherwise set it to `inactive`).
 - **Next 7 days** (in the inventory list): each item has one cell per day. The cell shows the day's pieces to scale, plus a symbol for what held it longest (■ rented, ▣ booked, ◆ fitting, ▒ in care, ▓ maintenance, × out of service, ○ free, with a small ○ when part of the day is still free). Its accessible name spells out every piece with its times. Tapping a cell opens who holds the item, when it is due back and when it is ready again, or offers **Book this item** on a free day. Above the list, each product and size shows how many pieces are free all day (+ part of the day). On screens up to 1100px each item is a card, and the booking details, note, booking list and delete are behind **More**.
 - **Availability** (`#/inventory/schedule?product_id&item_id&days=7|14|30`): the detailed schedule. 7 and 14 days are ECharts charts (one per product and size, created only when scrolled into view and disposed on navigation) that scroll sideways inside the card. 30 days are shown a day at a time. **Show as a list** holds the same schedule as text. A rental and its care window are separate segments, so an item that is back but not yet ready reads as *in care* until its turnaround ends.
+- **Handover hours** (`#/inventory/handoff`): the single dates whose handoff hours differ from the weekly schedule — a day off, a late start, longer hours. A date set here wins over `booking.handoff.weekly` and over the holiday calendar; see [booking.md](booking.md#handoff-hours).
 - **Add item** (`#/inventory/new`): choose a product, get the next id suggested, pick the size (from the product's sizes) and a note (shelf, condition).
 - Booking forms only offer items that are free for the chosen dates; **Pick a free item** chooses the first one.
 

@@ -24,6 +24,8 @@ store:
   # name and replaces the text.
   logoStyle: mark
   hero:
+    # split (default): separate text and image; environmental: an immersive scene the page zooms into.
+    layout: split
     # Optional small kicker line above the title; null shows the store name.
     eyebrow: null
     # Optional. Without a title the storefront uses its built-in generic headline. \n starts a new line
@@ -41,6 +43,9 @@ store:
     fit: pan
     # CSS object-position for the cover fit, e.g. "70% 50%"; only used when fit: cover.
     focus: null
+    # The point of the image the scroll zoom closes in on; only used when layout: environmental.
+    # null uses hero.focus.
+    subject: null
   # Optional banner above the header; null hides it.
   announcement:
     vi: "Đây là cửa hàng mẫu · Dữ liệu chỉ để minh họa"
@@ -145,8 +150,14 @@ ordering:
   fulfillment:
     pickup: true
     delivery: true
+    # Eat-in orders: the order then carries a table number. Off unless the shop has tables.
+    dine_in: false
     deliveryFee: 0
     deliveryNote: null
+  # The table numbers a dine-in order may name; only read when fulfillment.dine_in is on.
+  # tables:
+  #   min: 1
+  #   max: 99
   # Either an explicit campaign window (from / to) or a rolling one (minLeadDays / maxDaysAhead).
   dates:
     from: null
@@ -156,6 +167,15 @@ ordering:
   deadline: null
   dailyCapacity: null
   timeSlots: []
+  # When the shop is open, checked in the store's time zone (omit = unrestricted). A weekday that is
+  # absent or empty is closed, and a time slot must fall wholly inside one of the day's intervals.
+  # openingHours:
+  #   mon: [{start: "09:00", end: "20:00"}]
+  # "As soon as you can": an order with no time slot. Accepted only for today and only while the
+  # shop is open. leadMinutes is what the customer is told to expect, not a promise the server keeps.
+  # asap:
+  #   enabled: false
+  #   leadMinutes: null
   # Labels and default price deltas for the option / add-on ids products list in product.yaml.
   options:
     size:
@@ -169,6 +189,8 @@ ordering:
   messageCard:
     enabled: true
     maxLength: 200
+    # Replaces the "Card message" heading, e.g. {vi: "Ghi chú cho bếp", en: "Note for the kitchen"}.
+    title: null
     placeholder: null
     templates: []
 

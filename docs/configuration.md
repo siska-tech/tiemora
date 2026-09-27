@@ -27,9 +27,14 @@ Set `TIEMORA_CONFIG=/path/to/other.yaml` to build with another file, and `TIEMOR
 | `hero.image` | path or null | replaces the neutral hero illustration |
 | `announcement` | localized or null | banner above the header |
 | `values` | list of localized (max 3) | short claims under the hero |
-| `text` | mapping of copy key → localized | overrides the storefront's built-in UI copy so a store can reword the page without touching code. Reaches all three copy tables: the page (`copy` in `storefront/app.js`: `bookCta`, `explore`, `heroNote`, `step1Title`, `footer`, …), the catalog cards (`catalogCopy` in `storefront/catalog.js`: `orderCta`, `perUnit`, `available`, …) and the order form (`orderCopy` in `storefront/order.js`: `cta`, `preorder`, `soldOut`, `pickup`, `fulfillmentTitle`, `terms`, …). A key is only taken by the table that owns it, so the defaults — written for a florist taking pre-orders — can be replaced wholesale by a shop that sells something else |
+| `text` | mapping of copy key → localized | overrides the storefront's built-in UI copy so a store can reword the page without touching code. Reaches all three copy tables: the page (`copy` in `storefront/app.js`: `bookCta`, `explore`, `heroNote`, `step1Title`, `footer`, …), the catalog cards (`catalogCopy` in `storefront/catalog.js`: `orderCta`, `perUnit`, `available`, …) and the order form (`orderCopy` in `storefront/order.js`: `cta`, `preorder`, `soldOut`, `pickup`, `fulfillmentTitle`, `terms`, …). A key is only taken by the table that owns it, so the defaults — written for a florist taking pre-orders — can be replaced wholesale by a shop that sells something else. `handoffNotice` belongs to no table and is read on its own: see below |
 
 A *localized* value is a string or a mapping by language code: `{vi: "…", en: "…"}`.
+
+`store.text.handoffNotice` (localized) is the one key no copy table owns: the booking form reads it
+directly and shows it above the calendar, before a date is chosen. Use it to ask customers to get in
+touch first about a handover outside the listed hours. It bypasses no server-side rule; see
+[booking.md](booking.md#public-holidays).
 
 ### `catalog.dir`
 

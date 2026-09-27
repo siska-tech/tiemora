@@ -35,6 +35,7 @@ description:
   en: …
 price:
   rental: 300000               # number >= 0; omitted = "contact the store"
+  additionalDay: 80000         # optional; every day after the first. 0 to rental, else ignored
   original: 350000             # optional; only kept when > rental, shows a discount badge
 currency: VND                  # default: currency from config/store.yaml
 sizes: [S, M, L]
@@ -61,6 +62,7 @@ Rules:
 - Media: images `.jpg .jpeg .png .webp .avif .gif`, videos `.mp4 .webm .mov`, case-insensitive, same folder only. An image with the same base name as a video is that video's poster and leaves the photo list.
 - Cover priority: `cover:` in YAML → `cover.jpg/jpeg/webp/png` → first image in natural order.
 - Videos should be H.264 + AAC MP4 for the widest device support.
+- **`price.additionalDay`** is read for rental products only. It is the rate for every day after the first, so a three-day rental costs `rental + additionalDay × 2`. A value above `price.rental` would be a surcharge rather than a discount: the build warns and charges the daily rate throughout, which is what a product without the key does. Zero is a real offer and is kept. See [booking.md](booking.md#what-a-rental-costs).
 
 ## Sale products (`type: sale`)
 

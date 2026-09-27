@@ -8,7 +8,7 @@ Tiemora runs as one Cloudflare Worker with Static Assets and one D1 database. Th
 |---|---|---|
 | Worker `tiemora` | API + admin gate; serves `dist/` as static assets | `npm run deploy` |
 | D1 database `tiemora` | inventory, bookings, orders, push subscriptions | `npm run db:create` |
-| Turnstile widget (optional) | spam protection on the booking form | `npm run turnstile:create` or the dashboard |
+| Turnstile widget (optional) | spam protection on the booking form | `npm run setup:turnstile` or the dashboard |
 | Secrets | admin password and the other keys below | `npx wrangler secret put …` |
 | Cloudflare Access application (optional) | SSO in front of `/admin` | Zero Trust dashboard |
 
