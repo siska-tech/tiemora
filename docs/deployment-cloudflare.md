@@ -35,7 +35,7 @@ Copy the printed `database_id` into `wrangler.jsonc` (`d1_databases[0].database_
 npm run db:migrate            # remote
 ```
 
-Migrations are numbered SQL files in `migrations/`; they apply in order to an empty database and contain no data. Optional demo data: `npm run db:seed` (fictional bookings — do not use on a real store).
+Migrations are numbered SQL files in `migrations/`; the runner applies pending files in order to new or existing databases. Back up an existing database before upgrading. For v0.3.0 to v0.4.0, apply pending `0010`–`0013` before deploying the Worker; see the [v0.4.0 upgrade notes](releases/v0.4-result.md). Migrations contain no demo data. Optional demo data: `npm run db:seed` (fictional bookings — do not use on a real store).
 
 ## 4. Secrets
 

@@ -3,6 +3,49 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readdir, readFile} from 'node:fs/promises';
 import {TestD1, migratedDatabase} from '../d1-shim.mjs';
+import {occupiedInterval} from '../../core/booking/schedule.mjs';
+
+test('0010-0013 preserve a populated v0.3 database and legacy booking intervals', async () => {
+  const root = new URL('../../', import.meta.url);
+  const folder = new URL('migrations/', root);
+  const files = (await readdir(folder)).filter(f => f.endsWith('.sql')).sort();
+  const db = new TestD1();
+  for (const file of files.filter(f => f.slice(0, 4) <= '0009')) await db.exec(await readFile(new URL(file, folder), 'utf8'));
+  for (const seed of ['seed/demo.sql', 'seed/sale-demo.sql']) await db.exec(await readFile(new URL(seed, root), 'utf8'));
+  const tables = ['inventory_items', 'reservations', 'reservation_items', 'orders', 'order_items'];
+  const before = new Map();
+  for (const table of tables) {
+    const rows = (await db.prepare(`SELECT * FROM ${table} ORDER BY id`).all()).results;
+    assert.ok(rows.length > 0, `${table} has existing data`);
+    before.set(table, rows);
+  }
+  for (const file of files.filter(f => f.slice(0, 4) >= '0010' && f.slice(0, 4) <= '0013')) await db.exec(await readFile(new URL(file, folder), 'utf8'));
+  for (const table of tables) {
+    const rows = (await db.prepare(`SELECT * FROM ${table} ORDER BY id`).all()).results;
+    const original = before.get(table);
+    assert.equal(rows.length, original.length, `${table}: row count preserved`);
+    for (const [index, row] of rows.entries()) {
+      const old = original[index];
+      assert.deepEqual(Object.fromEntries(Object.keys(old).map(key => [key, row[key]])), old, `${table}: existing columns preserved`);
+      if (table === 'reservations') {
+        assert.equal(row.start_time, '');
+        assert.equal(row.rental_days, 0);
+        assert.equal(row.returned_at, '');
+        assert.equal(row.start_at, '');
+        assert.equal(row.ready_at, '');
+        assert.equal(row.purpose, 'rental');
+        assert.deepEqual(occupiedInterval(row, {turnaround: {strategy: 'overnight'}}), occupiedInterval(old), 'legacy holds stay unchanged');
+      }
+    }
+  }
+  assert.deepEqual((await db.prepare('PRAGMA foreign_key_check').all()).results, []);
+  assert.equal((await db.prepare('PRAGMA integrity_check').first()).integrity_check, 'ok');
+  const indexes = (await db.prepare("SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = 'inventory_items' AND name LIKE 'idx_%' ORDER BY name").all()).results.map(row => row.name);
+  assert.deepEqual(indexes, ['idx_inventory_items_product', 'idx_inventory_items_status']);
+  assert.deepEqual((await db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND (name LIKE '%_backup' OR name LIKE '%_new')").all()).results, []);
+  await db.prepare("UPDATE inventory_items SET status = 'cleaning' WHERE id = 'sample-rental-001-01'").run();
+  assert.equal(await db.prepare("SELECT status FROM inventory_items WHERE id = 'sample-rental-001-01'").first('status'), 'cleaning');
+});
 
 test('every migration applies from scratch, in order, and the tables the Worker needs exist', async () => {
   const files = (await readdir(new URL('../../migrations/', import.meta.url))).filter(f => f.endsWith('.sql')).sort();

@@ -4,6 +4,10 @@ All notable changes to Tiemora Core are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-27
+
+See the [merge and upgrade notes](docs/releases/v0.4-result.md).
+
 Rental improvements fed back from the first production rental store (Omotenashi, an ao dai rental shop in Hanoi). Everything is opt-in through `booking.*` in `config/store.yaml`; a store that sets none of it keeps whole-day bookings as before.
 
 ### Added
@@ -34,7 +38,17 @@ Rental improvements fed back from the first production rental store (Omotenashi,
 - ECharts 5 is a dev dependency. The build copies it to `dist/admin/vendor/`, because the admin's CSP allows same-origin scripts only.
 
 ### Fixed
+- Editing timed booking dates updates rental length and inventory holds; adjacent fittings remain selectable when staff edit a booking.
+- Public request deduplication distinguishes pickup time, purpose and size while retaining identical-request retries.
+- Closed handoff dates reject requests even when the pickup time is omitted. Offset handoff windows and fixed pickup slots are selectable in the storefront.
+- Confirmation messages include rental pickup and return deadlines, or fitting appointment time and duration, excluding inventory turnaround.
+- Digests scheduled just before midnight are delivered on the next cron tick for the intended date, with correct relative day labels.
 - Turnstile never loaded on the booking and order forms when their container had `id="turnstile"`: the element became `window.turnstile`, and Turnstile's `api.js` then skipped installing itself. The container is now `booking-turnstile`, and both forms check for the API instead of the global.
+
+### Compatibility
+- Apply pending migrations `0010` through `0013` before deploying the Worker. Released migrations `0001` through `0009` are unchanged.
+- `0012` rebuilds inventory while preserving existing items and reservation assignments. The populated v0.3 upgrade test also checks existing orders, booking intervals, indexes and foreign keys.
+- Whole-day bookings retain their existing occupied intervals. Store-specific configuration, catalog data and deployment bindings remain owned by each store.
 
 ## [0.3.0] - 2026-09-23
 

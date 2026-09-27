@@ -24,7 +24,7 @@ Nothing talks to WhatsApp, Zalo or Messenger APIs. Staff open a click-to-chat li
 |---|---|
 | Catalog | YAML product definitions, multilingual names and descriptions (vi / en / ja / zh), price and discount, category (or category list), tags, sizes, colours, images and videos, recursive folder scan, duplicate-id detection, `catalog.json` generation, automatic image optimisation |
 | Storefront | Product grid and detail dialog, responsive, four languages, live stock status, date search, booking request form, sale order form with options / add-ons / quantity, privacy consent, Cloudflare Turnstile |
-| Rental / booking | Start and end dates (inclusive), per-size availability, buffer days between rentals, pending requests that hold no stock until staff confirm, statuses `pending / confirmed / rented / returned / cancelled` |
+| Rental / booking | Whole-day or timed rentals, fitting visits, per-size availability, turnaround and buffer days, handoff hours, inventory timelines, pending requests that hold no stock until staff confirm |
 | Sale / local-store (v0.3) | Product options and add-ons, quantity, card message, pickup / delivery / dine-in, table metadata, opening hours, time slots or ASAP, daily capacity, total or daily stock, staff sold-out switches and deadlines, statuses `pending / confirmed / preparing / ready / out_for_delivery / completed / cancelled` |
 | Inventory | Products (catalog) and inventory items (physical copies, `product-id-01`, `-02`, …) are separate; item statuses `available / reserved / rented / maintenance / inactive` |
 | Admin | Dashboard, inventory management, booking management, orders (list, detail, schedule, queue, staff-entered orders), Menu sold-out controls, confirm / hand over / return / cancel, maintenance, notification centre, read-only demo mode, settings; Vietnamese, English and Japanese UI |
@@ -149,9 +149,9 @@ Point `catalog.dir` in `config/store.yaml` at your folder (the default uses `exa
 
 - A **product** is the catalog entry. An **inventory item** is one physical copy: `dress-0001-01`, `dress-0001-02`, … registered in the admin.
 - A public **request** is a `pending` booking that names a product (and size) but holds no item. Staff press **Confirm**: stock is re-checked and a free item is assigned. Then **Hand over** (`rented`) and **Returned** (item back to `available`).
-- Two bookings clash when their inclusive date ranges overlap, optionally padded by `booking.bufferDays`. Clashes are rejected at the API and again inside the database transaction.
+- Timed rentals hold an item from pickup until it is ready after return and turnaround; fittings hold it for the appointment and buffer. Existing untimed bookings keep inclusive calendar-day ranges. Clashes are rejected at the API and again inside the database transaction, with `booking.bufferDays` applied to rentals.
 
-Details: [docs/booking.md](docs/booking.md), [docs/inventory.md](docs/inventory.md).
+Details: [docs/booking.md](docs/booking.md), [docs/inventory.md](docs/inventory.md). Upgrade and scope: [v0.4.0 release notes](docs/releases/v0.4-result.md).
 
 ## Orders (sale / local-store, v0.3)
 
