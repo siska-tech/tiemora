@@ -1,10 +1,11 @@
 // Inventory items are the physical things a store rents out. A product (catalog) is the design;
 // an inventory item is one real copy of it, named <product id>-<2 digit sequence>: sample-rental-001-01.
-export const ITEM_STATUSES = ['available', 'reserved', 'rented', 'maintenance', 'inactive'];
+export const ITEM_STATUSES = ['available', 'reserved', 'rented', 'cleaning', 'maintenance', 'inactive'];
 // Statuses that can never be booked, whatever the dates.
 export const BLOCKED_ITEM = ['maintenance', 'inactive'];
-// Statuses meaning "physically not on the shelf right now".
-export const OUT_NOW = ['reserved', 'rented'];
+// Out of the shop's hands right now. 'cleaning' is a garment that is back but not yet ready, so it
+// counts out today while staying bookable for later, unlike the blocked statuses above.
+export const OUT_NOW = ['reserved', 'rented', 'cleaning'];
 
 export const ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const inventoryItemId = (productId, sequence) => `${productId}-${String(sequence).padStart(2, '0')}`;

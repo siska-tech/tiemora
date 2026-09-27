@@ -4,6 +4,52 @@ All notable changes to Tiemora Core are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-27
+
+See the [merge and upgrade notes](docs/releases/v0.4-result.md).
+
+Rental improvements fed back from the first production rental store (Omotenashi, an ao dai rental shop in Hanoi). Everything is opt-in through `booking.*` in `config/store.yaml`; a store that sets none of it keeps whole-day bookings as before.
+
+### Added
+- **Timed rentals.** Customers pick a day, a pick-up time and a number of days. Rent is charged per 24 hours from collection, and the return is due at the same time of day. Bookings store `start_at` / `ready_at`, and the overlap rule works on those moments (migrations `0010`, `0011`). Bookings made before this upgrade are read as whole calendar days, so nothing they block changes.
+- **Cheaper extra days** with an optional `price.additionalDay` per product (`core/booking/pricing.mjs`). It must be between 0 and the daily rate.
+- **Turnaround.** `booking.turnaround` (`none` / `hours` / `overnight`) sets how long a returned item needs before it can go out again. A new `cleaning` item status marks an item that is back but not yet ready (migration `0012`).
+- **Handover and opening hours.** `booking.handoff.weekly` and `booking.openingHours` set when the shop can hand items over and when it is open. Staff set single dates that differ in the admin (`#/inventory/handoff`, table `handoff_exceptions`). The storefront shows a continuous time axis per day (`GET /api/products/:id/timeline`), and every unavailable time gives its reason.
+- **Fittings.** With `booking.fitting` enabled, a customer can book a short try-on visit. It holds one item for `minutes` + `bufferMinutes`, is free of charge, and uses the same bookings table (`purpose`, migration `0013`).
+- **Availability timeline for staff.**
+  - The inventory list has a "next 7 days" strip per item: HTML/CSS, one tappable cell per day drawn to scale, and a spoken description of each day for screen readers.
+  - Each product and size shows how many items are free per day.
+  - The detailed schedule (`#/inventory/schedule`) offers 7 / 14 / 30 days. 7 and 14 days are ECharts charts, one per product group, loaded and drawn only when scrolled into view. 30 days are summarised a day at a time, and every range has a text list.
+  - Tapping a day or a bar shows the customer, rental or fitting, due back, actual return and ready again, and on a free day offers **Book this item**.
+  - On screens up to 1100px each item is shown as a card.
+  - Backed by `GET /api/admin/inventory/timeline` and `core/inventory/timeline.mjs`.
+- The inventory list also shows today's stock summary, current and next booking per item, and public requests still waiting for an item.
+- **24-hour rentals and public holidays.** A window may end at `24:00`, so a store can be open all day. `booking.handoff.holidayCountry` lists a country's public holidays at build time (`scripts/handoff-holidays.mjs`, [date-holidays](https://github.com/commenthol/date-holidays)), and they get `holidayWindows`: all day unless set. `holidayDates` adds dates by hand, and admin date exceptions still win.
+- **Pick-up times by period.** The storefront picks a time from four six-hour periods and a grid of times. The continuous axis moves into a collapsible section. `store.text.handoffNotice` shows a localized note above the booking calendar.
+- **Staff digest.** Set `admin.digest.today` / `tomorrow` (store-local times) and every subscribed admin device gets one push with that day's (or the next day's) pick-ups, fittings and returns, plus requests not yet confirmed and overdue rentals. It is sent by a Cron Trigger every 30 minutes (`worker/digest.mjs`, `triggers.crons` in `wrangler.jsonc`), and nothing is sent on an empty day.
+- **Rental terms.** `booking.policy` (localized, one term per line) is shown above the consent box on the booking form and added to the confirmation message staff send.
+
+### Changed
+- Marking a rental `returned` records `returned_at`, and the item's care window runs from the actual return.
+- A rental still out after its planned ready time holds its item until it could be back and cared for from now (now + turnaround). The admin form, the double-booking guard, the public calendar and the public time axis all apply this. Before, the item looked free again from its planned ready time.
+- The care window after a timed rental is returned holds the item: it cannot be booked until `ready_at`, and the item is not offered as available today until then. Whole-day bookings from before migration 0011 still free their item on return.
+- Rental prices on the storefront read "/ day".
+- The public booking form no longer asks for a Messenger link. Customers who choose Messenger are asked to send their booking number to the shop's Messenger.
+- ECharts 5 is a dev dependency. The build copies it to `dist/admin/vendor/`, because the admin's CSP allows same-origin scripts only.
+
+### Fixed
+- Editing timed booking dates updates rental length and inventory holds; adjacent fittings remain selectable when staff edit a booking.
+- Public request deduplication distinguishes pickup time, purpose and size while retaining identical-request retries.
+- Closed handoff dates reject requests even when the pickup time is omitted. Offset handoff windows and fixed pickup slots are selectable in the storefront.
+- Confirmation messages include rental pickup and return deadlines, or fitting appointment time and duration, excluding inventory turnaround.
+- Digests scheduled just before midnight are delivered on the next cron tick for the intended date, with correct relative day labels.
+- Turnstile never loaded on the booking and order forms when their container had `id="turnstile"`: the element became `window.turnstile`, and Turnstile's `api.js` then skipped installing itself. The container is now `booking-turnstile`, and both forms check for the API instead of the global.
+
+### Compatibility
+- Apply pending migrations `0010` through `0013` before deploying the Worker. Released migrations `0001` through `0009` are unchanged.
+- `0012` rebuilds inventory while preserving existing items and reservation assignments. The populated v0.3 upgrade test also checks existing orders, booking intervals, indexes and foreign keys.
+- Whole-day bookings retain their existing occupied intervals. Store-specific configuration, catalog data and deployment bindings remain owned by each store.
+
 ## [0.3.0] - 2026-09-23
 
 Local-store ordering, generalised from the Phở demo. See the [merge notes](docs/releases/v0.3-result.md) for scope and upgrade instructions.

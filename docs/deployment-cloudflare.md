@@ -8,7 +8,7 @@ Tiemora runs as one Cloudflare Worker with Static Assets and one D1 database. Th
 |---|---|---|
 | Worker `tiemora` | API + admin gate; serves `dist/` as static assets | `npm run deploy` |
 | D1 database `tiemora` | inventory, bookings, orders, push subscriptions | `npm run db:create` |
-| Turnstile widget (optional) | spam protection on the booking form | `npm run turnstile:create` or the dashboard |
+| Turnstile widget (optional) | spam protection on the booking form | `npm run setup:turnstile` or the dashboard |
 | Secrets | admin password and the other keys below | `npx wrangler secret put …` |
 | Cloudflare Access application (optional) | SSO in front of `/admin` | Zero Trust dashboard |
 
@@ -35,7 +35,7 @@ Copy the printed `database_id` into `wrangler.jsonc` (`d1_databases[0].database_
 npm run db:migrate            # remote
 ```
 
-Migrations are numbered SQL files in `migrations/`; they apply in order to an empty database and contain no data. Optional demo data: `npm run db:seed` (fictional bookings — do not use on a real store).
+Migrations are numbered SQL files in `migrations/`; the runner applies pending files in order to new or existing databases. Back up an existing database before upgrading. For v0.3.0 to v0.4.0, apply pending `0010`–`0013` before deploying the Worker; see the [v0.4.0 upgrade notes](releases/v0.4-result.md). Migrations contain no demo data. Optional demo data: `npm run db:seed` (fictional bookings — do not use on a real store).
 
 ## 4. Secrets
 

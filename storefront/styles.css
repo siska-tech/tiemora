@@ -167,6 +167,9 @@ html[lang=ja] .hero-environmental .hero-copy h1,html[lang=zh] .hero-environmenta
 .turnstile:empty{display:none}
 .booking-error{min-height:16px;margin:0;font-size:11px;color:#a43a3a}
 .booking-terms{margin:0;font-size:10px;line-height:1.7;color:var(--muted)}
+.booking-policy{border:1px solid var(--line);border-radius:6px;padding:10px 12px;background:var(--paper);font-size:12px;line-height:1.6}
+.booking-policy-title{margin:0 0 4px;font-weight:600;font-size:12px}
+.booking-policy ul{margin:0;padding-left:18px}
 .booking-form .button{width:100%;border:0}
 .booking-form .button:disabled{background:#cfc7bc;transform:none;cursor:default}
 .booking-done{padding:56px 30px 34px;display:grid;gap:12px;text-align:center}
@@ -326,3 +329,132 @@ a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible,te
 .order-section .channel-card{position:relative;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:14px;align-items:center;min-height:56px;padding:11px 14px 11px 16px;border:1px solid var(--line);border-radius:3px;background:#fff;cursor:pointer;color:var(--ink);font-size:10px;transition:border-color .18s,background .18s,box-shadow .18s}
 .order-section .channel-card:hover{border-color:#cdbfb3}
 .order-section .channel-card.is-selected,.order-section .channel-card:has(input:checked){border-color:var(--primary);background:color-mix(in srgb,var(--primary),white 93%);box-shadow:inset 0 0 0 1px var(--primary)}
+
+.rental-calendar{max-width:420px;margin:16px 0;padding:12px;border:1px solid var(--line);border-radius:8px}.calendar-nav{display:flex;align-items:center;justify-content:space-between;gap:8px}.calendar-nav button{min-width:44px;min-height:44px}.calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}.calendar-grid button{min-height:40px;padding:4px;border:1px solid var(--line);border-radius:5px;background:var(--paper);color:var(--ink)}.calendar-grid button:disabled{opacity:.4;text-decoration:line-through;cursor:not-allowed}.calendar-grid button.in-range{background:#efe0de}.calendar-grid button[aria-pressed=true]{background:var(--primary,#772f36);color:#fffaf5}.calendar-grid .weekday{text-align:center;font-size:11px;padding:6px 0}.calendar-instruction,.calendar-note{font-size:12px;line-height:1.6;margin:10px 0}.rental-total{font-weight:600;line-height:1.7}.booking-fields input[readonly]{cursor:default}
+
+/* Match the storefront palette and gentle reveal motion. */
+.rental-calendar{background:var(--paper);border-radius:12px;box-shadow:0 5px 20px #302e2906;transition:box-shadow .2s ease}
+.calendar-nav{padding-bottom:10px;border-bottom:1px solid var(--line)}
+.calendar-nav b{font-weight:500;color:var(--primary)}
+.calendar-nav button,.rental-calendar [data-reset-dates]{border:1px solid var(--line);background:transparent;color:var(--primary);border-radius:6px;transition:background .18s ease,transform .18s ease,border-color .18s ease}
+.calendar-nav button{font-size:23px;line-height:1}
+.calendar-nav button:disabled{opacity:.35;cursor:not-allowed}
+.rental-calendar [data-reset-dates]{font-size:12px;padding:8px 12px}
+.calendar-grid.is-fresh{animation:calendar-enter .22s ease-out both}
+.calendar-grid button{transition:background-color .18s ease,color .18s ease,border-color .18s ease,box-shadow .18s ease,transform .18s ease}
+.calendar-grid button.in-range{background:#efe0de;background:color-mix(in srgb,var(--primary) 11%,var(--paper));color:var(--ink);border-color:#d9bfbd}
+.calendar-grid button[aria-pressed=true]{background:var(--primary,#772f36);color:#fffaf5;border-color:var(--primary);font-weight:600;box-shadow:0 2px 7px #772f3620}
+.calendar-grid button[aria-pressed=true]:disabled{opacity:1}
+.calendar-note{color:var(--muted)}
+@media(hover:hover){.calendar-grid button:not(:disabled):hover,.calendar-nav button:not(:disabled):hover,.rental-calendar [data-reset-dates]:hover{border-color:var(--primary);box-shadow:0 2px 8px #772f3612;transform:translateY(-1px)}}
+.calendar-grid button:not(:disabled):active,.calendar-nav button:not(:disabled):active,.rental-calendar [data-reset-dates]:active{transform:scale(.96)}
+.rental-calendar button:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+@keyframes calendar-enter{from{opacity:.65;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.rental-calendar,.rental-calendar *{animation:none!important;transition:none!important}.rental-calendar button{transform:none!important}}
+
+/* The rental pick-up window. These chips are buttons, so the chosen one is marked with aria-pressed. */
+.booking-slots{margin:14px 0}
+.booking-slots .chip[aria-pressed=true]{border-color:var(--primary);background:color-mix(in srgb,var(--primary),white 93%);color:var(--primary);box-shadow:inset 0 0 0 1px var(--primary)}
+.booking-slots .calendar-note{margin:8px 0 0}
+
+.dialog-copy{min-width:0}
+.booking-timeline{margin:16px 0;min-width:0;max-width:100%}
+.handoff-notice{font-size:13px;line-height:1.7;padding:12px;border-left:3px solid var(--primary);background:#f4f1ea;color:var(--ink);margin:12px 0}
+.timeline-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.timeline-head .option-label{margin-bottom:0}
+.timeline-day{font:500 15px var(--serif);color:var(--primary)}
+.timeline-hint,.timeline-detail,.timeline-empty{font-size:13px;line-height:1.6;color:var(--muted);margin:8px 0}
+.timeline-detail{min-height:42px;padding:10px 12px;background:#f4f1ea;border-radius:6px;color:var(--ink)}
+.timeline-track{position:relative;overflow-x:auto;padding:8px 0 14px;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+.timeline-periods{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:12px 0}
+.timeline-periods button{min-width:0;min-height:100px;padding:8px 3px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);font:inherit;cursor:pointer;display:flex;flex-direction:column;gap:5px;align-items:stretch}
+.timeline-periods b{font-size:13px;overflow-wrap:anywhere}.timeline-periods span,.timeline-periods small{font-size:11px;line-height:1.4}
+.timeline-periods button[aria-pressed=true]{border-color:var(--primary);box-shadow:inset 0 0 0 1px var(--primary);background:#f4f1ea}
+.timeline-periods .day-strip{display:flex;height:16px;overflow:hidden;border-radius:3px;background:#eeede9}
+.day-strip i{flex:1;min-width:0;font-size:0;background:#dce7da}
+.day-strip .slot-low{background:#f2e3c4}.day-strip .slot-none{background:#696d69}
+.day-strip .slot-handoff{background:repeating-linear-gradient(135deg,#f7f5ef 0 3px,#aaa69b 3px 4px)}
+.day-strip .slot-maintenance{background:repeating-linear-gradient(0deg,#dce5eb 0 3px,#93abbc 3px 4px)}
+.day-strip .slot-closed,.day-strip .slot-past{background:#e3e1da}
+.timeline-choices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.quick-time{min-width:0;min-height:64px;border:1px solid var(--line);border-radius:8px;background:#f4f8f2;color:var(--ink);padding:8px 4px;cursor:pointer;display:grid;align-content:center;gap:5px;font:inherit}
+.quick-time b{font-size:17px;font-variant-numeric:tabular-nums}.quick-time span{font-size:12px;line-height:1.4;overflow-wrap:anywhere}
+.quick-time[aria-disabled=true]{background:#f4f1ea;color:var(--muted);border-style:dashed;cursor:help}
+.quick-time[aria-pressed=true]{background:var(--primary);border-color:var(--primary);color:white;box-shadow:inset 0 0 0 2px white}
+.quick-time:focus-visible,.timeline-periods button:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
+.timeline-more{margin-top:12px}.timeline-more summary{min-height:44px;cursor:pointer;padding:12px 0;font-size:13px;color:var(--primary)}
+.availability-axis{display:flex;width:max-content;padding-right:44px;position:relative}
+.availability-cell{width:52px;flex:0 0 52px}
+.availability-tick{display:block;position:relative;height:34px;border-bottom:1px solid var(--ink);font-size:13px;font-variant-numeric:tabular-nums}
+.availability-tick:after{content:'';position:absolute;left:0;bottom:0;height:8px;border-left:1px solid var(--muted)}
+.major .availability-tick:after{height:13px;border-color:var(--ink)}
+.availability-end{font-size:13px;position:absolute;right:0;top:0;width:44px;height:34px;border-left:1px solid var(--ink)}
+.timeline-track .slot{display:flex;flex-direction:column;align-items:center;justify-content:center;width:52px;min-height:60px;padding:4px;border:1px solid white;border-radius:0;font:inherit;color:#334b38;cursor:pointer;background:#dce7da}
+.slot-mark{font-size:20px;line-height:24px}.slot-count{font-size:12px;min-height:17px}
+.timeline-track .slot-low,.legend-swatch.slot-low{background:#f2e3c4;color:#70501e}
+.timeline-track .slot-none,.legend-swatch.slot-none{background:#696d69;color:white}
+.timeline-track .slot-handoff,.legend-swatch.slot-handoff{background:repeating-linear-gradient(135deg,#f7f5ef 0 5px,#ddd9cf 5px 6px);color:#625c50}
+.timeline-track .slot-maintenance,.legend-swatch.slot-maintenance{background:repeating-linear-gradient(0deg,#dce5eb 0 4px,#b9cbd7 4px 6px);color:#344d60}
+.timeline-track .slot-closed,.timeline-track .slot-past,.legend-swatch.slot-closed,.legend-swatch.slot-past{background:#eeede9;color:#66655f}
+.timeline-track .slot[aria-disabled=true]{cursor:help}
+.timeline-track .slot[aria-pressed=true]{background:var(--primary);color:white;box-shadow:inset 0 0 0 3px white,0 0 0 2px var(--primary);position:relative;z-index:1}
+.timeline-track .slot:focus-visible{outline:3px solid var(--primary);outline-offset:2px;position:relative;z-index:2}
+.timeline-legend{display:flex;flex-wrap:wrap;gap:8px 14px;list-style:none;margin:8px 0;padding:0;font-size:12px;color:var(--muted)}
+.timeline-legend li{display:inline-flex;align-items:center;gap:5px}
+.legend-swatch{display:inline-grid;place-items:center;width:24px;height:24px;background:#dce7da;color:#334b38}
+
+.booking-duration{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:4px 0 14px}
+.booking-duration .option-label{margin-bottom:0}
+.booking-duration .qty{display:inline-flex;align-items:center;gap:2px}
+.booking-duration .qty button{min-width:40px;min-height:40px;border:1px solid var(--line);background:#fff;border-radius:6px;font-size:17px;color:var(--primary)}
+.booking-duration .qty button:disabled{opacity:.35;cursor:not-allowed}
+.booking-duration .qty input{width:52px;min-height:40px;text-align:center;font:inherit;font-size:15px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink);-moz-appearance:textfield}
+.booking-duration .qty input::-webkit-outer-spin-button,.booking-duration .qty input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.duration-hours{font-size:11px;color:var(--muted)}
+.booking-plan{display:grid;gap:7px;padding:13px 15px;border:1px solid var(--line);border-left:2px solid var(--primary);border-radius:4px;background:#fff;margin:0 0 14px}
+.booking-plan>div{display:flex;align-items:baseline;justify-content:space-between;gap:14px;font-size:11px;color:var(--muted)}
+.booking-plan b{font-size:13px;color:var(--ink);text-align:right}
+.booking-plan .text-link{justify-self:start;background:none;border:0;border-bottom:1px solid #aba398;padding:0 0 4px;color:var(--ink);font-size:11px;cursor:pointer}
+@media(max-width:640px){
+  .timeline-track{padding-left:0}
+  .timeline-track .slot{min-width:52px;min-height:60px}
+  .booking-plan>div{font-size:10px}
+  .booking-plan b{font-size:12px}
+}
+@media(prefers-reduced-motion:reduce){.timeline-track .slot{transition:none!important;transform:none!important}}
+
+/* The one line on the confirmation that still asks the customer to act. Weight, a rule and a mark
+   carry it, not colour alone, and it keeps the storefront's own palette.
+
+   It arrives the way somebody would mark it by hand: the tint is drawn across once, left to right,
+   the mark lands after the stroke has passed, and a soft glow beats twice and stops. Nothing loops,
+   because a notice that keeps flashing is one people learn to look past. The finished state is what
+   the declarations say, so the panel reads the same whether or not the motion ever runs. */
+.booking-next{display:flex;gap:10px;align-items:flex-start;margin:0 0 14px;padding:13px 15px;border:1px solid #d9bfbd;border-left:3px solid var(--primary);border-radius:3px;color:var(--ink);font-size:12px;font-weight:500;line-height:1.75;background-color:transparent;background-image:linear-gradient(to right,#f7f3f3,#f7f3f3);background-image:linear-gradient(to right,color-mix(in srgb,var(--primary),white 94%),color-mix(in srgb,var(--primary),white 94%));background-repeat:no-repeat;background-position:left center;background-size:100% 100%;animation:booking-next-sweep .62s cubic-bezier(.22,.61,.36,1) both,booking-next-glow 1s ease-out .62s 2 both}
+.booking-next-mark{flex:0 0 auto;display:grid;place-items:center;width:19px;height:19px;margin-top:1px;border-radius:50%;background:var(--primary);color:#fffaf5;font-size:12px;font-weight:700;line-height:1;animation:booking-next-mark-in .42s cubic-bezier(.34,1.4,.64,1) .3s both}
+@keyframes booking-next-sweep{from{background-size:0 100%}to{background-size:100% 100%}}
+@keyframes booking-next-glow{0%{box-shadow:0 0 0 0 #772f3600}40%{box-shadow:0 0 0 5px #772f3614}100%{box-shadow:0 0 0 0 #772f3600}}
+@keyframes booking-next-mark-in{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
+@media(max-width:640px){.booking-next{padding:12px 13px;font-size:12px}}
+@media(prefers-reduced-motion:reduce){.booking-next,.booking-next-mark{animation:none!important}}
+
+/* Rent, or come in and try it on. The choice changes what a day on the calendar means, so it sits
+   above the calendar rather than beside the button at the end. */
+.booking-purpose{margin:0 0 14px}
+.booking-purpose .purpose-chip{margin-right:6px;min-width:96px}
+.booking-purpose .purpose-chip[aria-pressed=true]{border-color:var(--primary);background:color-mix(in srgb,var(--primary),white 92%);color:var(--primary);box-shadow:inset 0 0 0 1px var(--primary);font-weight:600}
+.purpose-note{margin:9px 0 0;font-size:11px;line-height:1.7;color:var(--muted)}
+
+/* Why the customer is coming, asked before anything else, because it decides what the rest of the
+   form asks for. The cards are the contact-choice cards, so the two read as one family. */
+.booking-purpose{margin:0 0 16px}
+.purpose-cards{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+/* The card box is written out here rather than borrowed: the .channel-card layout is scoped to
+   .booking-grid and .order-section, and this card lives in neither. The marks and the two lines of
+   text inside it are the shared ones, so a chosen card still reads the same as a chosen channel. */
+.purpose-card{position:relative;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:12px;align-items:center;min-height:54px;padding:11px 13px 11px 15px;border:1px solid var(--line);border-radius:3px;background:#fff;color:var(--ink);cursor:pointer;transition:border-color .18s,background .18s,box-shadow .18s}
+.purpose-card .channel-name{font-size:12px}
+.purpose-card .channel-hint{font-size:10px}
+@media(hover:hover){.purpose-card:hover{border-color:#cdbfb3}}
+.purpose-card.is-selected,.purpose-card:has(input:checked){border-color:var(--primary);background:color-mix(in srgb,var(--primary),white 93%);box-shadow:inset 0 0 0 1px var(--primary)}
+@media(max-width:480px){.purpose-cards{grid-template-columns:1fr}}

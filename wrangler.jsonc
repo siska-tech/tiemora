@@ -46,6 +46,11 @@
 	},
 	"observability": {
 		"enabled": true
+	},
+	// Every 30 minutes the Worker checks whether a staff digest (admin.digest in config/store.yaml)
+	// falls due on the store's clock, and pushes it to the subscribed admin devices.
+	"triggers": {
+		"crons": ["*/30 * * * *"]
 	}
 	// Secrets (never in this file; `npx wrangler secret put NAME`, or .dev.vars locally):
 	//   ADMIN_PASSWORD        required unless Cloudflare Access is used

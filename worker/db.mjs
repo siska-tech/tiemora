@@ -1,33 +1,70 @@
 // The repository: every SQL statement lives here. Handlers in api.mjs validate input and shape
 // responses; the domain rules (statuses, overlap, availability summary) come from core/booking and
 // core/inventory. The one invariant this module enforces in SQL: an inventory item can only be in
-// one active reservation at a time, where two reservations clash when
-//   existing.start_date <= requested.end_date AND existing.end_date >= requested.start_date
-// (inclusive calendar days, optionally padded by a buffer of free days between rentals).
+// one active reservation at a time, where two reservations clash when their occupied intervals
+// overlap:
+//   existing.start < requested.ready AND existing.ready > requested.start
+// An interval runs from the moment a garment is collected until it is ready to go out again --
+// the return plus the store's care window -- and is half-open, so one rental may start exactly
+// when the last one became ready. Bookings written before migration 0011 have no times and are
+// read as the whole calendar days they always blocked, which makes the old rule a special case of
+// this one. `booking.bufferDays` widens the interval being asked for, as it always did.
 //
 // `db` is anything that speaks the D1 prepared-statement interface:
 //   db.prepare(sql).bind(...params).{all()|first(column?)|run()} and db.batch([statements])
 // Cloudflare D1 does natively; tests/d1-shim.mjs implements the same surface over node:sqlite, and
 // a SQLite/PostgreSQL adapter for another host only has to provide these five calls.
 import {HttpError} from './util.mjs';
-import {paddedPeriod} from '../core/booking/dates.mjs';
+import {paddedPeriod, shiftDate} from '../core/booking/dates.mjs';
+import {at, occupiedInterval, padInterval, dueAt, readyAt, isIsoDateTime, isFitting, visitSpan} from '../core/booking/schedule.mjs';
 import {RESERVATION_STATUSES, OCCUPYING, isRequest, itemsRequirement, summarize} from '../core/booking/rules.mjs';
 import {ITEM_STATUSES, BLOCKED_ITEM, OUT_NOW} from '../core/inventory/statuses.mjs';
 import {NOTIFICATION_STATUSES} from '../core/notifications/messages.mjs';
 
-export {ITEM_STATUSES, RESERVATION_STATUSES, OCCUPYING, BLOCKED_ITEM, isRequest, summarize};
+export {ITEM_STATUSES, RESERVATION_STATUSES, OCCUPYING, BLOCKED_ITEM, OUT_NOW, isRequest, summarize};
 // Customer contact details (migration 0002) and the public-request fields (0003) saved with a
 // booking. The notification_* columns are written only by setNotification(), so editing a booking
 // never clears "sent".
-const EXTRA_COLUMNS = ['preferred_contact_channel', 'customer_whatsapp', 'customer_messenger_url', 'customer_zalo_phone', 'source', 'request_product_id', 'request_size', 'privacy_consent', 'privacy_consent_at'];
+const EXTRA_COLUMNS = ['preferred_contact_channel', 'customer_whatsapp', 'customer_messenger_url', 'customer_zalo_phone', 'source', 'request_product_id', 'request_size', 'privacy_consent', 'privacy_consent_at', 'start_time', 'rental_days', 'returned_at', 'start_at', 'ready_at', 'purpose'];
 
 const NOW = "strftime('%Y-%m-%dT%H:%M:%fZ','now')";
 const placeholders = list => list.map(() => '?').join(',');
 const occupying = `cr.status IN (${OCCUPYING.map(s => `'${s}'`).join(',')})`;
-// Params: buffered end, buffered start, excluded reservation id.
-const overlap = `cr.start_date <= ? AND cr.end_date >= ? AND cr.id <> ?`;
+// What keeps an item from going out again: an occupying booking, or a timed rental that is back but
+// still being cared for -- its interval runs to ready_at, so it stops holding once that has passed.
+// A whole-day booking from before 0011 has no ready_at and frees its item on return, as it always did.
+const holding = `(${occupying} OR (cr.status = 'returned' AND cr.ready_at <> ''))`;
+// What a stored booking occupies, in SQL. A row from before 0011 carries no moments, so it is read
+// as midnight to midnight after its last day -- exactly the span the calendar-day rule gave it.
+const EFFECTIVE_START = `CASE WHEN cr.start_at <> '' THEN cr.start_at ELSE cr.start_date || 'T00:00' END`;
+const READY_AS_PLANNED = `CASE WHEN cr.ready_at <> '' THEN cr.ready_at ELSE date(cr.end_date, '+1 day') || 'T00:00' END`;
+// A rental still out after it should have been ready again cannot be promised to anybody: it holds
+// its item at least until it could be back and cared for from now on -- `hold` below, worked out
+// as the store's turnaround applied to the present moment. Params: hold, hold. An empty hold
+// leaves every booking as planned.
+const EFFECTIVE_READY = `CASE WHEN cr.status = 'rented' AND ${READY_AS_PLANNED} < ? THEN ? ELSE ${READY_AS_PLANNED} END`;
+// Params: requested ready, hold, hold, requested start, excluded reservation id -- see overlapParams().
+const overlap = `${EFFECTIVE_START} < ? AND ${EFFECTIVE_READY} > ? AND cr.id <> ?`;
+const overlapParams = (interval, exclude = '', hold = '') => [interval.ready, hold, hold, interval.start, exclude];
+/** The moment an overdue rental is held until: now, plus the store's turnaround. '' without a clock. */
+export const holdUntil = ({today = '', now = '', turnaround = {}} = {}) => (today && now ? readyAt(at(today, now), turnaround) : '');
 
 const padded = paddedPeriod;
+// A stretch of whole calendar days as an interval. Lossless: the two rules agree day for day.
+export const intervalOfDays = (from, to, buffer = 0) => padInterval({start: at(from, '00:00'), ready: at(shiftDate(to, 1), '00:00')}, buffer);
+// The interval a booking asks for: whole days when it names no time, hour-accurate when it does.
+export function requestedInterval(booking, {buffer = 0, turnaround = {}, fitting = {}} = {}) {
+  const span = occupiedInterval(booking, {turnaround, fitting});
+  return isFitting(booking.purpose) ? span : padInterval(span, buffer);
+}
+// The moments a booking is written with, so the overlap query never has to recompute them.
+export function scheduleColumns(data, {turnaround = {}, fitting = {}} = {}) {
+  const startAt = at(data.start_date, data.start_time || '00:00');
+  if (isFitting(data.purpose) && isIsoDateTime(startAt)) return {start_at: startAt, ...{ready_at: visitSpan(startAt, {purpose: data.purpose, fitting}).ready}};
+  if (!(data.rental_days > 0) || !isIsoDateTime(startAt)) return {start_at: '', ready_at: ''};
+  const back = isIsoDateTime(data.returned_at) ? data.returned_at : dueAt(startAt, data.rental_days);
+  return {start_at: startAt, ready_at: readyAt(back, turnaround)};
+}
 
 // --- Inventory ------------------------------------------------------------------------------------
 /** @param {any} db @param {{product_id?: string, status?: string}} [filters] */
@@ -37,6 +74,39 @@ export async function listInventory(db, {product_id, status} = {}) {
   if (status) { where.push('status = ?'); params.push(status); }
   const sql = `SELECT * FROM inventory_items${where.length ? ' WHERE ' + where.join(' AND ') : ''} ORDER BY product_id, id`;
   return (await db.prepare(sql).bind(...params).all()).results;
+}
+// Current availability plus assigned schedules. Pending public requests hold no stock.
+export async function inventoryOverview(db, filters, today, buffer = 0, now = '') {
+  const items = await listInventory(db, filters);
+  // Back but not yet ready: not available today, whatever its bookings say.
+  const caring = new Set(now ? (await db.prepare(`SELECT ri.inventory_item_id FROM reservation_items ri JOIN reservations cr ON cr.id = ri.reservation_id
+    WHERE cr.status = 'returned' AND cr.ready_at > ?`).bind(now).all()).results.map(row => row.inventory_item_id) : []);
+  const {start, end} = padded(today, today, buffer);
+  const bookings = (await db.prepare(`SELECT ri.inventory_item_id, cr.id, cr.customer_name, cr.start_date, cr.end_date, cr.status
+    FROM reservation_items ri JOIN reservations cr ON cr.id = ri.reservation_id
+    WHERE ${occupying} AND (cr.end_date >= ? OR cr.status = 'rented') ORDER BY cr.start_date, cr.id`).bind(start).all()).results;
+  const requests = (await db.prepare(`SELECT r.id, r.customer_name, r.start_date, r.end_date, r.request_product_id, r.request_size, r.status
+    FROM reservations r WHERE r.status = 'pending' AND r.source = 'public'
+    AND NOT EXISTS (SELECT 1 FROM reservation_items ri WHERE ri.reservation_id = r.id)
+    AND (? = '' OR r.request_product_id = ?) ORDER BY r.start_date, r.id`).bind(filters.product_id || '', filters.product_id || '').all()).results;
+  const byItem = new Map();
+  for (const row of bookings) {
+    if (!byItem.has(row.inventory_item_id)) byItem.set(row.inventory_item_id, []);
+    byItem.get(row.inventory_item_id).push(row);
+  }
+  const enriched = items.map(item => {
+    const reservations = byItem.get(item.id) || [];
+    const current = reservations.filter(r => r.status === 'rented' || (r.start_date <= end && r.end_date >= start));
+    const next = reservations.find(r => !current.includes(r)) || null;
+    return {...item, available_today: item.status === 'available' && current.length === 0 && !caring.has(item.id), current_reservations: current, next_reservation: next};
+  });
+  return {today, buffer, items: enriched, requests, summary: {
+    total: enriched.length,
+    available: enriched.filter(i => i.available_today).length,
+    booked: enriched.filter(i => i.current_reservations.length).length,
+    rented: enriched.filter(i => i.status === 'rented' || i.current_reservations.some(r => r.status === 'rented')).length,
+    maintenance: enriched.filter(i => i.status === 'maintenance').length
+  }};
 }
 export async function getItem(db, id) { return (await db.prepare('SELECT * FROM inventory_items WHERE id = ?').bind(id).first()) || null; }
 export async function getItems(db, ids) {
@@ -62,22 +132,21 @@ export async function deleteItem(db, id) {
 
 // --- Availability ---------------------------------------------------------------------------------
 // Which of these items are held by another active reservation during [from, to]?
-/** @param {any} db @param {string[]} itemIds @param {string} from @param {string} to @param {{buffer?: number, exclude?: string}} [options] */
-export async function listConflicts(db, itemIds, from, to, {buffer = 0, exclude = ''} = {}) {
+/** @param {any} db @param {string[]} itemIds @param {{start: string, ready: string}} interval @param {{exclude?: string, hold?: string}} [options] */
+export async function listConflicts(db, itemIds, interval, {exclude = '', hold = ''} = {}) {
   if (!itemIds.length) return [];
-  const {start, end} = padded(from, to, buffer);
-  const sql = `SELECT c.inventory_item_id, cr.id AS reservation_id, cr.start_date, cr.end_date, cr.status, cr.customer_name
+  const sql = `SELECT c.inventory_item_id, cr.id AS reservation_id, cr.start_date, cr.end_date, cr.start_time, cr.rental_days, cr.status, cr.customer_name
     FROM reservation_items c JOIN reservations cr ON cr.id = c.reservation_id
-    WHERE c.inventory_item_id IN (${placeholders(itemIds)}) AND ${occupying} AND ${overlap}
+    WHERE c.inventory_item_id IN (${placeholders(itemIds)}) AND ${holding} AND ${overlap}
     ORDER BY cr.start_date`;
-  return (await db.prepare(sql).bind(...itemIds, end, start, exclude).all()).results;
+  return (await db.prepare(sql).bind(...itemIds, ...overlapParams(interval, exclude, hold)).all()).results;
 }
 // Availability of every managed product for [from, to]; two queries however many products there are.
-/** @param {any} db @param {string} from @param {string} to @param {{buffer?: number, today?: string}} [options] */
-export async function availabilityByProduct(db, from, to, {buffer = 0, today} = {}) {
-  const {start, end} = padded(from, to, buffer);
+/** @param {any} db @param {string} from @param {string} to @param {{buffer?: number, today?: string, hold?: string}} [options] */
+export async function availabilityByProduct(db, from, to, {buffer = 0, today, hold = ''} = {}) {
+  const interval = intervalOfDays(from, to, buffer);
   const items = (await db.prepare("SELECT id, product_id, status FROM inventory_items WHERE status <> 'inactive'").all()).results;
-  const conflicts = (await db.prepare(`SELECT DISTINCT c.inventory_item_id FROM reservation_items c JOIN reservations cr ON cr.id = c.reservation_id WHERE ${occupying} AND ${overlap}`).bind(end, start, '').all()).results;
+  const conflicts = (await db.prepare(`SELECT DISTINCT c.inventory_item_id FROM reservation_items c JOIN reservations cr ON cr.id = c.reservation_id WHERE ${holding} AND ${overlap}`).bind(...overlapParams(interval, '', hold)).all()).results;
   const conflictIds = new Set(conflicts.map(c => c.inventory_item_id));
   const includesToday = Boolean(today) && from <= today && today <= to;
   const grouped = new Map();
@@ -85,11 +154,12 @@ export async function availabilityByProduct(db, from, to, {buffer = 0, today} = 
   return new Map([...grouped].map(([productId, list]) => [productId, summarize(list, conflictIds, {includesToday})]));
 }
 // The admin form's candidate list: every item of a product with whether it is free for [from, to].
-/** @param {any} db @param {string} productId @param {{from?: string, to?: string, buffer?: number, exclude?: string, today?: string}} [options] */
-export async function itemsForProduct(db, productId, {from, to, buffer = 0, exclude = '', today} = {}) {
+/** @param {any} db @param {string} productId @param {{from?: string, to?: string, interval?: any, buffer?: number, exclude?: string, today?: string, hold?: string}} [options] */
+export async function itemsForProduct(db, productId, {from, to, interval, buffer = 0, exclude = '', today, hold = ''} = {}) {
   const items = await listInventory(db, {product_id: productId});
-  if (!from) return items.map(item => ({...item, available: !BLOCKED_ITEM.includes(item.status), conflicts: []}));
-  const conflicts = await listConflicts(db, items.map(i => i.id), from, to, {buffer, exclude});
+  if (!from && !interval) return items.map(item => ({...item, available: !BLOCKED_ITEM.includes(item.status), conflicts: []}));
+  const asked = interval || intervalOfDays(from, to, buffer);
+  const conflicts = await listConflicts(db, items.map(i => i.id), asked, {exclude, hold});
   const includesToday = Boolean(today) && from <= today && today <= to;
   return items.map(item => {
     const own = conflicts.filter(c => c.inventory_item_id === item.id).map(({inventory_item_id, ...rest}) => rest);
@@ -147,13 +217,12 @@ function conflictError(conflicts) {
 }
 // INSERT that silently does nothing when the item is already held for the period. Executed inside a
 // batch (one transaction), so two overlapping requests cannot both succeed even if both pre-checks passed.
-function guardedItemInsert(db, reservation, item, {buffer, guard}) {
-  const {start, end} = padded(reservation.start_date, reservation.end_date, buffer);
+function guardedItemInsert(db, reservation, item, {interval, guard, hold = ''}) {
   const sql = `INSERT INTO reservation_items (reservation_id, inventory_item_id, product_id) SELECT ?, ?, ?` + (guard
-    ? ` WHERE NOT EXISTS (SELECT 1 FROM reservation_items c JOIN reservations cr ON cr.id = c.reservation_id WHERE c.inventory_item_id = ? AND ${occupying} AND ${overlap})`
+    ? ` WHERE NOT EXISTS (SELECT 1 FROM reservation_items c JOIN reservations cr ON cr.id = c.reservation_id WHERE c.inventory_item_id = ? AND ${holding} AND ${overlap})`
     : '');
   const params = [reservation.id, item.id, item.product_id];
-  if (guard) params.push(item.id, end, start, reservation.id);
+  if (guard) params.push(item.id, ...overlapParams(interval, reservation.id, hold));
   return db.prepare(sql).bind(...params);
 }
 // Keep the physical status in step with the booking: handing over marks items rented, getting
@@ -175,14 +244,19 @@ function requireItemsUnlessRequest(itemIds, reservation) {
   throw new HttpError(400, 'validation_error', problem === 'assign_item_before_status_change' ? 'Assign an inventory item before changing the status of a request.' : 'items must list at least one inventory item id.', {fields: {items: 'required'}});
 }
 
-/** @param {any} db @param {any} data @param {{buffer?: number, today?: string}} [context] */
-export async function createReservation(db, data, {buffer = 0} = {}) {
-  data = {source: 'admin', request_product_id: '', request_size: '', privacy_consent: 0, privacy_consent_at: '', items: [], ...data};
+/** @param {any} db @param {any} data @param {{buffer?: number, turnaround?: any, fitting?: any, today?: string, now?: string}} [context] */
+export async function createReservation(db, data, {buffer = 0, turnaround = {}, fitting = {}, today = '', now = ''} = {}) {
+  const hold = holdUntil({today, now, turnaround});
+  // Every booking is a rental unless it says otherwise; the column will not take an empty string.
+  data = {source: 'admin', purpose: 'rental', request_product_id: '', request_size: '', privacy_consent: 0, privacy_consent_at: '', items: [], ...data};
+  // The moments are worked out once and stored, so the clash query never recomputes them.
+  data = {...data, ...scheduleColumns(data, {turnaround, fitting})};
   requireItemsUnlessRequest(data.items, data);
   const items = await requireBookableItems(db, data.items);
   const guard = OCCUPYING.includes(data.status);
+  const interval = requestedInterval(data, {buffer, turnaround, fitting});
   if (guard) {
-    const conflicts = await listConflicts(db, data.items, data.start_date, data.end_date, {buffer});
+    const conflicts = await listConflicts(db, data.items, interval, {hold});
     if (conflicts.length) throw conflictError(conflicts);
   }
   for (let attempt = 0; attempt < 3; attempt++) {
@@ -191,35 +265,48 @@ export async function createReservation(db, data, {buffer = 0} = {}) {
     const results = await db.batch([
       db.prepare(`INSERT INTO reservations (id, customer_name, customer_phone, customer_facebook, start_date, end_date, status, note, ${EXTRA_COLUMNS.join(', ')}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ${placeholders(EXTRA_COLUMNS)})`)
         .bind(reservation.id, data.customer_name, data.customer_phone, data.customer_facebook, data.start_date, data.end_date, data.status, data.note, ...EXTRA_COLUMNS.map(c => data[c] ?? '')),
-      ...items.map(item => guardedItemInsert(db, reservation, item, {buffer, guard})),
+      ...items.map(item => guardedItemInsert(db, reservation, item, {interval, guard, hold})),
       ...itemStatusEffects(db, reservation, data.items)
     ]);
     if (!insertedAll(results, 1, items.length)) {
       await db.prepare('DELETE FROM reservations WHERE id = ?').bind(reservation.id).run();
-      throw conflictError(await listConflicts(db, data.items, data.start_date, data.end_date, {buffer}));
+      throw conflictError(await listConflicts(db, data.items, interval, {hold}));
     }
     return getReservation(db, reservation.id);
   }
   throw new HttpError(500, 'id_collision', 'Could not allocate a reservation id; please retry.');
 }
 
-/** @param {any} db @param {string} id @param {any} patch @param {{buffer?: number, today?: string}} [context] */
-export async function updateReservation(db, id, patch, {buffer = 0} = {}) {
+/** @param {any} db @param {string} id @param {any} patch @param {{buffer?: number, turnaround?: any, fitting?: any, today?: string, now?: string}} [context] */
+export async function updateReservation(db, id, patch, {buffer = 0, turnaround = {}, fitting = {}, today = '', now = ''} = {}) {
+  const hold = holdUntil({today, now, turnaround});
   const current = await getReservation(db, id);
   if (!current) return null;
-  const next = {...current, ...patch, id};
+  let next = {...current, ...patch, id};
+  // The admin edits calendar dates; keep the timed stock interval in step with them.
+  if (!isFitting(next.purpose) && next.rental_days > 0 && ('start_date' in patch || 'end_date' in patch)) {
+    const days = (Date.parse(next.end_date + 'T00:00:00Z') - Date.parse(next.start_date + 'T00:00:00Z')) / 86400000;
+    if (!Number.isInteger(days) || days < 1) throw new HttpError(400, 'validation_error', 'A timed rental must end at least one day after pickup.', {fields: {end_date: 'before_due'}});
+    next.rental_days = days;
+  }
+  // The moment a rental comes back is written down, so its care window runs from the real return
+  // rather than from when it was due; a booking taken back out of "returned" forgets it again.
+  if (next.status === 'returned' && current.status !== 'returned' && !next.returned_at && today && now) next.returned_at = at(today, now);
+  else if (next.status !== 'returned' && current.status === 'returned') next.returned_at = '';
+  next = {...next, ...scheduleColumns(next, {turnaround, fitting})};
   const itemIds = patch.items ?? current.items.map(i => i.inventory_item_id);
   requireItemsUnlessRequest(itemIds, next);
   // The clash check reruns whenever the booking (re)claims its items: new items, new dates, or a
   // status change from a non-holding status back into a holding one.
-  const guard = OCCUPYING.includes(next.status) && Boolean(patch.items || patch.start_date || patch.end_date || !OCCUPYING.includes(current.status));
+  const guard = OCCUPYING.includes(next.status) && Boolean(patch.items || patch.start_date || patch.end_date || patch.start_time || patch.rental_days || !OCCUPYING.includes(current.status));
+  const interval = requestedInterval(next, {buffer, turnaround, fitting});
   const items = await requireBookableItems(db, itemIds).catch(error => {
     // Items already on the booking may have gone into maintenance since; that must not block marking it returned.
     if (error.error === 'inventory_unavailable' && !patch.items && !guard) return current.items.map(i => ({id: i.inventory_item_id, product_id: i.product_id}));
     throw error;
   });
   if (guard) {
-    const conflicts = await listConflicts(db, itemIds, next.start_date, next.end_date, {buffer, exclude: id});
+    const conflicts = await listConflicts(db, itemIds, interval, {exclude: id, hold});
     if (conflicts.length) throw conflictError(conflicts);
   }
   const update = row => db.prepare(`UPDATE reservations SET customer_name = ?, customer_phone = ?, customer_facebook = ?, start_date = ?, end_date = ?, status = ?, note = ?, ${EXTRA_COLUMNS.map(c => `${c} = ?`).join(', ')}, updated_at = ${NOW} WHERE id = ?`)
@@ -227,13 +314,13 @@ export async function updateReservation(db, id, patch, {buffer = 0} = {}) {
   const clear = db.prepare('DELETE FROM reservation_items WHERE reservation_id = ?').bind(id);
   const results = await db.batch([
     update(next), clear,
-    ...items.map(item => guardedItemInsert(db, next, item, {buffer, guard})),
+    ...items.map(item => guardedItemInsert(db, next, item, {interval, guard, hold})),
     ...itemStatusEffects(db, next, itemIds)
   ]);
   if (!insertedAll(results, 2, items.length)) {
     // Another request took one of the items between the check and the write: put everything back.
-    await db.batch([update(current), clear, ...current.items.map(item => guardedItemInsert(db, current, {id: item.inventory_item_id, product_id: item.product_id}, {buffer, guard: false}))]);
-    throw conflictError(await listConflicts(db, itemIds, next.start_date, next.end_date, {buffer, exclude: id}));
+    await db.batch([update(current), clear, ...current.items.map(item => guardedItemInsert(db, current, {id: item.inventory_item_id, product_id: item.product_id}, {interval, guard: false}))]);
+    throw conflictError(await listConflicts(db, itemIds, interval, {exclude: id, hold}));
   }
   return getReservation(db, id);
 }
@@ -242,14 +329,14 @@ export async function updateReservation(db, id, patch, {buffer = 0} = {}) {
 // one was asked for) assigned right now; a booking that already holds its items just changes status.
 // Either way the period clash check inside updateReservation() runs again, so a item taken since
 // the request came in answers 409 instead of silently double-booking.
-/** @param {any} db @param {string} id @param {{buffer?: number, today?: string}} [context] */
-export async function confirmReservation(db, id, {buffer = 0, today} = {}) {
+/** @param {any} db @param {string} id @param {{buffer?: number, turnaround?: any, fitting?: any, today?: string, now?: string}} [context] */
+export async function confirmReservation(db, id, {buffer = 0, turnaround = {}, fitting = {}, today = '', now = ''} = {}) {
   const current = await getReservation(db, id);
   if (!current) return null;
   if (current.status !== 'pending') throw new HttpError(409, 'not_pending', `Reservation ${id} is ${current.status}, not pending.`);
   const patch = {status: 'confirmed'};
   if (isRequest(current)) {
-    const candidates = (await itemsForProduct(db, current.request_product_id, {from: current.start_date, to: current.end_date, buffer, exclude: id, today})).filter(i => i.available);
+    const candidates = (await itemsForProduct(db, current.request_product_id, {interval: requestedInterval(current, {buffer, turnaround, fitting}), from: current.start_date, to: current.end_date, buffer, exclude: id, today, hold: holdUntil({today, now, turnaround})})).filter(i => i.available);
     const chosen = candidates.find(i => !current.request_size || i.size === current.request_size);
     if (!chosen) {
       throw new HttpError(409, 'inventory_unavailable', current.request_size && candidates.length
@@ -258,22 +345,99 @@ export async function confirmReservation(db, id, {buffer = 0, today} = {}) {
     }
     patch.items = [chosen.id];
   }
-  return updateReservation(db, id, patch, {buffer});
+  return updateReservation(db, id, patch, {buffer, turnaround, fitting, today, now});
+}
+
+// --- The handoff diary ------------------------------------------------------------------------------
+// Single dates whose handoff hours differ from the ordinary week: a day off, a later start, or
+// longer hours because the owner is not at their other job. A row wins over the weekly schedule.
+/** @param {any} db @param {{from?: string, to?: string}} [range] */
+export async function handoffExceptions(db, {from = '', to = ''} = {}) {
+  const where = [], params = [];
+  if (from) { where.push('date >= ?'); params.push(from); }
+  if (to) { where.push('date <= ?'); params.push(to); }
+  const sql = `SELECT date, closed, windows, note FROM handoff_exceptions${where.length ? ' WHERE ' + where.join(' AND ') : ''} ORDER BY date`;
+  const rows = (await db.prepare(sql).bind(...params).all()).results;
+  const byDate = {};
+  for (const row of rows) {
+    let windows = [];
+    // The column is written by this module, but a hand-edited row must not take the page down.
+    try { const parsed = JSON.parse(row.windows); if (Array.isArray(parsed)) windows = parsed; } catch { windows = []; }
+    byDate[row.date] = {date: row.date, closed: row.closed === 1, windows, note: row.note};
+  }
+  return byDate;
+}
+/** @param {any} db @param {string} date @param {{closed?: boolean, windows?: any[], note?: string}} entry */
+export async function setHandoffException(db, date, {closed = false, windows = [], note = ''} = {}) {
+  await db.prepare(`INSERT INTO handoff_exceptions (date, closed, windows, note) VALUES (?, ?, ?, ?)
+    ON CONFLICT(date) DO UPDATE SET closed = excluded.closed, windows = excluded.windows, note = excluded.note, updated_at = ${NOW}`)
+    .bind(date, closed ? 1 : 0, JSON.stringify(windows), note).run();
+  return (await handoffExceptions(db, {from: date, to: date}))[date] || null;
+}
+/** @param {any} db @param {string} date */
+export async function deleteHandoffException(db, date) {
+  const {meta} = await db.prepare('DELETE FROM handoff_exceptions WHERE date = ?').bind(date).run();
+  return meta.changes > 0;
+}
+
+// Everything a timeline needs for one product: its physical items, and the stretches each of them
+// is already spoken for. Item ids stay inside the Worker; only counts are ever sent to a customer.
+/** @param {any} db @param {string} productId @param {{from?: string, until?: string, size?: string, turnaround?: any, fitting?: any, hold?: string}} [options] */
+export async function productSchedule(db, productId, {from = '', until = '', size = '', turnaround = {}, fitting = {}, hold = ''} = {}) {
+  const items = (await listInventory(db, {product_id: productId})).filter(item => !size || item.size === size);
+  const intervals = new Map(items.map(item => [item.id, []]));
+  if (!items.length) return {items, intervals};
+  const ids = items.map(item => item.id);
+  const rows = (await db.prepare(`SELECT c.inventory_item_id, cr.status, cr.start_date, cr.end_date, cr.start_time, cr.rental_days, cr.returned_at, cr.start_at, cr.ready_at, cr.purpose
+    FROM reservation_items c JOIN reservations cr ON cr.id = c.reservation_id
+    WHERE c.inventory_item_id IN (${placeholders(ids)}) AND ${holding}
+      AND ${EFFECTIVE_READY} > ? AND ${EFFECTIVE_START} < ?`)
+    .bind(...ids, hold, hold, at(from, '00:00'), at(until, '00:00')).all()).results;
+  for (const row of rows) {
+    const interval = occupiedInterval(row, {turnaround, fitting});
+    // Still out after it should have been ready: held until `hold`, and simply taken, not in care.
+    if (row.status === 'rented' && hold && interval.ready < hold) {
+      intervals.get(row.inventory_item_id)?.push({start: interval.start, ready: hold, end: hold});
+      continue;
+    }
+    const end = row.returned_at || (row.rental_days > 0 ? dueAt(interval.start, row.rental_days) : interval.ready);
+    intervals.get(row.inventory_item_id)?.push({...interval, end});
+  }
+  return {items, intervals};
+}
+
+// The bookings behind the staff timeline, with who and what they are. Unlike productSchedule() this
+// also reads rentals that are already back while their care window runs, and rentals still out
+// after they fell due, because both are what staff look at the timeline to find.
+/** @param {any} db @param {{product_id?: string, item_id?: string, from: string, until: string}} range */
+export async function inventoryTimeline(db, {product_id = '', item_id = '', from, until}) {
+  const items = (await listInventory(db, product_id ? {product_id} : {})).filter(item => !item_id || item.id === item_id);
+  const bookings = new Map(items.map(item => [item.id, []]));
+  if (!items.length) return {items, bookings};
+  const ids = items.map(item => item.id);
+  const rows = (await db.prepare(`SELECT c.inventory_item_id, cr.id, cr.customer_name, cr.status, cr.purpose, cr.note, cr.start_date, cr.end_date, cr.start_time, cr.rental_days, cr.returned_at, cr.start_at, cr.ready_at
+    FROM reservation_items c JOIN reservations cr ON cr.id = c.reservation_id
+    WHERE c.inventory_item_id IN (${placeholders(ids)}) AND cr.status IN ('pending', 'confirmed', 'rented', 'returned')
+      AND ((${READY_AS_PLANNED} > ? AND ${EFFECTIVE_START} < ?) OR cr.status = 'rented')
+    ORDER BY ${EFFECTIVE_START}, cr.id`)
+    .bind(...ids, from, until).all()).results;
+  for (const {inventory_item_id, ...row} of rows) bookings.get(inventory_item_id)?.push(row);
+  return {items, bookings};
 }
 
 // --- Public reservation requests ------------------------------------------------------------------
 // Is a item of this product (in this size, if asked) free for the period? Same rule the admin
 // form uses, so the customer sees "Có sẵn" only when staff could actually confirm.
-/** @param {any} db @param {string} productId @param {{from?: string, to?: string, size?: string, buffer?: number, today?: string}} [options] */
-export async function productFree(db, productId, {from, to, size = '', buffer = 0, today} = {}) {
-  const items = await itemsForProduct(db, productId, {from, to, buffer, today});
+/** @param {any} db @param {string} productId @param {{from?: string, to?: string, interval?: any, size?: string, buffer?: number, today?: string, hold?: string}} [options] */
+export async function productFree(db, productId, {from, to, interval, size = '', buffer = 0, today, hold = ''} = {}) {
+  const items = await itemsForProduct(db, productId, {from, to, interval, buffer, today, hold});
   return items.some(i => i.available && (!size || i.size === size));
 }
 // The same customer sending the same request twice (double tap, page reload) gets the first one back.
 /** @param {any} db @param {any} data */
-export async function findOpenRequest(db, {customer_phone, request_product_id, start_date, end_date}) {
-  const row = await db.prepare("SELECT * FROM reservations WHERE source = 'public' AND status = 'pending' AND customer_phone = ? AND request_product_id = ? AND start_date = ? AND end_date = ? ORDER BY created_at DESC")
-    .bind(customer_phone, request_product_id, start_date, end_date).first();
+export async function findOpenRequest(db, {customer_phone, request_product_id, start_date, end_date, start_time = '', purpose = 'rental', request_size = ''}) {
+  const row = await db.prepare("SELECT * FROM reservations WHERE source = 'public' AND status = 'pending' AND customer_phone = ? AND request_product_id = ? AND start_date = ? AND end_date = ? AND start_time = ? AND purpose = ? AND request_size = ? ORDER BY created_at DESC")
+    .bind(customer_phone, request_product_id, start_date, end_date, start_time, purpose, request_size).first();
   return row ? (await attachItems(db, [row]))[0] : null;
 }
 // Per-IP throttle for the public form: how many requests this client made since `since` (ISO time).
@@ -312,6 +476,20 @@ export async function alerts(db, today) {
     db.prepare("SELECT * FROM reservations WHERE status = 'confirmed' AND notification_status = 'not_sent' ORDER BY start_date, created_at").all().then(r => attachItems(db, r.results))
   ]);
   return {today, returnsToday, pickupsToday, newReservations, overdue, pendingNotifications};
+}
+// What happens at the counter on one date, for the staff digest: confirmed pick-ups (rentals and
+// fittings), rentals due back, requests nobody has confirmed yet, and -- given `today` -- rentals
+// still out after their return date. A timed rental is due at its pick-up time, so both sort by it.
+/** @param {any} db @param {string} date @param {{today?: string}} [options] */
+export async function dayPlan(db, date, {today = ''} = {}) {
+  const rows = sql => db.prepare(sql).bind(date).all().then(result => attachItems(db, result.results));
+  const [pickups, returns, unconfirmed, overdue] = await Promise.all([
+    rows("SELECT * FROM reservations WHERE status = 'confirmed' AND start_date = ? ORDER BY start_time, created_at"),
+    rows("SELECT * FROM reservations WHERE status IN ('confirmed', 'rented') AND purpose = 'rental' AND end_date = ? ORDER BY start_time, created_at"),
+    rows("SELECT * FROM reservations WHERE status = 'pending' AND start_date = ? ORDER BY start_time, created_at"),
+    today ? db.prepare("SELECT * FROM reservations WHERE status = 'rented' AND end_date < ? ORDER BY end_date, created_at").bind(today).all().then(result => attachItems(db, result.results)) : []
+  ]);
+  return {date, pickups, returns, unconfirmed, overdue};
 }
 export async function dashboard(db, today) {
   const count = async (sql, ...params) => db.prepare(sql).bind(...params).first('n');

@@ -224,6 +224,9 @@ orderQty.addEventListener('change',()=>setQuantity(orderQty.value));
 
 // --- The order form ------------------------------------------------------------------------------------
 let orderTurnstileWidget=null;
+// See booking.js: window.turnstile is shadowed by the booking form's container element until the
+// script has actually loaded, so test for the API rather than for the global.
+const orderTurnstileApi=()=>typeof window.turnstile?.render==='function'?window.turnstile:null;
 function renderOrderTurnstileWarning(){
  const warning=document.getElementById('order-turnstile-warning'),state=orderConfig?.turnstile;
  if(!state||state.enabled){warning.hidden=true;warning.textContent='';return;}
@@ -235,10 +238,11 @@ async function loadOrderTurnstile(){
  renderOrderTurnstileWarning();
  box.hidden=!siteKey;
  if(!siteKey)return;
- if(!window.turnstile)await new Promise(resolve=>{const s=document.createElement('script');s.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';s.async=true;s.onload=resolve;s.onerror=resolve;document.head.append(s);});
- if(!window.turnstile)return;
- if(orderTurnstileWidget!==null){window.turnstile.reset(orderTurnstileWidget);return;}
- orderTurnstileWidget=window.turnstile.render(box,{sitekey:siteKey,language:language==='zh'?'zh-cn':language});
+ if(!orderTurnstileApi())await new Promise(resolve=>{const s=document.createElement('script');s.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';s.async=true;s.onload=resolve;s.onerror=resolve;document.head.append(s);});
+ const api=orderTurnstileApi();
+ if(!api)return;
+ if(orderTurnstileWidget!==null){api.reset(orderTurnstileWidget);return;}
+ orderTurnstileWidget=api.render(box,{sitekey:siteKey,language:language==='zh'?'zh-cn':language})??null;
 }
 const chosenOrderChannel=()=>orderForm.elements.preferred_contact_channel?.value||'';
 function syncOrderChannelFields(){
@@ -345,7 +349,7 @@ async function openOrderForm(){
  refreshOrderText();renderOrderForm();
  if(!orderDialog.open)orderDialog.showModal();
  // Fresh capacity every time the form opens, then the chips are redrawn with it.
- loadOrderConfig({force:true}).then(()=>{if(orderDialog.open){renderDateChips();renderOrderForm();}loadOrderTurnstile();});
+ loadOrderConfig({force:true}).then(()=>{if(orderDialog.open){renderDateChips();renderOrderForm();}loadOrderTurnstile().catch(error=>console.warn('Turnstile failed to load:',error));});
  // Focus lands on the heading, not the first textarea: the message is optional and a keyboard popping up on phones says otherwise.
  setTimeout(()=>document.getElementById('order-title')?.focus({preventScroll:true}),50);
 }
@@ -427,7 +431,7 @@ orderForm.addEventListener('submit',async e=>{
  if(channel==='messenger')body.customer_messenger_url=value('customer_messenger_url');
  if(!f.privacy_consent.checked){document.getElementById('order-consent-row').classList.add('is-invalid');return fail(errors.consent,f.privacy_consent);}
  body.privacy_consent=true;
- if(orderConfig?.turnstileSiteKey&&window.turnstile&&orderTurnstileWidget!==null)body.turnstile_token=window.turnstile.getResponse(orderTurnstileWidget)||'';
+ if(orderConfig?.turnstileSiteKey&&orderTurnstileApi()&&orderTurnstileWidget!=null)body.turnstile_token=orderTurnstileApi().getResponse(orderTurnstileWidget)||'';
  const submit=document.getElementById('order-submit');
  submit.disabled=true;submit.firstElementChild.textContent=ot('sending');orderError.textContent='';
  try{
@@ -437,7 +441,7 @@ orderForm.addEventListener('submit',async e=>{
    orderError.textContent=describeOrderError(data,response.status);
    // A slot that filled up or a design that sold out meanwhile: reload the limits and redraw.
    if(['capacity_full','sold_out','deadline_passed'].includes(data?.error))loadOrderConfig({force:true}).then(()=>{renderDateChips();renderOrderBlock();});
-   if(orderTurnstileWidget!==null&&window.turnstile)window.turnstile.reset(orderTurnstileWidget);
+   if(orderTurnstileWidget!=null&&orderTurnstileApi())orderTurnstileApi().reset(orderTurnstileWidget);
    return;
   }
   orderForm.hidden=true;orderDone.hidden=false;

@@ -36,6 +36,13 @@ export function bookingContext(env, store) {
     timezone,
     buffer: envInt(env.RESERVATION_BUFFER_DAYS) ?? store.booking.bufferDays,
     maxRentalDays: store.booking.maxRentalDays,
-    maxDaysAhead: store.booking.maxDaysAhead
+    maxDaysAhead: store.booking.maxDaysAhead,
+    timeSlots: store.booking.timeSlots,
+    slotMinutes: store.booking.slotMinutes,
+    displayStart: store.booking.displayStart, displayEnd: store.booking.displayEnd,
+    openingHours: store.booking.openingHours,
+    handoff: store.booking.handoff,
+    turnaround: store.booking.turnaround,
+    fitting: store.booking.fitting
   };
 }

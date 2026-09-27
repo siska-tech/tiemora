@@ -3,6 +3,7 @@
 import {localized, SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE} from '../i18n/localized.mjs';
 import {normalizePhone} from './phone.mjs';
 import {messengerUrl, normalizeMessengerUrl} from './links.mjs';
+import {at, dueAt, dateOf, timeOf, isTimeOfDay, isFitting} from '../booking/schedule.mjs';
 
 export const CONTACT_CHANNELS = ['messenger', 'zalo', 'whatsapp', 'phone', 'other'];
 export const PUBLIC_CONTACT_CHANNELS = ['zalo', 'whatsapp', 'messenger', 'phone'];
@@ -35,30 +36,51 @@ const TEMPLATES = {
   vi: {
     greeting: name => `Xin chào ${name} 🌸`,
     confirmed: store => `Đặt chỗ của bạn tại ${store} đã được xác nhận.`,
-    item: 'Sản phẩm', size: 'Size', start: 'Ngày nhận', end: 'Ngày trả', id: 'Mã đặt chỗ',
+    item: 'Sản phẩm', size: 'Size', start: 'Ngày nhận', end: 'Ngày trả', id: 'Mã đặt chỗ', policy: 'Điều khoản thuê',
     closing: store => ['Nếu cần thay đổi lịch, bạn nhắn lại cho chúng tôi nhé.', `Cảm ơn bạn đã lựa chọn ${store}!`]
   },
   ja: {
     greeting: name => `${name} 様 🌸`,
     confirmed: store => `${store} でのご予約が確定しました。`,
-    item: '商品', size: 'サイズ', start: '受取日', end: '返却日', id: '予約番号',
+    item: '商品', size: 'サイズ', start: '受取日', end: '返却日', id: '予約番号', policy: 'レンタル規約',
     closing: store => ['ご予定の変更がある場合は、このメッセージにご返信ください。', `${store} をお選びいただきありがとうございます。`]
   },
   en: {
     greeting: name => `Hello ${name} 🌸`,
     confirmed: store => `Your booking at ${store} is confirmed.`,
-    item: 'Item', size: 'Size', start: 'Pick-up date', end: 'Return date', id: 'Booking ID',
+    item: 'Item', size: 'Size', start: 'Pick-up date', end: 'Return date', id: 'Booking ID', policy: 'Rental terms',
     closing: store => ['If you need to change the dates, just reply to this message.', `Thank you for choosing ${store}!`]
   },
   zh: {
     greeting: name => `${name} 您好 🌸`,
     confirmed: store => `您在 ${store} 的预约已确认。`,
-    item: '商品', size: '尺码', start: '取件日期', end: '归还日期', id: '预约编号',
+    item: '商品', size: '尺码', start: '取件日期', end: '归还日期', id: '预约编号', policy: '租赁条款',
     closing: store => ['如需更改日期，请直接回复此消息。', `感谢您选择 ${store}！`]
   }
 };
-// `products` is the catalog (array, Map or object by id); `store` is the store config
-// (only store.name is used); `note` is an optional extra paragraph (opening hours, deposit, ...).
+const VISIT_TEXT = {
+  vi: {visit: 'Lịch thử đồ', duration: 'Thời lượng', minutes: 'phút'},
+  en: {visit: 'Fitting appointment', duration: 'Duration', minutes: 'minutes'},
+  ja: {visit: '試着の来店日時', duration: '所要時間', minutes: '分'},
+  zh: {visit: '试穿预约', duration: '时长', minutes: '分钟'}
+};
+function reservationSchedule(reservation, language, store = {}) {
+  const t = TEMPLATES[language];
+  const clock = isTimeOfDay(reservation?.start_time) ? reservation.start_time : '';
+  const start = formatDate(reservation?.start_date, language) + (clock ? ' ' + clock : '');
+  if (isFitting(reservation?.purpose)) {
+    const visit = VISIT_TEXT[language];
+    const minutes = Number(store.booking?.fitting?.minutes) || 30;
+    return [`${visit.visit}: ${start}`, `${visit.duration}: ${minutes} ${visit.minutes}`];
+  }
+  // Customer deadlines exclude turnaround; ready_at is only for inventory readiness.
+  const due = clock && reservation?.rental_days > 0 ? dueAt(at(reservation.start_date, clock), reservation.rental_days) : '';
+  const end = due ? formatDate(dateOf(due), language) + ' ' + timeOf(due) : formatDate(reservation?.end_date, language);
+  return [`${t.start}: ${start}`, `${t.end}: ${end}`];
+}
+// `products` is the catalog (array, Map or object by id); `store` is the store config (its name,
+// and booking.policy -- the rental terms, written down for the customer); `note` is an optional
+// extra paragraph for this one message.
 /** @param {any} reservation @param {any} products @param {string} [language] @param {{note?: string, store?: any}} [options] */
 export function buildReservationConfirmationMessage(reservation, products, language = DEFAULT_LANGUAGE, {note = '', store} = {}) {
   const lang = NOTIFICATION_LANGUAGES.includes(language) ? language : DEFAULT_LANGUAGE;
@@ -73,7 +95,9 @@ export function buildReservationConfirmationMessage(reservation, products, langu
   } else if (items.length) {
     lines.push(`${t.item}:`, ...items.map(i => `- ${i.name}${i.size ? ` (${i.size})` : ''}`));
   }
-  lines.push(`${t.start}: ${formatDate(reservation?.start_date, lang)}`, `${t.end}: ${formatDate(reservation?.end_date, lang)}`, `${t.id}: ${reservation?.id ?? ''}`);
+  lines.push(...reservationSchedule(reservation, lang, store), `${t.id}: ${reservation?.id ?? ''}`);
+  const policy = String(localized(store?.booking?.policy, lang) ?? '').trim();
+  if (policy) lines.push('', `${t.policy}:`, ...policy.split('\n').map(term => term.trim()).filter(Boolean).map(term => `- ${term}`));
   const extra = String(note ?? '').trim();
   if (extra) lines.push('', extra);
   lines.push('', ...t.closing(storeName));

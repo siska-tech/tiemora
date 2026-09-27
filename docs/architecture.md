@@ -6,7 +6,8 @@ Tiemora Core is one Cloudflare Worker, a static site and a D1 database. This pag
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
-│ storefront/  (index.html, app.js, catalog.js, gallery.js, booking.js)    │  browser
+│ storefront/  (index.html, app.js, catalog.js, gallery.js, booking.js,    │  browser
+│               cart.js, order.js)                                         │
 │ admin/       (index.html, admin.js, login.*, sw.js, manifest)            │
 ├──────────────────────────────────────────────────────────────────────────┤
 │ worker/      index.mjs   routing, admin page gating, security headers    │  Cloudflare
@@ -16,13 +17,15 @@ Tiemora Core is one Cloudflare Worker, a static site and a D1 database. This pag
 │              auth.mjs    password sessions, Cloudflare Access, tokens    │
 │              db.mjs      repository: every SQL statement                 │
 │              push.mjs    Web Push (VAPID + aes128gcm)                    │
+│              digest.mjs  the scheduled staff digest (Cron Trigger)       │
 │              public-requests.mjs  Turnstile + per-IP throttle            │
 │              catalog.mjs / store.mjs  read catalog.json / store.json     │
 ├──────────────────────────────────────────────────────────────────────────┤
 │ core/        catalog/    product.yaml scanning and validation            │  pure JS
-│              booking/    dates, statuses, overlap, availability summary  │
+│              booking/    dates, statuses, overlap, availability summary, │
+│                          handoff / turnaround schedule, rental pricing   │
 │              orders/     sale statuses, pricing, windows, capacity       │
-│              inventory/  item statuses and ids                           │
+│              inventory/  item statuses, ids, availability timelines      │
 │              notifications/ messages, phone numbers, chat links          │
 │              i18n/       localized values and language fallbacks         │
 │              config/     store.yaml schema, theme.css, HTML tokens       │
@@ -45,7 +48,9 @@ Rules of thumb:
 | `catalog/**/product.yaml` → `dist/catalog.json` | Product master data and media list | Git |
 | D1 `inventory_items` | Physical copies of products and their status | Database |
 | D1 `reservations`, `reservation_items` | Bookings, contact preferences, notification record, consent | Database |
+| D1 `handoff_exceptions` | Single dates whose handover hours differ from the weekly schedule | Database |
 | D1 `orders`, `order_items` | Sale / pre-orders: fulfillment, time slot, card message, prices at order time, notification record, consent | Database |
+| D1 `product_availability` | Staff sold-out switches per sale product | Database |
 | D1 `public_request_log` | Hashed client IPs for the public form throttle (pruned daily) | Database |
 | D1 `push_subscriptions` | Admin devices' Web Push subscriptions | Database |
 
@@ -84,8 +89,8 @@ Tiemora Core is the open-source platform in this repository and is complete on i
 
 | Folder | Runs against | Covers |
 |---|---|---|
-| `tests/core/` | plain Node | catalog scan, config, booking/inventory rules, notifications, images, seeds, migrations |
-| `tests/worker/` | Worker + `node:sqlite` shim | API, auth, CSRF, availability, public requests, Turnstile, Web Push |
+| `tests/core/` | plain Node | catalog scan, config, booking/inventory rules, handoff and turnaround schedule, rental pricing, availability timelines, orders rules, notifications, holidays, images, seeds, migrations, secret setup |
+| `tests/worker/` | Worker + `node:sqlite` shim | API, auth, CSRF, availability, public requests, orders, rental regressions, the staff digest, Turnstile, Web Push |
 | `tests/ui/` | jsdom + Worker | storefront and admin pages end to end |
 
 `npm run check` = `lint` + `typecheck` + `test` + `build`, which is what CI runs without any secret.

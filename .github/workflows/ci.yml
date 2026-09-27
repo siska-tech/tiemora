@@ -27,3 +27,5 @@ jobs:
       - run: npx wrangler deploy --dry-run --outdir /tmp/wrangler-dry-run
       # Keep the isolated reference shop buildable without changing Core defaults.
       - run: npm run build:pho-demo
+      # And the timed-rental demo, which also exercises the holiday calendar at build time.
+      - run: npm run build:timed-rental

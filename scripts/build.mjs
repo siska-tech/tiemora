@@ -8,9 +8,11 @@ import path from 'node:path';
 import {collectCatalog} from '../core/catalog/collect.mjs';
 import {themeCss, renderTemplate} from '../core/config/store.mjs';
 import {loadStoreConfig, resolveCatalogDir, projectRoot} from './store-config.mjs';
+import {populateHandoffHolidays} from './handoff-holidays.mjs';
 import {publishMedia, applyRewrites, generateThumbnails, attachThumbnails, maxEdge} from './images.mjs';
 
 const {config} = await loadStoreConfig();
+populateHandoffHolidays(config);
 const catalogDir = await resolveCatalogDir(config);
 // Validate the catalog before touching the last successful build.
 const {products, files} = await collectCatalog(catalogDir, {currency: config.currency});
@@ -39,6 +41,10 @@ for (const entry of await readdir(admin)) {
   if (entry.endsWith('.html') || entry.endsWith('.webmanifest')) await render(path.join(admin, entry), path.join(output, 'admin', entry));
   else await copyFile(path.join(admin, entry), path.join(output, 'admin', entry));
 }
+// ECharts draws the detailed availability schedule. It is served from the admin itself, because the
+// admin's Content-Security-Policy loads scripts from its own origin only; the page fetches it lazily.
+await mkdir(path.join(output, 'admin', 'vendor'), {recursive: true});
+await copyFile(path.join(projectRoot, 'node_modules', 'echarts', 'dist', 'echarts.min.js'), path.join(output, 'admin', 'vendor', 'echarts.min.js'));
 
 // Oversized photos are published smaller, and every image also gets card and strip sizes.
 // Both are build artefacts, so only dist/catalog.json names them.

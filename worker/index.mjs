@@ -3,6 +3,7 @@
 // Static Assets without touching this code.
 import {handleApi} from './api.mjs';
 import {authenticate, authMode} from './auth.mjs';
+import {runDigest} from './digest.mjs';
 
 const adminHeaders = {
   'cache-control': 'private, no-store',
@@ -45,5 +46,9 @@ export default {
     if (url.pathname === '/api' || url.pathname.startsWith('/api/')) return handleApi(request, env, url, ctx);
     if (url.pathname === '/admin' || url.pathname.startsWith('/admin/')) return handleAdmin(request, env, url);
     return env.ASSETS.fetch(request);
+  },
+  // Cron Trigger (wrangler.jsonc): the staff digest of the day's pick-ups and returns.
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(runDigest(env, event.scheduledTime).catch(error => console.error('Digest failed:', error)));
   }
 };

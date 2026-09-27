@@ -342,12 +342,12 @@ test('a customer checks dates and size, sends a request and gets a request id; t
  from.value='2026-10-02';from.dispatchEvent(new window.Event('change'));
  to.value='2026-10-04';to.dispatchEvent(new window.Event('change'));
  await tick();await tick();
- assert.equal(calls.at(-1)[0],'/api/products/item-0001/availability?from=2026-10-02&to=2026-10-04');
+ assert.equal(calls.filter(([url])=>url.includes('/availability')).at(-1)[0],'/api/products/item-0001/availability?from=2026-10-02&to=2026-10-04');
  assert.equal(d.getElementById('booking-status').textContent,'Có sẵn');
  assert(!d.getElementById('booking-open').disabled);
  size.value='M';size.dispatchEvent(new window.Event('change'));
  await tick();await tick();
- assert.equal(calls.at(-1)[0],'/api/products/item-0001/availability?from=2026-10-02&to=2026-10-04&size=M');
+ assert.equal(calls.filter(([url])=>url.includes('/availability')).at(-1)[0],'/api/products/item-0001/availability?from=2026-10-02&to=2026-10-04&size=M');
  assert.equal(d.getElementById('booking-status').textContent,'Không có sẵn trong thời gian này');
  assert(d.getElementById('booking-open').disabled);
  size.value='L';size.dispatchEvent(new window.Event('change'));
@@ -358,7 +358,7 @@ test('a customer checks dates and size, sends a request and gets a request id; t
  const bookingDialog=d.getElementById('booking-dialog'),form=d.getElementById('booking-form');
  assert(bookingDialog.hasAttribute('open'));
  assert.match(d.getElementById('booking-summary').textContent,/Một.*Ngày nhận: 02\/10\/2026.*Ngày trả: 04\/10\/2026.*Kích cỡ: L/);
- assert.equal(d.getElementById('turnstile').hidden,true);
+ assert.equal(d.getElementById('booking-turnstile').hidden,true);
  // Half-configured Turnstile: the widget stays off, the form works, and the owner is told what is missing.
  assert.equal(d.getElementById('turnstile-warning').hidden,false);
  assert.match(d.getElementById('turnstile-warning').textContent,/^⚠ Dành cho quản trị viên: Cloudflare Turnstile chưa được cấu hình [(]TURNSTILE_SITE_KEY[)][.]/);
@@ -390,7 +390,8 @@ test('a customer checks dates and size, sends a request and gets a request id; t
  form.querySelector('input[name=preferred_contact_channel][value=messenger]').dispatchEvent(new window.Event('change',{bubbles:true}));
  assert.equal(form.querySelector('[data-channel-field=zalo]').hidden,true);
  assert.equal(form.querySelector('[data-channel-field=messenger]').hidden,false);
- form.elements.customer_messenger_url.value='m.me/mai';
+ assert.equal(form.elements.customer_messenger_url,undefined);
+ assert.match(form.querySelector('[data-channel-field=messenger]').textContent,/Không cần nhập ID Messenger/);
  form.dispatchEvent(new window.Event('submit',{cancelable:true}));
  await tick();
  // Privacy consent is mandatory: refused locally with a clear message.
@@ -411,14 +412,31 @@ test('a customer checks dates and size, sends a request and gets a request id; t
  assert.equal(calls.at(-1)[1].headers['x-requested-with'],'fetch');
  assert.match(sent.privacy_consent_at,/^\d{4}-\d{2}-\d{2}T.*Z$/);
  delete sent.privacy_consent_at;
- assert.deepEqual(sent,{customer_name:'Nguyễn Mai',customer_phone:'0901234567',preferred_contact_channel:'messenger',customer_zalo_phone:'',customer_whatsapp:'',customer_messenger_url:'m.me/mai',note:'Chụp ảnh',privacy_consent:true,product_id:'item-0001',size:'L',start_date:'2026-10-02',end_date:'2026-10-04'});
+ assert.deepEqual(sent,{customer_name:'Nguyễn Mai',customer_phone:'0901234567',preferred_contact_channel:'messenger',customer_zalo_phone:'',customer_whatsapp:'',customer_messenger_url:'',note:'Chụp ảnh',privacy_consent:true,product_id:'item-0001',size:'L',start_date:'2026-10-02',end_date:'2026-10-04'});
  assert.equal(sent.status,undefined);
  const done=d.getElementById('booking-done');
  assert(!done.hidden);assert(form.hidden);
- assert.match(done.textContent,/Cảm ơn bạn 🌸.*Yêu cầu đặt chỗ đã được gửi\..*Mã yêu cầursv-20261002-ab12.*Cửa hàng sẽ liên hệ để xác nhận\./);
+ assert.match(done.textContent,/Cảm ơn bạn 🌸.*Yêu cầu đặt chỗ đã được gửi\..*Mã yêu cầursv-20261002-ab12.*Hãy sao chép mã yêu cầu/);
  assert.equal(done.querySelector('.chat').getAttribute('href'),'https://m.me/teststore');
+ // Everything else here is a statement; this line is the only one still asking the customer to do
+ // something, so it is a callout of its own rather than another note in the same voice.
+ const next=done.querySelector('.booking-next');
+ assert.ok(next,'the Messenger instruction stands apart');
+ assert.match(next.textContent,/Hãy sao chép mã yêu cầu bên dưới/);
+ assert.ok(next.querySelector('.booking-next-mark'),'and carries a mark, not colour alone');
+ assert.notEqual(next,done.querySelector('.booking-terms'));
+ let copiedId='';window.navigator.clipboard.writeText=async value=>{copiedId=value;};
+ d.getElementById('booking-copy-id').click();await tick();
+ assert.equal(copiedId,'rsv-20261002-ab12');
+ assert.match(d.getElementById('booking-copy-status').textContent,/Đã sao chép/);
+ window.navigator.clipboard.writeText=async()=>{throw new Error('denied');};
+ d.getElementById('booking-copy-id').click();await tick();
+ assert.match(d.getElementById('booking-copy-status').textContent,/Không thể sao chép/);
+ assert.equal(window.getSelection().toString(),'rsv-20261002-ab12');
  setLang(d,window,'en');
  assert.match(done.textContent,/Thank you 🌸.*Request IDrsv-20261002-ab12/);
+ assert.match(d.querySelector('.booking-next').textContent,/Copy your request ID below/,'and in every language');
+ assert.equal(d.getElementById('booking-copy-id').textContent,'Copy request ID');
  assert.equal(d.getElementById('hero-book').textContent.replace(/\s+/g,' ').trim(),'Book now↗');
  d.getElementById('booking-done-close').click();
  assert(!bookingDialog.hasAttribute('open'));
@@ -434,4 +452,454 @@ test('the illustration notice appears only while a placeholder item is in the ca
  assert(d.querySelector('.sample-label'));
  setLang(d,window,'ja');
  assert.equal(d.querySelector('[data-i18n="placeholderNotice"]').textContent,'以下の一部は仮画像で、実際の商品を示すものではありません。');
+});
+
+
+
+// Turnstile switched on. Every other test runs with it off, which is how a widget that never
+// rendered went unnoticed. Element ids land on window, so a container named "turnstile" both hides
+// the API behind a <div> and makes api.js report "already loaded" instead of installing itself.
+// The stub below refuses to install for exactly that reason, the way the real script does.
+test('with Turnstile configured the script loads, the widget renders and its token rides along',async t=>{
+ const {window,document:d}=await setup(t,{data:[{...stocked[0],sizes:['L']}],availability:live});
+ assert.ok(!('turnstile' in window),'no element id may shadow window.turnstile');
+ const renders=[],posts=[];let scripts=0;
+ // jsdom does not fetch scripts: stand in for the browser running Turnstile's api.js.
+ const head=d.head,append=head.append.bind(head);
+ head.append=(...nodes)=>{
+  append(...nodes);
+  for(const node of nodes)if(node.tagName==='SCRIPT'&&String(node.src).includes('challenges.cloudflare.com')){
+   scripts++;
+   // api.js leaves window.turnstile alone and warns when the name is already taken.
+   if(!('turnstile' in window))window.turnstile={render(el,options){renders.push({id:el.id,...options});return 'widget-'+renders.length;},getResponse:id=>'token-'+id,reset(){},remove(){}};
+   node.onload();
+  }
+ };
+ window.fetch=async(url,init={})=>{
+  const u=String(url);
+  if(u.startsWith('/api/products/item-0001/availability'))return {ok:true,json:async()=>({productId:'item-0001',available:true})};
+  if(u.includes('/calendar')){const month=new URL(u,'https://store.example').searchParams.get('month');return {ok:true,json:async()=>({month,days:Array.from({length:28},(_,n)=>({date:month+'-'+String(n+1).padStart(2,'0'),available:true}))})};}
+  if(u==='/api/reservation-requests/config')return {ok:true,json:async()=>({turnstileSiteKey:'0xSITEKEY',turnstile:{enabled:true,siteKeySet:true,secretSet:true}})};
+  if(u==='/api/reservation-requests'){
+   const body=JSON.parse(init.body);posts.push(body);
+   if(!body.turnstile_token)return {ok:false,status:400,json:async()=>({error:'turnstile_required',message:'no token'})};
+   return {ok:true,status:201,json:async()=>({request:{id:'rsv-20261002-ab12',status:'pending',customer_name:body.customer_name,start_date:body.start_date,end_date:body.end_date,product_id:body.product_id}})};
+  }
+  throw new Error('unexpected '+u);
+ };
+ d.querySelector('[data-id="item-0001"]').click();
+ const from=d.getElementById('booking-from'),to=d.getElementById('booking-to');
+ from.value='2026-10-02';from.dispatchEvent(new window.Event('change'));
+ to.value='2026-10-04';to.dispatchEvent(new window.Event('change'));
+ await until(()=>!d.getElementById('booking-open').disabled,'availability');
+ d.getElementById('booking-open').click();
+ await until(()=>renders.length,'turnstile widget');
+ assert.equal(scripts,1,'the api script is fetched exactly once');
+ assert.equal(renders.length,1,'the widget is rendered exactly once');
+ assert.equal(renders[0].id,'booking-turnstile');
+ assert.equal(renders[0].sitekey,'0xSITEKEY');
+ assert.equal(d.getElementById('booking-turnstile').hidden,false);
+ assert.equal(d.getElementById('turnstile-warning').hidden,true,'a working widget needs no owner warning');
+ const form=d.getElementById('booking-form');
+ form.elements.customer_name.value='Test';
+ form.elements.customer_phone.value='0900000000';
+ form.elements.privacy_consent.checked=true;
+ form.dispatchEvent(new window.Event('submit',{bubbles:true,cancelable:true}));
+ await until(()=>posts.length,'request posted');
+ assert.equal(posts[0].turnstile_token,'token-widget-1','the token the Worker verifies must be sent');
+ await until(()=>!d.getElementById('booking-done').hidden,'confirmation');
+ // A booking that is not going through Messenger has nothing left to do, so no call to action.
+ assert.equal(d.querySelector('.booking-next'),null);
+ assert.equal(d.getElementById('booking-error').textContent,'');
+});
+
+// The pick-up window is the return window too, so it belongs next to the calendar rather than in the
+// request form, and the request cannot be opened until the customer has named one.
+
+// The rental timeline: a day off the calendar, a length, then an hour off that day's own axis. What
+// the axis says comes from the Worker, which knows the bookings, the care window after a return and
+// the hours somebody is actually at the shop.
+const timelineDay = '2026-10-20';
+test('handoff notice is visible before date selection and follows the customer language', async t => {
+ const configured={...storeFixture,store:{...storeFixture.store,text:{handoffNotice:{vi:'Liên hệ trước',ja:'平日18:30〜24:00。時間外は事前にご連絡ください。'}}}};
+ const {window,document:d}=await setup(t,{data:[stocked[0]],availability:live,store:configured});
+ d.querySelector('[data-id="item-0001"]').click();
+ assert.equal(d.getElementById('booking-handoff-notice').hidden,false);
+ assert.match(d.getElementById('booking-handoff-notice').textContent,/Liên hệ trước/);
+ setLang(d,window,'ja');
+ assert.match(d.getElementById('booking-handoff-notice').textContent,/事前にご連絡/);
+});
+test('the store\'s rental terms sit above the consent box, one per line, in the customer language', async t => {
+ const configured={...storeFixture,booking:{...storeFixture.booking,policy:{vi:'Đặt cọc hoặc giấy tờ.\nTrả trễ trừ vào cọc.\n',ja:'保証金または身分証明書をお預かりします。\n破損時は賠償いただきます。'}}};
+ const {window,document:d}=await setup(t,{data:[stocked[0]],availability:live,store:configured});
+ const box=d.getElementById('booking-policy');
+ assert.equal(box.hidden,false);
+ assert.equal(box.querySelector('.booking-policy-title').textContent,'Điều khoản thuê');
+ assert.deepEqual([...box.querySelectorAll('li')].map(li=>li.textContent),['Đặt cọc hoặc giấy tờ.','Trả trễ trừ vào cọc.']);
+ assert.equal(box.nextElementSibling.id,'consent-row');
+ setLang(d,window,'ja');
+ assert.equal(box.querySelector('.booking-policy-title').textContent,'レンタル規約');
+ assert.equal(box.querySelectorAll('li').length,2);
+ assert.match(box.textContent,/賠償/);
+});
+test('a store without rental terms shows no terms box', async t => {
+ const {document:d}=await setup(t,{data:[stocked[0]],availability:live});
+ assert.equal(d.getElementById('booking-policy').hidden,true);
+});
+// 2026-10-20 is a Tuesday; every weekday is listed so the axis never depends on the calendar.
+const timelineStore = {...storeFixture, booking: {...storeFixture.booking, slotMinutes: 30,
+ handoff: {weekly: Object.fromEntries([0, 1, 2, 3, 4, 5, 6].map(n => [n, [{start: '18:30', end: '21:00'}]]))}}};
+function timelineHarness(window, d, {slots, onPost = () => {}} = {}) {
+ const asked = [];
+ window.fetch = async (url, init = {}) => {
+  const u = String(url);
+  if (u.startsWith('/api/products/item-0001/availability')) return {ok: true, json: async () => ({productId: 'item-0001', available: true})};
+  if (u.includes('/timeline')) {
+   const query = new URL(u, 'https://store.example').searchParams;
+   asked.push({date: query.get('date'), days: query.get('days')});
+   const days = Number(query.get('days'));
+   return {ok: true, json: async () => ({date: query.get('date'), days, slotMinutes: 30, total: 2, closed: false,
+    slots: slots(days), maxRentalDays: 60, quote: {daily: 119000, days, total: 119000 * days, currency: 'VND'}})};
+  }
+  if (u.includes('/calendar')) { const month = new URL(u, 'https://store.example').searchParams.get('month'); return {ok: true, json: async () => ({month, days: Array.from({length: 28}, (_, n) => ({date: month + '-' + String(n + 1).padStart(2, '0'), available: true}))})}; }
+  if (u === '/api/reservation-requests/config') return {ok: true, json: async () => ({turnstileSiteKey: '', turnstile: {enabled: false, siteKeySet: false, secretSet: true}})};
+  if (u === '/api/reservation-requests') { const body = JSON.parse(init.body); onPost(body); return {ok: true, status: 201, json: async () => ({request: {id: 'rsv-1', status: 'pending', customer_name: body.customer_name, start_date: body.start_date, end_date: body.end_date, start_time: body.start_time, rental_days: body.rental_days, product_id: body.product_id}})}; }
+  throw new Error('unexpected ' + u);
+ };
+ return asked;
+}
+const evening = days => [
+ {time: '07:00', state: 'past', remaining: 0},
+ {time: '18:30', state: days > 1 ? 'none' : 'available', remaining: days > 1 ? 0 : 2},
+ {time: '19:00', state: 'available', remaining: 2},
+ {time: '19:30', state: 'low', remaining: 1},
+ {time: '20:00', state: 'handoff', remaining: 0}
+];
+
+test('24-hour picker switches periods without scrolling and keeps unavailable reasons and selection', async t => {
+ const {window,document:d}=await setup(t,{data:[{...stocked[0],sizes:['L']}],availability:live,store:timelineStore});
+ const slots=()=>Array.from({length:48},(_,n)=>({time:String(Math.floor(n/2)).padStart(2,'0')+':'+(n%2?'30':'00'),state:n===2?'maintenance':'available',remaining:n===2?0:2}));
+ timelineHarness(window,d,{slots});
+ d.querySelector('[data-id="item-0001"]').click();
+ const from=d.getElementById('booking-from');from.value=timelineDay;from.dispatchEvent(new window.Event('change'));
+ await until(()=>d.querySelector('#timeline-choices [data-time="00:00"]'),'midnight choices');
+ assert.equal(d.querySelectorAll('[data-band]').length,4);
+ assert.equal(d.querySelectorAll('#timeline-choices [data-time]').length,12);
+ assert.equal(d.querySelector('.timeline-more').open,false,'full axis starts collapsed');
+ assert.ok(d.getElementById('booking-duration').compareDocumentPosition(d.getElementById('booking-timeline'))&window.Node.DOCUMENT_POSITION_FOLLOWING);
+ d.querySelector('#timeline-choices [data-time="01:00"]').click();
+ assert.equal(d.getElementById('booking-open').disabled,true);
+ assert.match(d.getElementById('timeline-detail').textContent,/01:00/);
+ d.querySelector('[data-band="3"]').click();
+ d.querySelector('#timeline-choices [data-time="23:30"]').click();
+ assert.match(d.getElementById('booking-plan').textContent,/23:30/);
+ assert.equal(d.querySelector('#timeline-track [data-time="23:30"]').getAttribute('aria-pressed'),'true');
+ d.querySelector('[data-band="0"]').click();
+ assert.match(d.getElementById('booking-plan').textContent,/23:30/,'view changes preserve selection');
+ d.querySelector('#timeline-choices [data-time="00:00"]').click();
+ assert.equal(d.querySelector('#timeline-choices [data-time="00:00"]').getAttribute('aria-pressed'),'true');
+ assert.equal(d.getElementById('booking-open').disabled,false);
+});
+
+test('a failed timeline refresh clears selection and permits a safe retry', async t => {
+ const {window, document: d} = await setup(t, {data: [{...stocked[0], sizes: ['L']}], availability: live, store: timelineStore});
+ timelineHarness(window, d, {slots: evening});
+ d.querySelector('[data-id="item-0001"]').click();
+ const from=d.getElementById('booking-from');from.value=timelineDay;from.dispatchEvent(new window.Event('change'));
+ await until(()=>d.querySelector('#timeline-track [data-time="19:00"]'),'initial timeline');
+ d.querySelector('#timeline-track [data-time="19:00"]').click();
+ assert.equal(d.getElementById('booking-open').disabled,false);
+ const fetch=window.fetch;
+ window.fetch=async(url,init)=>{if(String(url).includes('/timeline'))throw new Error('offline');return fetch(url,init);};
+ d.getElementById('days-plus').click();
+ assert.equal(d.getElementById('booking-open').disabled,true,'disabled immediately while revalidating');
+ await until(()=>d.querySelector('#timeline-detail button'),'retry');
+ assert.equal(d.getElementById('booking-plan').hidden,true);
+ assert.equal(d.querySelectorAll('#timeline-track [data-time]').length,0);
+ window.fetch=fetch;d.querySelector('#timeline-detail button').click();
+ await until(()=>d.querySelector('#timeline-track [data-time="19:00"]'),'retried timeline');
+ assert.equal(d.getElementById('booking-open').disabled,true,'retry must not silently select a time');
+});
+
+test('the timeline shows why each hour can or cannot be taken, and only free ones can be picked', async t => {
+ const {window, document: d} = await setup(t, {data: [{...stocked[0], sizes: ['L'], price: {rental: 119000}, currency: 'VND'}], availability: live, store: timelineStore});
+ timelineHarness(window, d, {slots: evening});
+ d.querySelector('[data-id="item-0001"]').click();
+ const from = d.getElementById('booking-from');
+ from.value = timelineDay; from.dispatchEvent(new window.Event('change'));
+ await until(() => d.querySelectorAll('#timeline-track [data-time]').length, 'timeline');
+ const slot = time => d.querySelector('#timeline-track [data-time="' + time + '"]');
+ assert.equal(d.getElementById('booking-timeline').hidden, false);
+ // Every state is readable without colour: a mark on the chip and a name in the legend.
+ assert.equal(slot('19:00').querySelector('.slot-mark').textContent, '○');
+ assert.equal(slot('19:30').querySelector('.slot-mark').textContent, '△');
+ assert.equal(slot('19:30').querySelector('.slot-count').textContent, '1');
+ assert.equal(slot('20:00').querySelector('.slot-mark').textContent, '□');
+ assert.match(slot('20:00').getAttribute('aria-label'), /Ngoài giờ giao nhận/);
+ assert.equal(slot('20:00').getAttribute('aria-disabled'), 'true', 'nobody is there to hand it over');
+ assert.equal(slot('07:00').getAttribute('aria-disabled'), 'true', 'that hour has gone');
+ assert.ok(!slot('19:00').disabled);
+ const legend = [...d.querySelectorAll('#timeline-legend li')].map(item => item.textContent);
+ assert.ok(legend.some(text => text.includes('Còn trống')));
+ assert.ok(legend.some(text => text.includes('Ngoài giờ giao nhận')));
+ // A day alone is not a booking: the request cannot be opened until an hour is chosen.
+ assert.ok(d.getElementById('booking-open').disabled);
+ slot('20:00').click();
+ assert.ok(d.getElementById('booking-open').disabled, 'reason inspection must not select an unavailable time');
+ assert.match(d.getElementById('timeline-detail').textContent, /20:00/);
+ slot('19:00').click();
+ assert.equal(slot('19:00').getAttribute('aria-pressed'), 'true');
+ assert.ok(!d.getElementById('booking-open').disabled);
+ slot('20:00').click();
+ assert.equal(slot('19:00').getAttribute('aria-pressed'), 'true', 'inspecting a reason preserves the selection');
+ assert.match(d.getElementById('timeline-detail').textContent, /Ngoài giờ giao nhận/);
+});
+
+test('the length drives the return deadline and the price, and the request carries both', async t => {
+ const {window, document: d} = await setup(t, {data: [{...stocked[0], sizes: ['L'], price: {rental: 119000}, currency: 'VND'}], availability: live, store: timelineStore});
+ const posts = [];
+ const asked = timelineHarness(window, d, {slots: evening, onPost: body => posts.push(body)});
+ d.querySelector('[data-id="item-0001"]').click();
+ const from = d.getElementById('booking-from');
+ from.value = timelineDay; from.dispatchEvent(new window.Event('change'));
+ await until(() => d.querySelectorAll('#timeline-track [data-time]').length, 'timeline');
+ d.querySelector('#timeline-track [data-time="19:00"]').click();
+ // One day: back at the same hour the next day.
+ const plan = () => d.getElementById('booking-plan').textContent;
+ assert.match(plan(), /20\/10\/2026 19:00/);
+ assert.match(plan(), /21\/10\/2026 19:00/);
+ assert.match(plan(), /1 ngày \/ 24 giờ/);
+ assert.match(plan(), /119.000/);
+ // Two days: 48 hours, and the deadline moves with it.
+ d.getElementById('days-plus').click();
+ await until(() => asked.some(call => call.days === '2'), 'timeline reloaded for two days');
+ await until(() => plan().includes('238.000'), 'the price follows the length');
+ assert.match(plan(), /22\/10\/2026 19:00/);
+ assert.match(plan(), /2 ngày \/ 48 giờ/);
+ assert.equal(d.getElementById('booking-days').value, '2');
+ assert.equal(d.getElementById('booking-to').value, '2026-10-22');
+ // Choosing again is one tap, without scrolling back up a long form.
+ d.querySelector('[data-reset-plan]').click();
+ assert.equal(d.getElementById('booking-plan').hidden, true);
+ assert.ok(d.getElementById('booking-open').disabled);
+ d.querySelector('#timeline-track [data-time="19:30"]').click();
+ d.getElementById('booking-open').click();
+ assert.match(d.getElementById('booking-summary').textContent, /19:30/);
+ const form = d.getElementById('booking-form');
+ form.elements.customer_name.value = 'Test';
+ form.elements.customer_phone.value = '0900000000';
+ form.elements.privacy_consent.checked = true;
+ form.dispatchEvent(new window.Event('submit', {bubbles: true, cancelable: true}));
+ await until(() => posts.length, 'request posted');
+ assert.equal(posts[0].start_date, '2026-10-20');
+ assert.equal(posts[0].start_time, '19:30');
+ assert.equal(posts[0].rental_days, 2, 'the length goes to the server, not a second date');
+});
+
+test('a day nobody can hand over on says so instead of showing an empty axis', async t => {
+ const {window, document: d} = await setup(t, {data: [{...stocked[0], sizes: ['L'], price: {rental: 119000}, currency: 'VND'}], availability: live, store: timelineStore});
+ window.fetch = async url => {
+  const u = String(url);
+  if (u.startsWith('/api/products/item-0001/availability')) return {ok: true, json: async () => ({productId: 'item-0001', available: true})};
+  if (u.includes('/timeline')) return {ok: true, json: async () => ({date: timelineDay, days: 1, slotMinutes: 30, total: 1, closed: true, slots: [], maxRentalDays: 60, quote: null})};
+  if (u.includes('/calendar')) { const month = new URL(u, 'https://store.example').searchParams.get('month'); return {ok: true, json: async () => ({month, days: Array.from({length: 28}, (_, n) => ({date: month + '-' + String(n + 1).padStart(2, '0'), available: true}))})}; }
+  if (u === '/api/reservation-requests/config') return {ok: true, json: async () => ({turnstileSiteKey: '', turnstile: {enabled: false, siteKeySet: false, secretSet: true}})};
+  throw new Error('unexpected ' + u);
+ };
+ d.querySelector('[data-id="item-0001"]').click();
+ const from = d.getElementById('booking-from');
+ from.value = timelineDay; from.dispatchEvent(new window.Event('change'));
+ await until(() => !d.getElementById('timeline-empty').hidden, 'the closed-day notice');
+ assert.equal(d.getElementById('timeline-empty').textContent, 'Ngày này cửa hàng không giao nhận được.');
+ assert.equal(d.querySelectorAll('#timeline-track [data-time]').length, 0);
+ assert.ok(d.getElementById('booking-open').disabled);
+});
+
+// A store that has not said when anybody is at the shop has no hour axis to pick from, so its
+// calendar still names both ends of the rental. This is the flow every store had before the axis
+// existed, and the one they keep until handover hours are configured.
+test('without handover hours the calendar still picks a range, two taps, and prices it', async t => {
+ const {window, document: d} = await setup(t, {data: [{...stocked[0], sizes: ['L'], price: {rental: 119000}, currency: 'VND'}], availability: live});
+ const calls = [];
+ window.fetch = async url => {
+  const u = String(url);
+  calls.push(u);
+  if (u.startsWith('/api/products/item-0001/availability')) return {ok: true, json: async () => ({productId: 'item-0001', available: true})};
+  if (u.includes('/calendar')) { const month = new URL(u, 'https://store.example').searchParams.get('month'); return {ok: true, json: async () => ({month, days: Array.from({length: 28}, (_, n) => ({date: month + '-' + String(n + 1).padStart(2, '0'), available: true}))})}; }
+  if (u === '/api/reservation-requests/config') return {ok: true, json: async () => ({turnstileSiteKey: '', turnstile: {enabled: false, siteKeySet: false, secretSet: true}})};
+  throw new Error('unexpected ' + u);
+ };
+ d.querySelector('[data-id="item-0001"]').click();
+ await until(() => d.querySelector('[data-day]'), 'calendar');
+ const month = d.querySelector('[data-day]').dataset.day.slice(0, 7);
+ const day = n => d.querySelector(`[data-day="${month}-${String(n).padStart(2, '0')}"]`);
+ // No hour axis and no length stepper: this store names both dates itself.
+ assert.equal(d.getElementById('booking-timeline').hidden, true);
+ assert.equal(d.getElementById('booking-duration').hidden, true);
+ day(10).click();
+ await until(() => d.getElementById('booking-from').value === `${month}-10`, 'the first tap');
+ assert.equal(d.getElementById('booking-to').value, '', 'the second end is still open');
+ day(12).click();
+ await until(() => d.getElementById('booking-to').value === `${month}-12`, 'the second tap closes the range');
+ // Three calendar days apart is two 24-hour days, the same as the Worker charges.
+ await until(() => d.getElementById('booking-price').textContent.includes('238.000'), 'the range is priced');
+ assert.match(d.getElementById('booking-price').textContent, /119.000.*2.*238.000/);
+ await until(() => calls.some(url => url.includes('from=' + month + '-10&to=' + month + '-12')), 'availability asked for the range');
+ // The whole span is shaded, and a third tap starts a new range.
+ await until(() => d.querySelectorAll('.calendar-grid .in-range').length === 3, 'the span is shaded');
+ day(14).click();
+ await until(() => d.getElementById('booking-from').value === `${month}-14`, 'a third tap starts again');
+ assert.equal(d.getElementById('booking-to').value, '');
+ // Tapping the same day twice is the one-day rental the instruction promises.
+ day(14).click();
+ await until(() => d.getElementById('booking-to').value === `${month}-14`, 'same day twice');
+ await until(() => d.getElementById('booking-price').textContent.includes('119.000'), 'one day');
+ assert.match(d.getElementById('booking-price').textContent, /× 1 /);
+});
+
+// Choosing the span on the calendar is how this has always felt, and the hour axis did not take it
+// away: the second tap says how far the rental runs, which is the same thing the stepper says.
+test('with an hour axis the calendar still takes a span, and the stepper agrees with it', async t => {
+ const {window, document: d} = await setup(t, {data: [{...stocked[0], sizes: ['L'], price: {rental: 119000}, currency: 'VND'}], availability: live, store: timelineStore});
+ const asked = timelineHarness(window, d, {slots: evening});
+ d.querySelector('[data-id="item-0001"]').click();
+ await until(() => d.querySelector('[data-day]'), 'calendar');
+ const oldMonth=d.querySelector('[data-day]').dataset.day.slice(0,7);
+ d.querySelector('[data-month="1"]').click();
+ await until(()=>d.querySelector('[data-day]')&&d.querySelector('[data-day]').dataset.day.slice(0,7)!==oldMonth,'next month');
+ const month = d.querySelector('[data-day]').dataset.day.slice(0, 7);
+ const day = n => d.querySelector(`[data-day="${month}-${String(n).padStart(2, '0')}"]`);
+ day(10).click();
+ await until(() => d.getElementById('booking-days').value === '1', 'one day to begin with');
+ assert.equal(d.getElementById('booking-from').value, `${month}-10`);
+ assert.equal(d.getElementById('booking-to').value, `${month}-11`, 'the return is worked out, not asked for');
+ // A second tap further along is the span, and the length says so.
+ day(13).click();
+ await until(() => d.getElementById('booking-days').value === '3', 'the span sets the length');
+ assert.equal(d.getElementById('booking-to').value, `${month}-13`);
+ await until(() => asked.some(call => call.days === '3'), 'the axis is asked again for three days');
+ await until(() => d.querySelectorAll('.calendar-grid .in-range').length === 4, 'the span is shaded');
+ assert.equal(day(13).getAttribute('aria-pressed'), 'true', 'both ends read as chosen');
+ // The stepper and the calendar are two ways of saying the same thing.
+ d.getElementById('days-plus').click();
+ await until(() => d.getElementById('booking-days').value === '4', 'the stepper carries on from there');
+ assert.equal(d.getElementById('booking-to').value, `${month}-14`);
+ // Once a span is set, the next tap starts a new one rather than stretching the old.
+ day(20).click();
+ await until(() => d.getElementById('booking-from').value === `${month}-20`, 'a fresh start');
+ assert.equal(d.getElementById('booking-days').value, '1');
+ // Tapping backwards also starts again, instead of making a negative span.
+ day(18).click();
+ await until(() => d.getElementById('booking-from').value === `${month}-18`, 'backwards starts again');
+ assert.equal(d.getElementById('booking-days').value, '1');
+});
+
+// Trying something on is a different errand from renting: come at an agreed time, put it on, hand it
+// straight back. The page asks for a time and nothing else, and names no price.
+const fittingStore = {...timelineStore, booking: {...timelineStore.booking, fitting: {enabled: true, minutes: 30, bufferMinutes: 0}}};
+test('a fitting asks only when to come, shows no price and says so in the request', async t => {
+ const {window, document: d} = await setup(t, {data: [{...stocked[0], sizes: ['L'], price: {rental: 119000}, currency: 'VND'}], availability: live, store: fittingStore});
+ const posts = [];
+ const asked = [];
+ window.fetch = async (url, init = {}) => {
+  const u = String(url);
+  if (u.startsWith('/api/products/item-0001/availability')) return {ok: true, json: async () => ({productId: 'item-0001', available: true})};
+  if (u.includes('/timeline')) {
+   const query = new URL(u, 'https://store.example').searchParams;
+   const purpose = query.get('purpose');
+   asked.push(purpose);
+   return {ok: true, json: async () => ({date: query.get('date'), days: 1, purpose, slotMinutes: 30, total: 1, closed: false,
+    fittingMinutes: purpose === 'fitting' ? 30 : 0, slots: evening(1), maxRentalDays: 60,
+    quote: purpose === 'fitting' ? null : {daily: 119000, days: 1, total: 119000, currency: 'VND'}})};
+  }
+  if (u.includes('/calendar')) { const month = new URL(u, 'https://store.example').searchParams.get('month'); return {ok: true, json: async () => ({month, days: Array.from({length: 28}, (_, n) => ({date: month + '-' + String(n + 1).padStart(2, '0'), available: true}))})}; }
+  if (u === '/api/reservation-requests/config') return {ok: true, json: async () => ({turnstileSiteKey: '', turnstile: {enabled: false, siteKeySet: false, secretSet: true}})};
+  if (u === '/api/reservation-requests') { const body = JSON.parse(init.body); posts.push(body); return {ok: true, status: 201, json: async () => ({request: {id: 'rsv-1', status: 'pending', customer_name: body.customer_name, start_date: body.start_date, end_date: body.end_date, start_time: body.start_time, purpose: body.purpose, product_id: body.product_id}})}; }
+  throw new Error('unexpected ' + u);
+ };
+ d.querySelector('[data-id="item-0001"]').click();
+ await until(() => d.querySelectorAll('#purpose-cards input[name=booking_purpose]').length === 2, 'the choice');
+ const pick = value => d.querySelector(`#purpose-cards input[value="${value}"]`);
+ // The errand is asked before the dates, because it decides what the dates mean.
+ const block = d.getElementById('dialog-booking');
+ assert.ok(block.querySelector('#booking-purpose').compareDocumentPosition(block.querySelector('.booking-fields')) & 4, 'the choice comes first');
+ assert.ok(pick('rental').checked, 'renting is the default errand');
+ assert.deepEqual([...d.querySelectorAll('#purpose-cards .channel-name')].map(el => el.textContent), ['Thuê', 'Thử đồ']);
+ assert.deepEqual([...d.querySelectorAll('#purpose-cards .channel-hint')].map(el => el.textContent), ['Tính theo mỗi 24 giờ', 'Chỉ thử tại cửa hàng']);
+ const from = d.getElementById('booking-from');
+ from.value = timelineDay; from.dispatchEvent(new window.Event('change'));
+ await until(() => d.querySelectorAll('#timeline-track [data-time]').length, 'timeline');
+ assert.equal(d.getElementById('booking-duration').hidden, false, 'a rental has a length to choose');
+
+ assert.equal(d.getElementById('booking-to-field').hidden, false, 'a rental names both ends');
+ pick('fitting').checked = true;
+ pick('fitting').dispatchEvent(new window.Event('change', {bubbles: true}));
+ await until(() => asked.includes('fitting'), 'the axis is asked for a fitting');
+ // Nothing belonging to the other errand is left on screen.
+ assert.equal(d.getElementById('booking-to-field').hidden, true, 'a visit has no return date');
+ assert.equal(d.querySelector('.booking-fields [data-booking-i18n="from"]').textContent, 'Ngày đến');
+ // Nothing to choose a length for, and nothing to pay.
+ assert.equal(d.getElementById('booking-duration').hidden, true);
+ assert.match(d.getElementById('booking-purpose').textContent, /30 phút/);
+ await until(() => d.getElementById('booking-price').textContent === '', 'no rental total for a fitting');
+ await until(() => d.querySelector('#timeline-track [data-time="19:00"]'), 'the axis redrawn for a fitting');
+ d.querySelector('#timeline-track [data-time="19:00"]').click();
+ const plan = d.getElementById('booking-plan').textContent;
+ assert.match(plan, /Đến lúc/);
+ assert.match(plan, /30 phút/);
+ assert.match(plan, /Miễn phí/);
+ assert.doesNotMatch(plan, /119.000/);
+
+ const form = d.getElementById('booking-form');
+ d.getElementById('booking-open').click();
+ form.elements.customer_name.value = 'Test';
+ form.elements.customer_phone.value = '0900000000';
+ form.elements.privacy_consent.checked = true;
+ form.dispatchEvent(new window.Event('submit', {bubbles: true, cancelable: true}));
+ await until(() => posts.length, 'request posted');
+ assert.equal(posts[0].purpose, 'fitting');
+ assert.equal(posts[0].start_time, '19:00');
+ assert.equal(posts[0].rental_days, undefined, 'a fitting counts no days');
+});
+
+// A cheaper rate after the first day has to read as two parts, or a customer cannot see where the
+// total came from.
+test('the price spells out the first day and the cheaper ones when they differ', async t => {
+ const product = {...stocked[0], sizes: ['L'], price: {rental: 119000, additionalDay: 30000}, currency: 'VND'};
+ const {window, document: d} = await setup(t, {data: [product], availability: live, store: timelineStore});
+ timelineHarness(window, d, {slots: evening});
+ d.querySelector('[data-id="item-0001"]').click();
+ const from = d.getElementById('booking-from');
+ from.value = timelineDay; from.dispatchEvent(new window.Event('change'));
+ await until(() => d.querySelectorAll('#timeline-track [data-time]').length, 'timeline');
+ d.querySelector('#timeline-track [data-time="19:00"]').click();
+ // One day: one rate, one multiplication, nothing to explain.
+ await until(() => d.getElementById('booking-price').textContent.includes('119.000'), 'one day');
+ assert.match(d.getElementById('booking-price').textContent, /119.000.*× 1 /);
+ // Three days: the first day and the two cheaper ones, adding up to what the Worker will charge.
+ d.getElementById('days-plus').click();
+ d.getElementById('days-plus').click();
+ await until(() => d.getElementById('booking-days').value === '3', 'three days');
+ await until(() => d.getElementById('booking-price').textContent.includes('179.000'), 'the discounted total');
+ const text = d.getElementById('booking-price').textContent;
+ assert.match(text, /119.000.*\+.*30.000.*× 2 /, 'the first day, then the cheaper ones');
+ assert.doesNotMatch(text, /357.000/, 'not the undiscounted total');
+});
+
+test('fixed pickup slots activate the picker and send the selected time', async t => {
+  const configured = {...storeFixture, booking: {...storeFixture.booking, timeSlots: [{id: 'evening', start: '19:15', end: '20:00'}]}};
+  const {window, document: d} = await setup(t, {data: [stocked[0]], availability: live, store: configured});
+  const posts = [];
+  timelineHarness(window, d, {slots: () => [{time: '19:15', state: 'available', remaining: 1}], onPost: body => posts.push(body)});
+  d.querySelector('[data-id="item-0001"]').click();
+  const from = d.getElementById('booking-from'); from.value = timelineDay; from.dispatchEvent(new window.Event('change'));
+  await until(() => d.querySelector('#timeline-choices [data-time="19:15"]'), 'fixed pickup slot');
+  d.querySelector('#timeline-choices [data-time="19:15"]').click();
+  d.getElementById('booking-open').click();
+  const form = d.getElementById('booking-form');
+  form.elements.customer_name.value = 'Test'; form.elements.customer_phone.value = '0900000000'; form.elements.privacy_consent.checked = true;
+  form.dispatchEvent(new window.Event('submit', {bubbles: true, cancelable: true}));
+  await until(() => posts.length, 'fixed slot request');
+  assert.equal(posts[0].start_time, '19:15');
+  assert.equal(posts[0].rental_days, 1);
 });

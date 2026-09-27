@@ -72,6 +72,12 @@ export async function collectCatalog(root, {warn=console.warn, currency='VND'}={
         const priceKey=product.type==='sale'?'sale':'rental';
         if(isMoney(priceMap[priceKey])&&priceMap[priceKey]>=0)product.price={[priceKey]:priceMap[priceKey]};
         else if(data.price!=null)warning(folder,`Invalid ${priceKey} price; showing contact-for-price.`);
+        // A rental may charge less for every day after the first. It is a price per day, not a
+        // percentage, and it can never be more than the daily rate -- that would be a surcharge.
+        if(product.type==='rental'&&priceMap.additionalDay!=null){
+          if(product.price&&isMoney(priceMap.additionalDay)&&priceMap.additionalDay>=0&&priceMap.additionalDay<=product.price.rental)product.price.additionalDay=priceMap.additionalDay;
+          else warning(folder,`price.additionalDay must be a number between 0 and price.rental; charging the daily rate for every day.`);
+        }
         if(isMap(data.price)&&data.price.original!=null) {
           if(product.price&&isMoney(data.price.original)&&data.price.original>product.price[priceKey])product.price.original=data.price.original;
           else warning(folder,`price.original must be a number above price.${priceKey}; ignoring the discount.`);

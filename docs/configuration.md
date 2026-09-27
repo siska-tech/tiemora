@@ -5,6 +5,10 @@ Everything that makes a Tiemora deployment *your* store is in `config/store.yaml
 Set `TIEMORA_CONFIG=/path/to/other.yaml` to build with another file, and `TIEMORA_CATALOG=/path` to override the catalog directory. Set `TIEMORA_ASSETS=/path/to/public-artwork` to overlay that directory into `dist/assets/` at build time; include only publishable assets. The standard build uses only `storefront/assets/`.
 
 `npm run build:pho-demo` selects `examples/pho-demo/store.yaml`, its catalog and its artwork together.
+`npm run build:timed-rental` selects `examples/timed-rental/store.yaml`, which keeps the standard
+sample catalog and only turns the rental rules on: pick-up times, opening and handover hours,
+public holidays, turnaround, fittings, rental terms and a staff digest. Neither build touches
+`config/store.yaml`.
 
 ## Keys
 
@@ -27,9 +31,14 @@ Set `TIEMORA_CONFIG=/path/to/other.yaml` to build with another file, and `TIEMOR
 | `hero.image` | path or null | replaces the neutral hero illustration |
 | `announcement` | localized or null | banner above the header |
 | `values` | list of localized (max 3) | short claims under the hero |
-| `text` | mapping of copy key → localized | overrides the storefront's built-in UI copy so a store can reword the page without touching code. Reaches all three copy tables: the page (`copy` in `storefront/app.js`: `bookCta`, `explore`, `heroNote`, `step1Title`, `footer`, …), the catalog cards (`catalogCopy` in `storefront/catalog.js`: `orderCta`, `perUnit`, `available`, …) and the order form (`orderCopy` in `storefront/order.js`: `cta`, `preorder`, `soldOut`, `pickup`, `fulfillmentTitle`, `terms`, …). A key is only taken by the table that owns it, so the defaults — written for a florist taking pre-orders — can be replaced wholesale by a shop that sells something else |
+| `text` | mapping of copy key → localized | overrides the storefront's built-in UI copy so a store can reword the page without touching code. Reaches all three copy tables: the page (`copy` in `storefront/app.js`: `bookCta`, `explore`, `heroNote`, `step1Title`, `footer`, …), the catalog cards (`catalogCopy` in `storefront/catalog.js`: `orderCta`, `perUnit`, `available`, …) and the order form (`orderCopy` in `storefront/order.js`: `cta`, `preorder`, `soldOut`, `pickup`, `fulfillmentTitle`, `terms`, …). A key is only taken by the table that owns it, so the defaults — written for a florist taking pre-orders — can be replaced wholesale by a shop that sells something else. `handoffNotice` belongs to no table and is read on its own: see below |
 
 A *localized* value is a string or a mapping by language code: `{vi: "…", en: "…"}`.
+
+`store.text.handoffNotice` (localized) is the one key no copy table owns: the booking form reads it
+directly and shows it above the calendar, before a date is chosen. Use it to ask customers to get in
+touch first about a handover outside the listed hours. It bypasses no server-side rule; see
+[booking.md](booking.md#public-holidays).
 
 ### `catalog.dir`
 
@@ -64,6 +73,13 @@ Six-digit hex colours: `primary`, `accent`, `paper` (background), `ink` (text), 
 | `maxRentalDays` | 60 | longest public request |
 | `maxDaysAhead` | 365 | how far ahead a public request may start |
 | `bufferDays` | 0 | free days kept between one return and the next start (`RESERVATION_BUFFER_DAYS` overrides) |
+| `handoff.holidayCountry` | null | two-letter country code; the build lists its public holidays (see [booking.md](booking.md#public-holidays)) |
+| `handoff.holidayDates` | [] | extra holiday dates written by hand (`YYYY-MM-DD`) |
+| `handoff.holidayWindows` | all day | the handoff hours on a holiday; `[]` closes |
+| `policy` | null | the store's rental terms (deposit, late return, damage): text or a language mapping, one term per line. Shown in a box above the consent checkbox on the booking form, and added to the confirmation message staff send |
+
+Timed rentals, turnaround, handover hours and fittings are described in [booking.md](booking.md).
+
 
 ### `ordering`
 
@@ -91,7 +107,12 @@ Limits are counted from active orders; nothing is shown as scarce unless a limit
 
 ### `admin.defaultLanguage`
 
-`vi`, `en` or `ja` — the language the admin opens in before staff choose their own.
+`vi`, `en` or `ja` — the language the admin opens in before staff choose their own. The staff digest is written in it too.
+
+### `admin.digest`
+
+`today` / `tomorrow`: store-local times (`HH:MM`) at which every admin device subscribed to Web Push gets one notification. `today` lists that day's confirmed pick-ups and fittings, the rentals due back, requests not yet confirmed, and rentals already overdue. `tomorrow` lists the next day's. A day with nothing on it sends nothing. Both default to null (off). Needs the VAPID keys and the Cron Trigger in `wrangler.jsonc` (`*/30 * * * *`). Each run sends whichever digest falls due in its half hour.
+
 
 ## Where things are *not* configured here
 

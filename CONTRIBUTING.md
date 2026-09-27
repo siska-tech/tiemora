@@ -5,7 +5,7 @@ Thanks for helping. Tiemora Core is a small codebase on purpose; the best contri
 ## Before you start
 
 - Open an issue for anything bigger than a bug fix so we can agree on the approach.
-- Check the [roadmap](README.md#roadmap): sale products, workshops, appointments and pre-orders are planned but not yet in scope for Core.
+- Check the [roadmap](README.md#roadmap): workshop / class bookings, appointments beyond fittings, a unified fulfillment vocabulary, a theme system and other database adapters are planned but not yet in scope for Core.
 - Anything that depends on a paid API (WhatsApp Cloud API, Zalo OA, Messenger Platform) or on a hosted service stays out of Core.
 
 ## Development

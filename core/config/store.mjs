@@ -38,7 +38,19 @@ export const DEFAULT_STORE = {
   contact: {facebook: null, messenger: null, zalo: null, whatsapp: null, phone: null, email: null, address: null, mapUrl: null},
   categories: {},
   theme: {...DEFAULT_THEME},
-  booking: {maxRentalDays: 60, maxDaysAhead: 365, bufferDays: 0},
+  // A rental is priced per 24 hours from the moment it is collected. `handoff` is when somebody is
+  // at the shop to hand it over -- a different thing from the garment being free -- and `turnaround`
+  // is how long a returned item needs before it can go out again. Neither is specific to clothing.
+  booking: {
+    maxRentalDays: 60, maxDaysAhead: 365, bufferDays: 0, timeSlots: [], slotMinutes: 30, displayStart: '06:00', displayEnd: '22:00', openingHours: {},
+    handoff: {weekly: {}},
+    turnaround: {strategy: 'none', hours: 0, returnCutoff: '20:00', readyNextDayAt: '07:00'},
+    // Coming in to try something on: an appointment, not a rental, and nothing is charged for it.
+    fitting: {enabled: false, minutes: 30, bufferMinutes: 0},
+    // The store's rental terms (deposit, late return, damage), shown on the booking form and added
+    // to the confirmation message. Text or a language mapping; one term per line.
+    policy: null
+  },
   // Sale / pre-order products (type: sale): how orders are fulfilled and what limits apply.
   // Capacity is counted, not itemised: a time slot holds N orders, a day holds N orders, a product
   // sells N units. Nothing here is a fake limit: leave a value null and no limit is shown or enforced.
@@ -61,10 +73,70 @@ export const DEFAULT_STORE = {
     addons: {},
     messageCard: {enabled: true, maxLength: 200, title: null, placeholder: null, templates: []}
   },
-  admin: {defaultLanguage: 'en'}
+  // `digest`: store-local times at which staff devices get a push listing the day's pick-ups and
+  // returns -- `today` for the same day, `tomorrow` for the next. null sends nothing.
+  admin: {defaultLanguage: 'en', digest: {today: null, tomorrow: null}}
 };
 export const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 export const SLOT_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+// Windows of the day, written as HH:MM pairs. Orders cap how many fit in a slot; a rental
+// pick-up window holds no count, so `capacity` is only read where it is offered.
+// A weekday -> intervals map, keyed 0 (Sunday) to 6. Opening hours and the hours somebody can hand
+// a rental over are written the same way, so they are read the same way.
+function normalizeWeekly(raw, where, note) {
+  const weekly = {};
+  if (raw == null) return weekly;
+  if (!isMap(raw)) { note(`${where}: must be a mapping of weekday -> intervals; ignored.`); return weekly; }
+  const days = {sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6};
+  for (const [day, intervals] of Object.entries(raw)) {
+    const dayId = days[day.toLowerCase()] ?? (/^[0-6]$/.test(day) ? Number(day) : null);
+    if (dayId === null || !Array.isArray(intervals)) { note(`${where}.${day}: must use a weekday and a list of intervals; ignored.`); continue; }
+    const valid = [];
+    for (const [i, interval] of intervals.entries()) {
+      const at = `${where}.${day}[${i}]`;
+      if (!isMap(interval) || !TIME.test(String(interval.start ?? '')) || !(TIME.test(String(interval.end ?? '')) || interval.end === '24:00') || String(interval.start) >= String(interval.end)) { note(`${at}: start / end must be HH:MM with start before end; ignored.`); continue; }
+      valid.push({start: String(interval.start), end: String(interval.end)});
+    }
+    weekly[dayId] = valid.sort((a, b) => a.start.localeCompare(b.start));
+  }
+  return weekly;
+}
+// How long an item needs after it comes back before it can go out again.
+function normalizeTurnaround(raw, where, note, fallback) {
+  const turnaround = {...fallback};
+  if (raw == null) return turnaround;
+  if (!isMap(raw)) { note(`${where}: must be a mapping; ignored.`); return turnaround; }
+  const strategies = ['none', 'hours', 'overnight'];
+  if (raw.strategy != null) {
+    if (strategies.includes(String(raw.strategy))) turnaround.strategy = String(raw.strategy);
+    else note(`${where}.strategy: must be one of ${strategies.join(', ')}; using ${turnaround.strategy}.`);
+  }
+  turnaround.hours = positiveInt(raw.hours, `${where}.hours`, turnaround.hours, note);
+  for (const key of ['returnCutoff', 'readyNextDayAt']) {
+    if (raw[key] == null) continue;
+    if (TIME.test(String(raw[key]))) turnaround[key] = String(raw[key]);
+    else note(`${where}.${key}: must be HH:MM; using ${turnaround[key]}.`);
+  }
+  return turnaround;
+}
+function normalizeTimeSlots(rawSlots, where, note, {capacity = false} = {}) {
+  const slots = [];
+  if (rawSlots == null) return slots;
+  if (!Array.isArray(rawSlots)) { note(`${where}: must be a list; ignored.`); return slots; }
+  const seen = new Set();
+  rawSlots.forEach((slot, i) => {
+    const at = `${where}[${i}]`;
+    if (!isMap(slot)) { note(`${at}: must be a mapping; ignored.`); return; }
+    const start = String(slot.start ?? ''), end = String(slot.end ?? '');
+    if (!TIME.test(start) || !TIME.test(end) || start >= end) { note(`${at}: start / end must be HH:MM with start before end; ignored.`); return; }
+    const id = typeof slot.id === 'string' && SLOT_ID.test(slot.id) ? slot.id : start.replace(':', '') + '-' + end.replace(':', '');
+    if (seen.has(id)) { note(`${at}: duplicate id "${id}" ignored.`); return; }
+    seen.add(id);
+    slots.push({id, start, end, ...(capacity ? {capacity: nullableInt(slot.capacity, `${at}.capacity`, note, {min: 1})} : {}), label: optionalLocalized(slot.label, `${at}.label`, note)});
+  });
+  return slots;
+}
 
 const text = (value, fallback = null) => (typeof value === 'string' && value.trim() ? value.trim() : fallback);
 const optionalUrl = (value, field, warn) => {
@@ -197,6 +269,42 @@ export function normalizeStoreConfig(raw = {}, {warn = console.warn} = {}) {
   config.booking.maxRentalDays = positiveInt(booking.maxRentalDays, 'booking.maxRentalDays', DEFAULT_STORE.booking.maxRentalDays, note, {min: 1});
   config.booking.maxDaysAhead = positiveInt(booking.maxDaysAhead, 'booking.maxDaysAhead', DEFAULT_STORE.booking.maxDaysAhead, note, {min: 1});
   config.booking.bufferDays = positiveInt(booking.bufferDays, 'booking.bufferDays', DEFAULT_STORE.booking.bufferDays, note);
+  config.booking.timeSlots = normalizeTimeSlots(booking.timeSlots, 'booking.timeSlots', note);
+  config.booking.slotMinutes = positiveInt(booking.slotMinutes, 'booking.slotMinutes', DEFAULT_STORE.booking.slotMinutes, note, {min: 5});
+  for (const key of ['displayStart', 'displayEnd']) {
+    if (TIME.test(String(booking[key])) || (key === 'displayEnd' && booking[key] === '24:00')) config.booking[key] = booking[key];
+    else if (booking[key] != null) note('booking.' + key + ': invalid display time; using default.');
+  }
+  if (config.booking.displayStart >= config.booking.displayEnd) {
+    note('booking displayStart must precede displayEnd; using defaults.');
+    config.booking.displayStart = '06:00'; config.booking.displayEnd = '22:00';
+  }
+  if (config.booking.slotMinutes > 240) { note('booking.slotMinutes: maximum is 240.'); config.booking.slotMinutes = 240; }
+  config.booking.openingHours = normalizeWeekly(booking.openingHours, 'booking.openingHours', note);
+  const handoff = isMap(booking.handoff) ? booking.handoff : {};
+  config.booking.handoff = {weekly: normalizeWeekly(handoff.weekly, 'booking.handoff.weekly', note)};
+  // Public holidays: `holidayCountry` (ISO code) lets the build list them in `holidayDates`; dates can
+  // also be written by hand. `holidayWindows` are the hours on those dates -- all day unless set.
+  if (handoff.holidayCountry != null) {
+    if (/^[A-Z]{2}$/.test(String(handoff.holidayCountry))) config.booking.handoff.holidayCountry = String(handoff.holidayCountry);
+    else note('booking.handoff.holidayCountry: must be a two-letter country code such as VN; ignored.');
+  }
+  if (handoff.holidayDates != null || handoff.holidayCountry != null) {
+    config.booking.handoff.holidayDates = Array.isArray(handoff.holidayDates) ? handoff.holidayDates.filter(date => typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) : [];
+    if (typeof handoff.holidayCalendarThrough === 'string') config.booking.handoff.holidayCalendarThrough = handoff.holidayCalendarThrough;
+  }
+  if (handoff.holidayWindows != null) {
+    const windows = normalizeWeekly({sun: handoff.holidayWindows}, 'booking.handoff.holidayWindows', note)[0];
+    if (windows) config.booking.handoff.holidayWindows = windows;
+  }
+  config.booking.turnaround = normalizeTurnaround(booking.turnaround, 'booking.turnaround', note, DEFAULT_STORE.booking.turnaround);
+  const fitting = isMap(booking.fitting) ? booking.fitting : {};
+  config.booking.fitting = {
+    enabled: fitting.enabled === true,
+    minutes: positiveInt(fitting.minutes, 'booking.fitting.minutes', DEFAULT_STORE.booking.fitting.minutes, note, {min: 5}),
+    bufferMinutes: positiveInt(fitting.bufferMinutes, 'booking.fitting.bufferMinutes', DEFAULT_STORE.booking.fitting.bufferMinutes, note)
+  };
+  config.booking.policy = optionalLocalized(booking.policy, 'booking.policy', note);
 
   normalizeOrdering(raw.ordering, config.ordering, note);
 
@@ -204,6 +312,16 @@ export function normalizeStoreConfig(raw = {}, {warn = console.warn} = {}) {
   if (admin.defaultLanguage != null) {
     if (SUPPORTED_LANGUAGES.includes(admin.defaultLanguage)) config.admin.defaultLanguage = admin.defaultLanguage;
     else note(`admin.defaultLanguage: "${admin.defaultLanguage}" is not supported; using ${DEFAULT_STORE.admin.defaultLanguage}.`);
+  }
+  config.admin.digest = {...DEFAULT_STORE.admin.digest};
+  if (admin.digest != null) {
+    if (!isMap(admin.digest)) note('admin.digest: must be a mapping with today / tomorrow times; ignored.');
+    else for (const key of ['today', 'tomorrow']) {
+      const value = admin.digest[key];
+      if (value == null) continue;
+      if (TIME.test(String(value))) config.admin.digest[key] = String(value);
+      else note(`admin.digest.${key}: must be HH:MM; no ${key} digest is sent.`);
+    }
   }
   return {config, warnings};
 }
@@ -276,22 +394,7 @@ function normalizeOrdering(raw, config, note) {
   }
   config.dailyCapacity = nullableInt(raw.dailyCapacity, 'ordering.dailyCapacity', note, {min: 1});
 
-  if (raw.timeSlots != null) {
-    if (!Array.isArray(raw.timeSlots)) note('ordering.timeSlots: must be a list; ignored.');
-    else {
-      const seen = new Set();
-      raw.timeSlots.forEach((slot, i) => {
-        const where = `ordering.timeSlots[${i}]`;
-        if (!isMap(slot)) { note(`${where}: must be a mapping; ignored.`); return; }
-        const start = String(slot.start ?? ''), end = String(slot.end ?? '');
-        if (!TIME.test(start) || !TIME.test(end) || start >= end) { note(`${where}: start / end must be HH:MM with start before end; ignored.`); return; }
-        const id = typeof slot.id === 'string' && SLOT_ID.test(slot.id) ? slot.id : start.replace(':', '') + '-' + end.replace(':', '');
-        if (seen.has(id)) { note(`${where}: duplicate id "${id}" ignored.`); return; }
-        seen.add(id);
-        config.timeSlots.push({id, start, end, capacity: nullableInt(slot.capacity, `${where}.capacity`, note, {min: 1}), label: optionalLocalized(slot.label, `${where}.label`, note)});
-      });
-    }
-  }
+  config.timeSlots = normalizeTimeSlots(raw.timeSlots, 'ordering.timeSlots', note, {capacity: true});
   if (raw.asap != null) {
     if (!isMap(raw.asap)) note('ordering.asap: must be a mapping; ignored.');
     else {
@@ -299,23 +402,7 @@ function normalizeOrdering(raw, config, note) {
       config.asap.leadMinutes = nullableInt(raw.asap.leadMinutes, 'ordering.asap.leadMinutes', note, {min: 1});
     }
   }
-  if (raw.openingHours != null) {
-    if (!isMap(raw.openingHours)) note('ordering.openingHours: must be a mapping of weekday -> intervals; ignored.');
-    else {
-      const days = {sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6};
-      for (const [day, intervals] of Object.entries(raw.openingHours)) {
-        const dayId = days[day.toLowerCase()] ?? (/^[0-6]$/.test(day) ? Number(day) : null);
-        if (dayId === null || !Array.isArray(intervals)) { note(`ordering.openingHours.${day}: must use a weekday and a list of intervals; ignored.`); continue; }
-        const valid = [];
-        for (const [i, interval] of intervals.entries()) {
-          const where = `ordering.openingHours.${day}[${i}]`;
-          if (!isMap(interval) || !TIME.test(String(interval.start ?? '')) || !TIME.test(String(interval.end ?? '')) || String(interval.start) >= String(interval.end)) { note(`${where}: start / end must be HH:MM with start before end; ignored.`); continue; }
-          valid.push({start: String(interval.start), end: String(interval.end)});
-        }
-        config.openingHours[dayId] = valid;
-      }
-    }
-  }
+  Object.assign(config.openingHours, normalizeWeekly(raw.openingHours, 'ordering.openingHours', note));
   if (raw.options != null) {
     if (!isMap(raw.options)) note('ordering.options: must be a mapping of group -> {label, choices}; ignored.');
     else for (const [group, value] of Object.entries(raw.options)) {

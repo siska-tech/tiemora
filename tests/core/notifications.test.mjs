@@ -59,6 +59,18 @@ test('the confirmation message uses the store name from the configuration', () =
   assert.match(buildReservationConfirmationMessage(reservation, catalog, 'en'), /booking at the store is confirmed/);
 });
 
+test('the store\'s rental terms are written into the confirmation, as a list in the customer language', () => {
+  const withTerms = {...store, booking: {policy: {vi: 'Đặt cọc hoặc giấy tờ.\nTrả trễ trừ vào cọc.', ja: '保証金または身分証明書をお預かりします。\n\n破損時は賠償いただきます。'}}};
+  const ja = buildReservationConfirmationMessage(reservation, catalog, 'ja', {store: withTerms}).split('\n');
+  const at = ja.indexOf('レンタル規約:');
+  assert.ok(at > 0);
+  assert.deepEqual(ja.slice(at, at + 3), ['レンタル規約:', '- 保証金または身分証明書をお預かりします。', '- 破損時は賠償いただきます。']);
+  assert.ok(ja.indexOf('予約番号: rsv-20261001-ab12') < at, 'after the booking details, before the closing');
+  // A language with no terms of its own falls back like every other localized store text.
+  assert.match(buildReservationConfirmationMessage(reservation, catalog, 'en', {store: withTerms}), /Rental terms:\n- /);
+  assert.doesNotMatch(buildReservationConfirmationMessage(reservation, catalog, 'vi', {store}), /Điều khoản thuê/);
+});
+
 test('several items become a list; other languages translate labels and names', () => {
   const multi = {...reservation, items: [...reservation.items, {inventory_item_id: 'sample-rental-002-01', product_id: 'sample-rental-002', size: 'M'}]};
   const vi = buildReservationConfirmationMessage(multi, catalog, 'vi', {store});
@@ -85,4 +97,19 @@ test('the staff summary and the detail payload', () => {
   // Without a customer link the store's Messenger page is offered; without either there is no link.
   assert.equal(buildNotification(reservation, catalog, store).messenger.url, 'https://m.me/teststore');
   assert.equal(buildNotification(reservation, catalog, {}).messenger.url, '');
+});
+
+test('timed confirmations include customer deadlines, never inventory turnaround', () => {
+  const timed = {...reservation, start_time: '19:30', rental_days: 2, ready_at: '2026-10-04T07:00'};
+  for (const language of ['vi', 'en', 'ja', 'zh']) {
+    const message = buildReservationConfirmationMessage(timed, catalog, language, {store});
+    assert.ok(message.includes(formatDate('2026-10-01', language) + ' 19:30'));
+    assert.ok(message.includes(formatDate('2026-10-03', language) + ' 19:30'));
+    assert.ok(!message.includes('07:00'));
+    const visit = buildReservationConfirmationMessage({...timed, purpose: 'fitting', rental_days: 0, end_date: timed.start_date}, catalog, language, {store: {...store, booking: {fitting: {minutes: 45, bufferMinutes: 15}}}});
+    assert.ok(visit.includes('19:30'));
+    assert.ok(visit.includes('45'));
+    assert.ok(!visit.includes('07:00'));
+    assert.ok(!visit.includes(formatDate('2026-10-03', language)));
+  }
 });
