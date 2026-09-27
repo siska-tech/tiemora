@@ -111,11 +111,20 @@ async function publicAvailability(request, env, url, productId) {
 
 // --- Admin: inventory -----------------------------------------------------------------------------
 async function productInventory(request, env, url, productId) {
-  const {today, buffer, hold} = await context(request, env);
+  const {today, buffer, hold, turnaround, fitting} = await context(request, env);
   const from = url.searchParams.get('from'), to = url.searchParams.get('to');
   const period = from || to ? requireDateRange(from ?? to, to ?? from) : {};
   const exclude = url.searchParams.get('exclude') || '';
-  const items = await db.itemsForProduct(env.DB, productId, {...period, buffer, exclude, today, hold});
+  let interval;
+  const start_time = url.searchParams.get('start_time');
+  if (start_time !== null) {
+    if (!isTimeOfDay(start_time) || !from || !to) throw badRequest('Timed availability needs dates and a valid start_time.');
+    const purpose = requireEnum(url.searchParams.get('purpose') || 'rental', 'purpose', PURPOSES);
+    const rental_days = isFitting(purpose) ? 0 : (Date.parse(to + 'T00:00:00Z') - Date.parse(from + 'T00:00:00Z')) / 86400000;
+    if (!isFitting(purpose) && rental_days < 1) throw badRequest('A timed rental must last at least one day.', {end_date: 'before_due'});
+    interval = db.requestedInterval({start_date: from, end_date: to, start_time, rental_days, purpose}, {buffer, turnaround, fitting});
+  }
+  const items = await db.itemsForProduct(env.DB, productId, {...period, interval, buffer, exclude, today, hold});
   return json({productId, ...period, items});
 }
 async function inventoryList(request, env, url) {
@@ -265,7 +274,7 @@ async function publicTimeline(request, env, url, productId) {
   const line = dayTimeline({date, days, items, intervals}, {
     slotMinutes, handoff, exceptions, turnaround, bufferDays: buffer, purpose, fitting,
     displayStart: limits.displayStart, displayEnd: limits.displayEnd, openingHours: limits.openingHours,
-    now, today, blocked: db.BLOCKED_ITEM, outNow: db.OUT_NOW
+    timeSlots: limits.timeSlots, now, today, blocked: db.BLOCKED_ITEM, outNow: db.OUT_NOW
   });
   const quote = rentalQuote(product, date, shiftDate(date, days), purpose);
   return json({...line, maxRentalDays, quote, fittingMinutes: isFitting(purpose) ? fitting.minutes : 0, closed: line.windows !== null && !line.windows.length}, 200, {'cache-control': 'no-store'});

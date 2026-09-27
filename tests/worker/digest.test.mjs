@@ -87,3 +87,23 @@ test('the cron sends the day at 06:30 and tomorrow at 21:00 to every subscribed 
   assert.equal(waited.length, 1);
   await waited[0];
 });
+
+test('midnight delivery keeps the scheduled digest date and uses correct relative labels', async () => {
+  assert.deepEqual(dueDigests({tomorrow: '23:45'}, '23:30'), []);
+  assert.deepEqual(dueDigests({tomorrow: '23:45'}, '00:00'), ['tomorrow']);
+  assert.deepEqual(dueDigests({tomorrow: '23:45'}, '00:15'), []);
+  resetStoreCache();
+  const store = {timezone: 'Asia/Ho_Chi_Minh', admin: {defaultLanguage: 'en', digest: {today: '23:45', tomorrow: '23:45'}}};
+  const env = {DB: await migratedDatabase(), VAPID_PUBLIC_KEY: 'set', VAPID_PRIVATE_KEY: 'set', VAPID_SUBJECT: 'mailto:test@example.com', ASSETS: {fetch: async () => Response.json(store)}};
+  for (const [id, date] of [['yesterday', today], ['today', day(1)], ['tomorrow', day(2)]]) {
+    await env.DB.prepare("INSERT INTO reservations (id, customer_name, start_date, end_date, status) VALUES (?, ?, ?, ?, 'confirmed')").bind(id, id, date, date).run();
+  }
+  const payloads = await runDigest(env, at(day(1), '00:00'));
+  assert.equal(payloads.length, 2);
+  assert.equal(payloads[0].tag, `digest-today-${today}`);
+  assert.match(payloads[0].title, /^Yesterday /);
+  assert.equal(payloads[1].tag, `digest-tomorrow-${day(1)}`);
+  assert.match(payloads[1].title, /^Today /);
+  assert.ok(payloads[1].url.includes('from=' + day(1)));
+  assert.ok(!payloads[1].body.includes('tomorrow'));
+});

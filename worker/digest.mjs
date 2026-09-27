@@ -23,7 +23,7 @@ export function dueDigests(digest = {}, time, window = DIGEST_WINDOW_MINUTES) {
   return ['today', 'tomorrow'].filter(kind => {
     if (!digest[kind]) return false;
     const at = minutesOfDay(digest[kind]);
-    return now >= at && now < at + window;
+    return (now - at + 1440) % 1440 < window;
   });
 }
 
@@ -33,7 +33,7 @@ function line(label, reservation) {
   return `${label}${reservation.start_time ? ' ' + reservation.start_time : ''} ${reservation.customer_name}${items ? ' · ' + items : ''}`;
 }
 /** The push for one day's plan (see db.dayPlan), or null when there is nothing to say. */
-export function digestPayload(plan, {kind, language = 'en'}) {
+export function digestPayload(plan, {kind, language = 'en', displayKind = kind}) {
   const t = TEXT[language] || TEXT.en;
   const {pickups, returns, unconfirmed, overdue} = plan;
   if (!pickups.length && !returns.length && !unconfirmed.length && !overdue.length) return null;
@@ -48,7 +48,7 @@ export function digestPayload(plan, {kind, language = 'en'}) {
   const [, month, day] = plan.date.split('-');
   return {
     type: 'digest',
-    title: `${t[kind]} ${Number(day)}/${Number(month)} · ${t.pickups.replace('{n}', String(pickups.length))} · ${t.returns.replace('{n}', String(returns.length))}`,
+    title: `${displayKind === 'yesterday' ? ({en: 'Yesterday', vi: 'Hôm qua', ja: '昨日'}[language] || 'Yesterday') : t[displayKind]} ${Number(day)}/${Number(month)} · ${t.pickups.replace('{n}', String(pickups.length))} · ${t.returns.replace('{n}', String(returns.length))}`,
     body: shown.join('\n'),
     url: `/admin/#/reservations?from=${plan.date}&to=${plan.date}`,
     // One per day and kind: a repeated run replaces the notification instead of adding another.
@@ -66,8 +66,10 @@ export async function runDigest(env, scheduledTime = Date.now(), options = {}) {
   const today = todayIn(timezone, moment), time = timeIn(timezone, moment);
   const sent = [];
   for (const kind of dueDigests(store.admin?.digest, time)) {
-    const date = kind === 'today' ? today : shiftDate(today, 1);
-    const payload = digestPayload(await db.dayPlan(env.DB, date, {today: kind === 'today' ? today : ''}), {kind, language: store.admin?.defaultLanguage});
+    const scheduledDay = time < store.admin.digest[kind] ? shiftDate(today, -1) : today;
+    const date = kind === 'today' ? scheduledDay : shiftDate(scheduledDay, 1);
+    const displayKind = date < today ? 'yesterday' : date === today ? 'today' : 'tomorrow';
+    const payload = digestPayload(await db.dayPlan(env.DB, date, {today: kind === 'today' ? scheduledDay : ''}), {kind, displayKind, language: store.admin?.defaultLanguage});
     if (!payload) continue;
     await notifyAdmins(env, payload, options);
     sent.push(payload);

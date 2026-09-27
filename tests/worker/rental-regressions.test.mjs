@@ -134,3 +134,26 @@ test('offset handoff windows expose slots accepted by the request API, including
   assert.deepEqual(exception.data.slots.filter(s => s.state === 'available').map(s => s.time), ['18:15', '18:45']);
   assert.equal((await book(request({start_time: '18:15'}))).status, 201);
 });
+
+test('timed inventory candidates allow adjacent fittings and reject actual overlap', async () => {
+  const {admin, book} = await harness(storeWith({fitting: {enabled: true, minutes: 30}}));
+  await admin('POST', '/api/admin/inventory', {body: {id: 'ad-0005-01', product_id: 'ad-0005', size: 'L'}});
+  const visit = await book(request({purpose: 'fitting', start_time: '19:00'}));
+  await admin('POST', `/api/admin/reservations/${visit.data.request.id}/confirm`);
+  const url = `/api/products/ad-0005/inventory?from=${day(3)}&to=${day(3)}&purpose=fitting`;
+  assert.equal((await admin('GET', url + '&start_time=19:30')).data.items[0].available, true);
+  assert.equal((await admin('GET', url + '&start_time=19:15')).data.items[0].available, false);
+  assert.equal((await admin('GET', url + '&start_time=bad')).status, 400);
+});
+
+test('fixed pickup slots agree between timeline and submission, with exceptions taking priority', async () => {
+  const {admin, call, book} = await harness({booking: {timeSlots: [{id: 'evening', start: '19:15', end: '20:00'}]}});
+  await admin('POST', '/api/admin/inventory', {body: {id: 'ad-0005-01', product_id: 'ad-0005', size: 'L'}});
+  const line = await timeline(call);
+  assert.deepEqual(line.data.slots.filter(s => s.state === 'available').map(s => s.time), ['19:15']);
+  assert.equal((await book(request({start_time: '19:15'}))).status, 201);
+  assert.equal((await book(request({start_time: '19:30'}))).status, 400);
+  await admin('PUT', `/api/admin/handoff-exceptions/${day(3)}`, {body: {closed: true}});
+  assert.ok((await timeline(call)).data.slots.every(s => s.state !== 'available'));
+  assert.equal((await book(request({start_time: '19:15'}))).status, 400);
+});

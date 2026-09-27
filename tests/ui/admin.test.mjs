@@ -565,3 +565,20 @@ test('the handover diary saves a day with its own hours, closes another, and rem
   await until(() => d.querySelectorAll('[data-drop-date]').length === 1, 'one day left');
   assert.equal((await api('GET', '/api/admin/handoff-exceptions')).data.exceptions.length, 1);
 });
+
+test('adjacent fitting bookings keep their assigned item when staff edit a note', async t => {
+  const {window, document: d, env, go, api} = await setup(t, {storeConfig: {...store, booking: {fitting: {enabled: true, minutes: 30}}}});
+  await api('POST', '/api/admin/inventory', {id: 'ad-0005-01', product_id: 'ad-0005', size: 'L'});
+  for (const [id, start, end] of [['first', '19:00', '19:30'], ['second', '19:30', '20:00']]) {
+    await env.DB.prepare("INSERT INTO reservations (id, customer_name, start_date, end_date, status, start_time, purpose, start_at, ready_at) VALUES (?, 'Mai', '2026-10-20', '2026-10-20', 'confirmed', ?, 'fitting', ?, ?)").bind(id, start, '2026-10-20T' + start, '2026-10-20T' + end).run();
+    await env.DB.prepare("INSERT INTO reservation_items (reservation_id, inventory_item_id, product_id) VALUES (?, 'ad-0005-01', 'ad-0005')").bind(id).run();
+  }
+  await go('#/reservations/second');
+  await until(() => d.querySelector('.candidate input:checked'), 'assigned fitting item');
+  assert.equal(d.querySelector('.candidate input:checked').disabled, false);
+  const form = d.getElementById('reservation-form');
+  form.elements.note.value = 'Updated fitting note';
+  form.dispatchEvent(new window.Event('submit', {bubbles: true, cancelable: true}));
+  await until(() => !form.querySelector('[type=submit]').disabled, 'saved note');
+  assert.equal((await api('GET', '/api/admin/reservations/second')).data.reservation.note, 'Updated fitting note');
+});

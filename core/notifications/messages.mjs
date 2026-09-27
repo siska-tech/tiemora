@@ -3,6 +3,7 @@
 import {localized, SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE} from '../i18n/localized.mjs';
 import {normalizePhone} from './phone.mjs';
 import {messengerUrl, normalizeMessengerUrl} from './links.mjs';
+import {at, dueAt, dateOf, timeOf, isTimeOfDay, isFitting} from '../booking/schedule.mjs';
 
 export const CONTACT_CHANNELS = ['messenger', 'zalo', 'whatsapp', 'phone', 'other'];
 export const PUBLIC_CONTACT_CHANNELS = ['zalo', 'whatsapp', 'messenger', 'phone'];
@@ -57,6 +58,26 @@ const TEMPLATES = {
     closing: store => ['如需更改日期，请直接回复此消息。', `感谢您选择 ${store}！`]
   }
 };
+const VISIT_TEXT = {
+  vi: {visit: 'Lịch thử đồ', duration: 'Thời lượng', minutes: 'phút'},
+  en: {visit: 'Fitting appointment', duration: 'Duration', minutes: 'minutes'},
+  ja: {visit: '試着の来店日時', duration: '所要時間', minutes: '分'},
+  zh: {visit: '试穿预约', duration: '时长', minutes: '分钟'}
+};
+function reservationSchedule(reservation, language, store = {}) {
+  const t = TEMPLATES[language];
+  const clock = isTimeOfDay(reservation?.start_time) ? reservation.start_time : '';
+  const start = formatDate(reservation?.start_date, language) + (clock ? ' ' + clock : '');
+  if (isFitting(reservation?.purpose)) {
+    const visit = VISIT_TEXT[language];
+    const minutes = Number(store.booking?.fitting?.minutes) || 30;
+    return [`${visit.visit}: ${start}`, `${visit.duration}: ${minutes} ${visit.minutes}`];
+  }
+  // Customer deadlines exclude turnaround; ready_at is only for inventory readiness.
+  const due = clock && reservation?.rental_days > 0 ? dueAt(at(reservation.start_date, clock), reservation.rental_days) : '';
+  const end = due ? formatDate(dateOf(due), language) + ' ' + timeOf(due) : formatDate(reservation?.end_date, language);
+  return [`${t.start}: ${start}`, `${t.end}: ${end}`];
+}
 // `products` is the catalog (array, Map or object by id); `store` is the store config (its name,
 // and booking.policy -- the rental terms, written down for the customer); `note` is an optional
 // extra paragraph for this one message.
@@ -74,7 +95,7 @@ export function buildReservationConfirmationMessage(reservation, products, langu
   } else if (items.length) {
     lines.push(`${t.item}:`, ...items.map(i => `- ${i.name}${i.size ? ` (${i.size})` : ''}`));
   }
-  lines.push(`${t.start}: ${formatDate(reservation?.start_date, lang)}`, `${t.end}: ${formatDate(reservation?.end_date, lang)}`, `${t.id}: ${reservation?.id ?? ''}`);
+  lines.push(...reservationSchedule(reservation, lang, store), `${t.id}: ${reservation?.id ?? ''}`);
   const policy = String(localized(store?.booking?.policy, lang) ?? '').trim();
   if (policy) lines.push('', `${t.policy}:`, ...policy.split('\n').map(term => term.trim()).filter(Boolean).map(term => `- ${term}`));
   const extra = String(note ?? '').trim();

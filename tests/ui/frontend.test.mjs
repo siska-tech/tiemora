@@ -885,3 +885,21 @@ test('the price spells out the first day and the cheaper ones when they differ',
  assert.match(text, /119.000.*\+.*30.000.*× 2 /, 'the first day, then the cheaper ones');
  assert.doesNotMatch(text, /357.000/, 'not the undiscounted total');
 });
+
+test('fixed pickup slots activate the picker and send the selected time', async t => {
+  const configured = {...storeFixture, booking: {...storeFixture.booking, timeSlots: [{id: 'evening', start: '19:15', end: '20:00'}]}};
+  const {window, document: d} = await setup(t, {data: [stocked[0]], availability: live, store: configured});
+  const posts = [];
+  timelineHarness(window, d, {slots: () => [{time: '19:15', state: 'available', remaining: 1}], onPost: body => posts.push(body)});
+  d.querySelector('[data-id="item-0001"]').click();
+  const from = d.getElementById('booking-from'); from.value = timelineDay; from.dispatchEvent(new window.Event('change'));
+  await until(() => d.querySelector('#timeline-choices [data-time="19:15"]'), 'fixed pickup slot');
+  d.querySelector('#timeline-choices [data-time="19:15"]').click();
+  d.getElementById('booking-open').click();
+  const form = d.getElementById('booking-form');
+  form.elements.customer_name.value = 'Test'; form.elements.customer_phone.value = '0900000000'; form.elements.privacy_consent.checked = true;
+  form.dispatchEvent(new window.Event('submit', {bubbles: true, cancelable: true}));
+  await until(() => posts.length, 'fixed slot request');
+  assert.equal(posts[0].start_time, '19:15');
+  assert.equal(posts[0].rental_days, 1);
+});

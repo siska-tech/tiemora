@@ -533,6 +533,7 @@ async function reservationForm(id,params=new URLSearchParams()){
   box.innerHTML=`<p class="muted">${esc(t('loading'))}</p>`;
   try{
    const query=new URLSearchParams({from,to,...(editing?{exclude:id}:{})});
+   if(r.start_time&&(r.rental_days>0||r.purpose==='fitting')){query.set('start_time',r.start_time);query.set('purpose',r.purpose||'rental');}
    const data=await api(`/api/products/${encodeURIComponent(productId)}/inventory?${query}`);
    if(line.querySelector('[data-role=product]').value!==productId)return;
    line.items=data.items;renderCandidates(line);

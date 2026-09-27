@@ -80,7 +80,7 @@ const SLOT_STATE_KEYS={available:'stateFree',low:'stateLow',none:'stateTaken',ha
 const maxRentalDays=()=>Number(store.booking?.maxRentalDays)||60;
 // Only a store that says when somebody is there to hand a garment over gets the hour axis; one
 // that does not keeps the plain date range it always had.
-const usesTimeline=()=>Object.values(store.booking?.handoff?.weekly||{}).some(list=>Array.isArray(list)&&list.length);
+const usesTimeline=()=>Object.keys(store.booking?.handoff?.weekly||{}).length>0||(store.booking?.timeSlots||[]).length>0;
 // Coming in to try something on: an appointment of a set length, free, ending the same day. The
 // store decides whether it offers them at all.
 const fittingOffered=()=>usesTimeline()&&store.booking?.fitting?.enabled===true;

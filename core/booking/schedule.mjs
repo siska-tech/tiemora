@@ -156,7 +156,7 @@ export const SLOT_STATES = ['available', 'low', 'none', 'handoff', 'maintenance'
 // spoken for. Counts leave the shop, item ids never do.
 /**
  * @param {{date: string, days: number, items: {id: string, status: string}[], intervals: Map<string, {start: string, ready: string, end?: string}[]>}} input
- * @param {{slotMinutes?: number, handoff?: any, exceptions?: any, turnaround?: any, bufferDays?: number, now?: string, today?: string, dayStart?: string, dayEnd?: string, displayStart?: string, displayEnd?: string, openingHours?: any, blocked?: string[], outNow?: string[], purpose?: string, fitting?: any}} [options]
+ * @param {{slotMinutes?: number, timeSlots?: any[], handoff?: any, exceptions?: any, turnaround?: any, bufferDays?: number, now?: string, today?: string, dayStart?: string, dayEnd?: string, displayStart?: string, displayEnd?: string, openingHours?: any, blocked?: string[], outNow?: string[], purpose?: string, fitting?: any}} [options]
  */
 export function dayTimeline({date, days = 1, items = [], intervals = new Map()}, options = {}) {
   const {slotMinutes = 30, handoff = {}, exceptions = {}, turnaround = {}, bufferDays = 0, now = '', today = '', blocked = [], outNow = [], purpose = 'rental', fitting = {}} = options;
@@ -168,7 +168,9 @@ export function dayTimeline({date, days = 1, items = [], intervals = new Map()},
   const displayEnd = options.displayEnd || options.dayEnd || '22:00';
   const times = slotTimes(null, {slotMinutes, dayStart: displayStart, dayEnd: displayEnd});
   const opening = handoffWindows(date, {weekly: options.openingHours || {}}, exceptions);
-  const offered = new Set(slotTimes(windows, {slotMinutes, dayStart: displayStart, dayEnd: displayEnd}));
+  const offered = new Set(windows === null && options.timeSlots?.length
+    ? options.timeSlots.map(slot => slot.start)
+    : slotTimes(windows, {slotMinutes, dayStart: displayStart, dayEnd: displayEnd}));
   // Include the actual handoff grid when a window starts between display ticks.
   const visibleTimes = [...new Set([...times, ...[...offered].filter(time => time >= displayStart && time < displayEnd)])].sort();
   const slots = visibleTimes.map(time => {

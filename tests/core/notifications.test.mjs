@@ -98,3 +98,18 @@ test('the staff summary and the detail payload', () => {
   assert.equal(buildNotification(reservation, catalog, store).messenger.url, 'https://m.me/teststore');
   assert.equal(buildNotification(reservation, catalog, {}).messenger.url, '');
 });
+
+test('timed confirmations include customer deadlines, never inventory turnaround', () => {
+  const timed = {...reservation, start_time: '19:30', rental_days: 2, ready_at: '2026-10-04T07:00'};
+  for (const language of ['vi', 'en', 'ja', 'zh']) {
+    const message = buildReservationConfirmationMessage(timed, catalog, language, {store});
+    assert.ok(message.includes(formatDate('2026-10-01', language) + ' 19:30'));
+    assert.ok(message.includes(formatDate('2026-10-03', language) + ' 19:30'));
+    assert.ok(!message.includes('07:00'));
+    const visit = buildReservationConfirmationMessage({...timed, purpose: 'fitting', rental_days: 0, end_date: timed.start_date}, catalog, language, {store: {...store, booking: {fitting: {minutes: 45, bufferMinutes: 15}}}});
+    assert.ok(visit.includes('19:30'));
+    assert.ok(visit.includes('45'));
+    assert.ok(!visit.includes('07:00'));
+    assert.ok(!visit.includes(formatDate('2026-10-03', language)));
+  }
+});
