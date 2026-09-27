@@ -39,7 +39,7 @@ Nothing talks to WhatsApp, Zalo or Messenger APIs. Staff open a click-to-chat li
 
 ## Screenshots
 
-Rental, straight from this repository: `npm run dev` with the sample catalog and `seed/demo.sql`.
+Rental, straight from this repository: `npm run build:timed-rental`, `npm run db:seed:local` and `npx wrangler dev`.
 
 <p align="center">
   <img src="docs/screenshot-rental.png" alt="Rental storefront: the sample catalog with live stock and a date search" width="480">
@@ -49,7 +49,7 @@ Rental, straight from this repository: `npm run dev` with the sample catalog and
   <img src="docs/screenshot-rental-booking.png" alt="Timed rental booking: rent or try-on, dates, rental length and a pick-up time" width="380">
 </p>
 
-The booking dialog above asks for a pick-up time because the store configured handover hours; without `booking.handoff` it asks for whole days instead. Two real deployments follow — their branding, artwork and catalogs are their own and are not part of Core.
+The dialog asks for a pick-up time, and shows the store's own handover notice, because [examples/timed-rental/store.yaml](examples/timed-rental/store.yaml) configures handover hours. The default build (`npm run dev`) uses the same catalog on whole calendar days. Two real deployments follow — their branding, artwork and catalogs are their own and are not part of Core.
 
 <p align="center">
   <img src="docs/screenshot-flower.png" alt="Hana Hiên storefront demo (sale / pre-order)" width="480">
@@ -64,7 +64,7 @@ The booking dialog above asks for a pick-up time because the store configured ha
   <img src="docs/screenshot-pho-admin-orders.png" alt="Admin orders list with filters and status" width="480">
 </p>
 
-Run `npm run dev` and open `http://localhost:8787/` (storefront) and `http://localhost:8787/admin/` (admin, password from `.dev.vars`). The repository ships with three fictional rental sample products (`examples/catalog/`) and three fictional sale sample products (`examples/sale/`), with matching demo data (`seed/demo.sql`, `seed/sale-demo.sql`). The default is the rental sample. Build the 12-product Phở reference demo with `npm run build:pho-demo`; its separate configuration and artwork live in `examples/pho-demo/`. Use the matching catalog before loading rental or generic sale seeds.
+Run `npm run dev` and open `http://localhost:8787/` (storefront) and `http://localhost:8787/admin/` (admin, password from `.dev.vars`). The repository ships with three fictional rental sample products (`examples/catalog/`) and three fictional sale sample products (`examples/sale/`), with matching demo data (`seed/demo.sql`, `seed/sale-demo.sql`). The default is the rental sample, on whole calendar days. `npm run build:timed-rental` keeps that catalog and turns the rental rules on — pick-up times, handover hours, holidays, turnaround, fittings and rental terms — from `examples/timed-rental/store.yaml`. Build the 12-product Phở reference demo with `npm run build:pho-demo`; its separate configuration and artwork live in `examples/pho-demo/`. Neither demo touches `config/store.yaml`. Use the matching catalog before loading rental or generic sale seeds.
 
 ## Architecture
 

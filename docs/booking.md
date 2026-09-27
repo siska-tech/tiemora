@@ -180,6 +180,12 @@ booking:
       mon: [{start: "07:00", end: "08:30"}, {start: "18:30", end: "21:00"}]
 ```
 
+A working version of all of this ships as [examples/timed-rental/store.yaml](../examples/timed-rental/store.yaml):
+`npm run build:timed-rental` builds the standard sample catalog with pick-up times, opening and
+handover hours, Vietnamese public holidays, overnight turnaround, fittings, rental terms and a staff
+digest, without touching `config/store.yaml`. Run it, then `npm run db:seed:local` and `wrangler dev`,
+to see every section of this page in the storefront and the admin.
+
 Display bounds do not limit the rental's duration: the due time and care period can cross days.
 `openingHours` uses the same weekday keys as handoff; omitted configuration is unrestricted,
 while explicitly empty weekday windows mean closed. Configure all operating weekdays. A date-specific

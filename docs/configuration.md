@@ -5,6 +5,10 @@ Everything that makes a Tiemora deployment *your* store is in `config/store.yaml
 Set `TIEMORA_CONFIG=/path/to/other.yaml` to build with another file, and `TIEMORA_CATALOG=/path` to override the catalog directory. Set `TIEMORA_ASSETS=/path/to/public-artwork` to overlay that directory into `dist/assets/` at build time; include only publishable assets. The standard build uses only `storefront/assets/`.
 
 `npm run build:pho-demo` selects `examples/pho-demo/store.yaml`, its catalog and its artwork together.
+`npm run build:timed-rental` selects `examples/timed-rental/store.yaml`, which keeps the standard
+sample catalog and only turns the rental rules on: pick-up times, opening and handover hours,
+public holidays, turnaround, fittings, rental terms and a staff digest. Neither build touches
+`config/store.yaml`.
 
 ## Keys
 

@@ -18,6 +18,9 @@ description:
 
 price:
   rental: 150000
+  # Optional: every day after the first costs less, so three days are 150,000 + 80,000 x 2.
+  # Omit it and every day is charged the daily rate. See docs/booking.md.
+  additionalDay: 80000
 currency: VND
 
 sizes:

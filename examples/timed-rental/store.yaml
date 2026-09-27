@@ -1,0 +1,177 @@
+# Tiemora timed-rental demo.
+#
+# `npm run build:timed-rental` builds the standard sample catalog (examples/catalog/) with rentals
+# on the clock, so the v0.4 rental features can be seen without editing config/store.yaml:
+#
+#   * a pick-up time, not just a day  -- booking.displayStart / displayEnd / slotMinutes
+#   * when the shop is open           -- booking.openingHours
+#   * when somebody can hand over     -- booking.handoff.weekly, plus admin date exceptions
+#   * public holidays                 -- booking.handoff.holidayCountry
+#   * care between rentals            -- booking.turnaround
+#   * try-on appointments             -- booking.fitting
+#   * the store's rental terms        -- booking.policy
+#
+# Core's own default (config/store.yaml) leaves all of this out, and bookings there stay on whole
+# calendar days. Nothing here is required: a store adopts the parts it actually runs.
+#
+# Everything below the booking block is the same neutral demo identity as config/store.yaml.
+
+store:
+  name: "Tiemora Timed Rental Demo"
+  tagline:
+    vi: "Cửa hàng mẫu · thuê theo giờ"
+    en: "Demo store · rentals on the clock"
+    ja: "デモストア · 時間指定レンタル"
+    zh: "演示商店 · 按时租赁"
+  description:
+    vi: "Cửa hàng mẫu sử dụng Tiemora: chọn ngày, giờ nhận và số ngày thuê, hoặc đặt lịch thử đồ."
+    en: "A demo store powered by Tiemora: pick a day, a pick-up time and a rental length, or book a fitting."
+    ja: "Tiemora のデモストアです。日付と受取時刻、レンタル日数を選ぶか、試着を予約できます。"
+    zh: "由 Tiemora 驱动的演示商店：选择日期、取货时间和租期，或预约试穿。"
+  logo: null
+  logoStyle: mark
+  hero:
+    layout: split
+    eyebrow: null
+    title:
+      vi: "Chọn một món đồ.\nGiữ một <em>kỷ niệm.</em>"
+      en: "Pick something beautiful.\nKeep the <em>memory.</em>"
+      ja: "お気に入りを選んで、\n思い出を<em>残す。</em>"
+      zh: "选一件心仪之物，\n留住<em>美好回忆。</em>"
+    subtitle: null
+    image: null
+    fit: pan
+    focus: null
+    subject: null
+  announcement:
+    vi: "Cửa hàng mẫu · thuê theo giờ · Dữ liệu chỉ để minh họa"
+    en: "Demo store · rentals on the clock · All data is sample data"
+    ja: "デモストア · 時間指定レンタル · データはすべてサンプルです"
+    zh: "演示商店 · 按时租赁 · 所有数据均为示例"
+  values:
+    - {vi: "Chọn giờ nhận đồ", en: "Choose your pick-up time", ja: "受取時刻を選べる", zh: "自选取货时间"}
+    - {vi: "Đặt lịch thử đồ", en: "Book a fitting", ja: "試着の予約もできる", zh: "可预约试穿"}
+    - {vi: "Không cần tài khoản", en: "No account needed", ja: "アカウント不要", zh: "无需注册账号"}
+  # Shown above the booking calendar, before a date is chosen.
+  text:
+    handoffNotice:
+      vi: "Ngoài khung giờ nhận đồ bên dưới, vui lòng nhắn cho cửa hàng trước."
+      en: "Need a handover outside the hours below? Message the store first."
+      ja: "下記の受取時間外をご希望の場合は、先にお店へご連絡ください。"
+      zh: "如需在以下时段之外取货，请先联系店铺。"
+
+catalog:
+  # The same three fictional rental products the standard build uses; only the booking rules differ.
+  dir: examples/catalog
+
+languages: [vi, en, ja, zh]
+defaultLanguage: vi
+currency: VND
+timezone: Asia/Ho_Chi_Minh
+phoneCountryCode: "84"
+
+contact:
+  facebook: null
+  messenger: null
+  zalo: null
+  whatsapp: null
+  phone: null
+  email: null
+  address: null
+  mapUrl: null
+
+categories:
+  rental: {vi: "Cho thuê", en: "Rental", ja: "レンタル", zh: "租赁"}
+  accessories: {vi: "Phụ kiện", en: "Accessories", ja: "小物", zh: "配饰"}
+
+theme:
+  primary: "#3b5b6b"
+  accent: "#c08a4a"
+  paper: "#faf8f3"
+  ink: "#26302f"
+  muted: "#6f7a78"
+  line: "#e2e5df"
+
+booking:
+  maxRentalDays: 60
+  maxDaysAhead: 365
+  bufferDays: 0
+
+  # --- Rentals on the clock ---------------------------------------------------------------------
+  # The time axis the customer sees, and the grid the pick-up times are offered on. displayEnd is
+  # exclusive; a shop that never closes would use "00:00" to "24:00".
+  displayStart: "08:00"
+  displayEnd: "20:00"
+  slotMinutes: 30
+
+  # When the shop is open. A weekday that is absent or empty is closed; omit the whole key and
+  # nothing is restricted. Same weekday spelling as handoff.weekly below.
+  openingHours:
+    mon: [{start: "09:00", end: "19:00"}]
+    tue: [{start: "09:00", end: "19:00"}]
+    wed: [{start: "09:00", end: "19:00"}]
+    thu: [{start: "09:00", end: "19:00"}]
+    fri: [{start: "09:00", end: "19:00"}]
+    sat: [{start: "09:00", end: "18:00"}]
+    sun: [{start: "10:00", end: "16:00"}]
+
+  # When somebody is actually there to hand an item over -- a different question from whether the
+  # item is free. This shop keeps two windows on weekdays because the owner is out over lunch.
+  # Single dates that differ are set by staff in the admin (#/inventory/handoff) and win over this.
+  handoff:
+    weekly:
+      mon: [{start: "09:00", end: "12:00"}, {start: "15:00", end: "19:00"}]
+      tue: [{start: "09:00", end: "12:00"}, {start: "15:00", end: "19:00"}]
+      wed: [{start: "09:00", end: "12:00"}, {start: "15:00", end: "19:00"}]
+      thu: [{start: "09:00", end: "12:00"}, {start: "15:00", end: "19:00"}]
+      fri: [{start: "09:00", end: "12:00"}, {start: "15:00", end: "19:00"}]
+      sat: [{start: "09:00", end: "18:00"}]
+      sun: [{start: "10:00", end: "16:00"}]
+    # Vietnam's public holidays, listed as plain dates at build time (date-holidays). No holiday
+    # library reaches the Worker or the browser.
+    holidayCountry: VN
+    # Extra dates by hand, on top of the calendar above.
+    holidayDates: []
+    # The handover hours on a holiday: this shop opens a short afternoon. [] would close the day.
+    holidayWindows: [{start: "14:00", end: "18:00"}]
+
+  # A returned item is washed and pressed overnight: back by 18:00 and it is ready at 09:00 the next
+  # morning; later than that and the care waits for the following night.
+  turnaround:
+    strategy: overnight
+    returnCutoff: "18:00"
+    readyNextDayAt: "09:00"
+
+  # Try-on visits: the customer comes at an agreed time, tries the item on and hands it straight
+  # back. It holds one item for minutes + bufferMinutes and is free of charge.
+  fitting:
+    enabled: true
+    minutes: 30
+    bufferMinutes: 15
+
+  # The store's rental terms, one per line. Shown above the consent box on the booking form and
+  # added to the confirmation message staff send.
+  policy:
+    vi: |
+      Cửa hàng giữ tiền cọc hoặc giấy tờ tùy thân trong thời gian thuê.
+      Trả trễ sẽ tính thêm phí theo thời gian.
+      Nếu sản phẩm hư hỏng, khách thanh toán chi phí sửa chữa hoặc giá trị sản phẩm.
+    en: |
+      A deposit or an identity document is held while you rent.
+      If a return is late, the extra time is charged.
+      If an item is damaged, you pay for its repair or its value.
+    ja: |
+      レンタル中は保証金または本人確認書類をお預かりします。
+      返却が遅れた場合は、超過分を追加で申し受けます。
+      破損した場合は、修理費または商品代金をご負担いただきます。
+    zh: |
+      租赁期间需交付押金或身份证件。
+      逾期归还将按超时时间收取费用。
+      如有损坏，需承担维修费用或商品价值。
+
+admin:
+  defaultLanguage: en
+  # The day's pick-ups, fittings and returns, pushed to subscribed admin devices (needs VAPID keys).
+  digest:
+    today: "08:30"
+    tomorrow: "19:30"

@@ -29,6 +29,7 @@
     "dev": "npm run build && npm run db:migrate:local && wrangler dev",
     "build": "node scripts/build.mjs",
     "build:pho-demo": "node scripts/build-pho-demo.mjs",
+    "build:timed-rental": "node scripts/build-timed-rental.mjs",
     "generate:catalog": "node scripts/generate-catalog.mjs",
     "generate:seed": "node scripts/generate-seed.mjs",
     "generate:icons": "node scripts/generate-icons.mjs",
