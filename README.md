@@ -39,6 +39,18 @@ Nothing talks to WhatsApp, Zalo or Messenger APIs. Staff open a click-to-chat li
 
 ## Screenshots
 
+Rental, straight from this repository: `npm run dev` with the sample catalog and `seed/demo.sql`.
+
+<p align="center">
+  <img src="docs/screenshot-rental.png" alt="Rental storefront: the sample catalog with live stock and a date search" width="480">
+  <img src="docs/screenshot-rental-admin-timeline.png" alt="Admin availability timeline: what each item is doing over the next 7 days" width="480">
+</p>
+<p align="center">
+  <img src="docs/screenshot-rental-booking.png" alt="Timed rental booking: rent or try-on, dates, rental length and a pick-up time" width="380">
+</p>
+
+The booking dialog above asks for a pick-up time because the store configured handover hours; without `booking.handoff` it asks for whole days instead. Two real deployments follow — their branding, artwork and catalogs are their own and are not part of Core.
+
 <p align="center">
   <img src="docs/screenshot-flower.png" alt="Hana Hiên storefront demo (sale / pre-order)" width="480">
   <img src="docs/screenshot-pho.png" alt="Phở Góc Phố storefront demo (sale / pre-order)" width="480">
